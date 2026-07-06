@@ -82,8 +82,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database - Compatible Render + Neon
-# Si DATABASE_URL est défini (Render/Neon), on l'utilise
-# Sinon, on utilise les variables classiques (développement local)
 DATABASE_URL = config('DATABASE_URL', default=None)
 
 if DATABASE_URL:
@@ -94,9 +92,6 @@ if DATABASE_URL:
             conn_max_age=600,
             engine='django.contrib.gis.db.backends.postgis'
         )
-    }
-    # Utiliser psycopg (v3) pour Python 3.14
-    DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
     }
 else:
     # Développement local
