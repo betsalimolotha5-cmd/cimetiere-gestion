@@ -95,6 +95,9 @@ if DATABASE_URL:
             engine='django.contrib.gis.db.backends.postgis'
         )
     }
+    # Utiliser psycopg (v3) pour Python 3.14
+    DATABASES['default']['ENGINE'] = 'django.contrib.gis.db.backends.postgis'
+    }
 else:
     # Développement local
     DATABASES = {

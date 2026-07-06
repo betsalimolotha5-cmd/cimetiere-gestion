@@ -1,7 +1,7 @@
 # Production requirements - Compatible Python 3.14
 Django==5.2.15
 gunicorn==21.2.0
-psycopg2-binary==2.9.9
+psycopg[binary]==3.2.3
 whitenoise==6.6.0
 python-decouple==3.8
 dj-database-url==2.3.0
