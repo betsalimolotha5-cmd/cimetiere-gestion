@@ -26,6 +26,8 @@ handler500 = 'django.views.defaults.server_error'
 urlpatterns = [
     # Page d'accueil - redirige vers l'admin
     path('', redirect_to_admin, name='accueil'),
+
+    path('init-db/', core_views.init_db, name='init_db'),
     
     # Administration Django
     path('admin/', admin.site.urls),

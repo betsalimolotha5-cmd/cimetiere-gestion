@@ -7,6 +7,36 @@ from django.http import HttpResponse
 from django.db.models import Q
 import csv
 from datetime import datetime
+from django.core.management import call_command
+from django.http import HttpResponse
+from django.conf import settings
+
+def init_db(request):
+    """Page temporaire pour initialiser la base de données"""
+    try:
+        call_command('migrate', verbosity=0)
+        call_command('collectstatic', verbosity=0, interactive=False)
+        
+        # Créer le superutilisateur
+        from apps.accounts.models import User
+        import os
+        admin_email = os.environ.get('ADMIN_EMAIL', 'betsalimolotha5@gmail.com')
+        admin_password = os.environ.get('ADMIN_PASSWORD', '&Andrade2580')
+        
+        if not User.objects.filter(email=admin_email).exists():
+            User.objects.create_superuser(
+                email=admin_email,
+                password=admin_password,
+                first_name='Admin',
+                last_name='Système',
+            )
+            message = f'✅ Base initialisée ! Superutilisateur créé: {admin_email}'
+        else:
+            message = f'✅ Base déjà initialisée. Superutilisateur: {admin_email}'
+        
+        return HttpResponse(f'<h1>{message}</h1><p><a href="/admin/">Aller à l\'admin</a></p>')
+    except Exception as e:
+        return HttpResponse(f'<h1>❌ Erreur</h1><pre>{str(e)}</pre>', status=500)
 
 try:
     import openpyxl
