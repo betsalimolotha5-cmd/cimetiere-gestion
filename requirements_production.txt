@@ -1,0 +1,30 @@
+# Production requirements pour Render
+# Minimaliste pour déploiement rapide
+
+Django==5.2.15
+gunicorn==21.2.0
+psycopg2-binary==2.9.9
+whitenoise==6.6.0
+python-decouple==3.8
+dj-database-url==2.3.0
+
+# API REST
+djangorestframework==3.17.1
+drf-spectacular==0.29.0
+django-filter==25.2
+django-cors-headers==4.3.1
+
+# MFA
+pyotp==2.9.0
+qrcode==7.4.2
+
+# PDF
+weasyprint==60.2
+reportlab==4.4.3
+
+# Excel
+openpyxl==3.1.2
+
+# Utils
+Pillow==10.2.0
+python-dateutil==2.8.2
