@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carte Interactive du Cimetière - Portail Client</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .logo h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .logo p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            color: #7f8c8d;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-card.disponibles .number {
+            color: #27ae60;
+        }
+        
+        .map-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+        }
+        
+        .map-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .map-header h2 {
+            color: #2c3e50;
+            font-size: 22px;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+        
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        #map {
+            height: 600px;
+            border-radius: 10px;
+            border: 3px solid #ecf0f1;
+            z-index: 1;
+        }
+        
+        .info-panel {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #7f8c8d;
+            text-align: center;
+        }
+        
+        .info-panel strong {
+            color: #2c3e50;
+        }
+        
+        /* Popup Leaflet */
+        .popup-content {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-width: 220px;
+        }
+        
+        .popup-content h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 16px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+        }
+        
+        .popup-content p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .popup-content .statut-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 11px;
+            margin-top: 8px;
+            color: white;
+            text-transform: uppercase;
+        }
+        
+        .popup-content .btn-reserver {
+            display: block;
+            margin-top: 12px;
+            padding: 8px 16px;
+            background: #27ae60;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+        
+        .popup-content .btn-reserver:hover {
+            background: #229954;
+        }
+        
+        .popup-content .btn-disabled {
+            display: block;
+            margin-top: 12px;
+            padding: 8px 16px;
+            background: #95a5a6;
+            color: white;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: not-allowed;
+        }
+        
+        /* Messages */
+        .messages {
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .message.error {
+            color: #c33;
+            border-left: 4px solid #c33;
+        }
+        
+        .message.success {
+            color: #3c3;
+            border-left: 4px solid #3c3;
+        }
+        
+        .message.warning {
+            color: #d63031;
+            border-left: 4px solid #fdcb6e;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            padding: 20px;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            #map {
+                height: 400px;
+            }
+            .logo h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>🏛️ Cimetière de Pointe-Noire</h1>
+                <p>Consultez la disponibilité des caveaux en temps réel</p>
+            </div>
+            <div class="auth-buttons">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'mes_reservations' %}" class="btn btn-outline">📋 Mes réservations</a>
+                    <a href="/admin/" class="btn btn-outline">🏠 Accueil</a>
+                    <a href="{% url 'logout' %}" class="btn btn-primary">🚪 Déconnexion</a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-primary">🔐 Connexion</a>
+                {% endif %}
+            </div>
+        </header>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <h3>Zones</h3>
+                <div class="number">{{ nombre_zones }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>Total Caveaux</h3>
+                <div class="number">{{ nombre_caveaux }}</div>
+            </div>
+            <div class="stat-card disponibles">
+                <h3>Disponibles</h3>
+                <div class="number">{{ nombre_disponibles }}</div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div class="map-header">
+                <h2>🗺️ Carte Interactive du Cimetière</h2>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #27ae60;"></div>
+                        <span>Disponible</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f39c12;"></div>
+                        <span>Réservé</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #e74c3c;"></div>
+                        <span>Occupé</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #95a5a6;"></div>
+                        <span>Non exploitable</span>
+                    </div>
+                </div>
+            </div>
+            <div id="map"></div>
+            <div class="info-panel">
+                💡 <strong>Cliquez sur un caveau</strong> pour voir ses détails. 
+                {% if user.is_authenticated %}
+                    Les caveaux verts sont disponibles à la réservation.
+                {% else %}
+                    <a href="{% url 'login' %}" style="color: #667eea; font-weight: bold;">Connectez-vous</a> pour réserver un caveau.
+                {% endif %}
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2026 Gestion du Cimetière - Portail citoyen</p>
+        </footer>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Variables globales
+        const userAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+        
+        // Initialiser la carte centrée sur Pointe-Noire, Congo
+        const map = L.map('map').setView([-4.7696, 11.8664], 16);
+        
+        // Fond de carte OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Charger les données de la carte
+        fetch('{% url "api_carte_publique" %}')
+            .then(response => response.json())
+            .then(data => {
+                let markersCount = 0;
+                const bounds = [];
+                
+                data.caveaux.forEach(caveau => {
+                    let lat, lng;
+                    
+                    // Récupérer les coordonnées depuis l'objet position
+                    if (caveau.position && typeof caveau.position === 'object') {
+                        lat = parseFloat(caveau.position.lat);
+                        lng = parseFloat(caveau.position.lng);
+                    } else if (caveau.position && typeof caveau.position === 'string') {
+                        const coords = parseCoords(caveau.position);
+                        if (coords) {
+                            lat = coords[0];
+                            lng = coords[1];
+                        }
+                    }
+                    
+                    // Si pas de coordonnées, on génère une position dans une grille
+                    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                        const index = markersCount;
+                        const row = Math.floor(index / 10);
+                        const col = index % 10;
+                        lat = -4.7696 + (row * 0.0003);
+                        lng = 11.8664 + (col * 0.0003);
+                    }
+                    
+                    bounds.push([lat, lng]);
+                    
+                    // Créer le marqueur avec la couleur du statut
+                    const marker = L.circleMarker([lat, lng], {
+                        radius: 10,
+                        fillColor: caveau.couleur,
+                        color: '#fff',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.85
+                    }).addTo(map);
+                    
+                    // Contenu du popup
+                    let popupContent = `
+                        <div class="popup-content">
+                            <h3>⚰️ Caveau ${caveau.code}</h3>
+                            <p><strong>Zone :</strong> ${caveau.zone || 'Non définie'}</p>
+                            <p><strong>Type :</strong> ${caveau.type_caveau}</p>
+                            <p><strong>Prix :</strong> ${Number(caveau.prix).toLocaleString()} FCFA</p>
+                            <span class="statut-badge" style="background: ${caveau.couleur};">
+                                ${caveau.statut_affiche}
+                            </span>
+                    `;
+                    
+                    // Bouton de réservation (uniquement si connecté et caveau réservable)
+                    if (userAuthenticated && caveau.reservable) {
+                        popupContent += `
+                            <a href="/portal/reservation/${caveau.id}/" class="btn-reserver">
+                                📝 Réserver ce caveau
+                            </a>
+                        `;
+                    } else if (!userAuthenticated && caveau.reservable) {
+                        popupContent += `
+                            <a href="{% url 'login' %}" class="btn-reserver" style="background: #667eea;">
+                                🔐 Connectez-vous pour réserver
+                            </a>
+                        `;
+                    } else if (!caveau.reservable) {
+                        popupContent += `
+                            <div class="btn-disabled">Non réservable</div>
+                        `;
+                    }
+                    
+                    popupContent += '</div>';
+                    
+                    marker.bindPopup(popupContent);
+                    markersCount++;
+                });
+                
+                // Ajuster la vue pour afficher tous les marqueurs
+                if (bounds.length > 0) {
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            })
+            .catch(error => {
+                console.error('Erreur chargement carte:', error);
+                alert('Erreur lors du chargement de la carte.');
+            });
+        
+        // Fonction pour parser les coordonnées au format string
+        function parseCoords(coordString) {
+            if (!coordString) return null;
+            
+            if (typeof coordString === 'string') {
+                const parts = coordString.split(',').map(c => parseFloat(c.trim()));
+                if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                    return parts;
+                }
+            }
+            return null;
+        }
+    </script>
+</body>
+</html>

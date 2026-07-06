@@ -1,0 +1,224 @@
+# ============================================
+# Configuration moderne du projet Python
+# Application de Gestion de Cimetière
+# ============================================
+# Remplace setup.py et setup.cfg
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# === MÉTADONNÉES DU PROJET ===
+[project]
+name = "cimetiere-gestion"
+version = "1.0.0"
+description = "Système complet de gestion numérique des cimetières avec cartographie interactive, réservations en ligne et facturation automatisée"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "MVIBUNDULU Gaëtan", email = "mvibundulugaetan1@gmail.com"}
+]
+keywords = [
+    "django",
+    "cimetiere",
+    "gestion",
+    "cartographie",
+    "flet",
+    "postgis"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 5.0",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business",
+]
+
+# === DÉPENDANCES PRINCIPALES ===
+dependencies = [
+    "Django>=5.0,<6.0",
+    "django-cors-headers>=4.3",
+    "django-ninja>=1.1",
+    "pydantic>=2.5",
+    "psycopg2-binary>=2.9",
+    "pyotp>=2.9",
+    "cryptography>=41.0",
+    "python-decouple>=3.8",
+    "python-dotenv>=1.0",
+    "django-anymail[mailgun]>=10.2",
+    "reportlab>=4.0",
+    "WeasyPrint>=60.2",
+    "Pillow>=10.2",
+    "requests>=2.31",
+    "python-dateutil>=2.8",
+    "flet>=0.19",
+    "structlog>=23.2",
+    "gunicorn>=21.2",
+    "whitenoise>=6.6",
+]
+
+# === DÉPENDANCES OPTIONNELLES ===
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-django>=4.7",
+    "pytest-cov>=4.1",
+    "coverage>=7.4",
+    "django-debug-toolbar>=4.2",
+    "ipython>=8.20",
+    "black>=24.0",
+    "isort>=5.13",
+    "ruff>=0.1",
+    "mypy>=1.8",
+    "pre-commit>=3.6",
+]
+
+# === URLS DU PROJET ===
+[project.urls]
+Homepage = "https://github.com/votre-username/cimetiere-gestion"
+Documentation = "https://github.com/votre-username/cimetiere-gestion#readme"
+Repository = "https://github.com/votre-username/cimetiere-gestion"
+Issues = "https://github.com/votre-username/cimetiere-gestion/issues"
+
+# === CONFIGURATION BLACK (Formateur de code) ===
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | migrations
+  | __pycache__
+  | build
+  | dist
+)/
+'''
+
+# === CONFIGURATION ISORT (Tri des imports) ===
+[tool.isort]
+profile = "black"
+line_length = 100
+known_django = "django"
+known_first_party = ["apps", "frontend", "config"]
+sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+import_heading_django = "DJANGO"
+import_heading_thirdparty = "THIRD PARTY"
+import_heading_firstparty = "FIRST PARTY"
+import_heading_localfolder = "LOCAL"
+
+# === CONFIGURATION RUFF (Linter rapide) ===
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # Erreurs pycodestyle
+    "W",   # Warnings pycodestyle
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # Line too long (géré par black)
+    "B008",  # Do not perform function calls in argument defaults (Django OK)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Unused imports OK dans __init__
+"migrations/*" = ["E501", "N806"]
+"tests/*" = ["S101"]  # assert OK dans les tests
+
+# === CONFIGURATION MYPY (Type checking) ===
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "migrations.*"
+ignore_errors = true
+
+# === CONFIGURATION COVERAGE ===
+[tool.coverage.run]
+source = ["apps", "frontend"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "manage.py",
+    "config/wsgi.py",
+    "config/asgi.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+]
+show_missing = true
+fail_under = 70
+
+# === CONFIGURATION PYTEST ===
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+testpaths = ["tests"]
+addopts = "-v --strict-markers --tb=short --color=yes --nomigrations --reuse-db"
+markers = [
+    "slow: tests lents (deselect with '-m \"not slow\"')",
+    "integration: tests d'intégration",
+    "unit: tests unitaires",
+    "smoke: tests rapides de vérification",
+    "api: tests de l'API",
+    "frontend: tests du frontend Flet",
+]
+
+# === CONFIGURATION PRE-COMMIT ===
+[tool.pre-commit]
+repos = [
+    {repo = "https://github.com/pre-commit/pre-commit-hooks", rev = "v4.5.0", hooks = [
+        {id = "trailing-whitespace"},
+        {id = "end-of-file-fixer"},
+        {id = "check-yaml"},
+        {id = "check-added-large-files"},
+    ]},
+    {repo = "https://github.com/psf/black", rev = "24.1.0", hooks = [
+        {id = "black"},
+    ]},
+    {repo = "https://github.com/pycqa/isort", rev = "5.13.2", hooks = [
+        {id = "isort"},
+    ]},
+    {repo = "https://github.com/astral-sh/ruff-pre-commit", rev = "v0.1.14", hooks = [
+        {id = "ruff", args = ["--fix"]},
+    ]},
+]

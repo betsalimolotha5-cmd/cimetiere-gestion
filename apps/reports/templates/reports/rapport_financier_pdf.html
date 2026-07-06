@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        h2 {
+            color: #2c3e50;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .period {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background: #2c3e50;
+            color: white;
+            padding: 8px;
+            text-align: left;
+        }
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .stat-box {
+            display: inline-block;
+            width: 30%;
+            padding: 15px;
+            margin: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+        }
+        .stat-number {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ title }}</h1>
+        <p class="period">Du {{ date_debut|date:"d/m/Y" }} au {{ date_fin|date:"d/m/Y" }}</p>
+    </div>
+
+    <h2>Statistiques générales</h2>
+    <div>
+        <div class="stat-box">
+            <div class="stat-number">{{ rapport.total_factures }}</div>
+            <div class="stat-label">Factures émises</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">{{ rapport.total_ttc|floatformat:0 }} FCFA</div>
+            <div class="stat-label">Total facturé</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">{{ rapport.total_paye|floatformat:0 }} FCFA</div>
+            <div class="stat-label">Total encaissé</div>
+        </div>
+    </div>
+    <div>
+        <div class="stat-box">
+            <div class="stat-number">{{ rapport.total_restant|floatformat:0 }} FCFA</div>
+            <div class="stat-label">Restant dû</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">{{ rapport.nb_paiements }}</div>
+            <div class="stat-label">Paiements</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number">{{ rapport.factures_en_retard }}</div>
+            <div class="stat-label">En retard</div>
+        </div>
+    </div>
+
+    {% if rapport.paiements_par_mode %}
+    <h2>Paiements par mode</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Mode</th>
+                <th>Nombre</th>
+                <th>Montant total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mode in rapport.paiements_par_mode %}
+            <tr>
+                <td>{{ mode.mode_paiement }}</td>
+                <td>{{ mode.count }}</td>
+                <td>{{ mode.total|floatformat:0 }} FCFA</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if rapport.evolution_mensuelle %}
+    <h2>Évolution mensuelle</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Mois</th>
+                <th>Factures</th>
+                <th>Montant total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mois in rapport.evolution_mensuelle %}
+            <tr>
+                <td>{{ mois.mois|date:"F Y" }}</td>
+                <td>{{ mois.count }}</td>
+                <td>{{ mois.total|floatformat:0 }} FCFA</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</body>
+</html>

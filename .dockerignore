@@ -1,0 +1,87 @@
+# ============================================
+# Fichiers ignorés par Docker
+# Évite de copier des fichiers inutiles dans l'image
+# ============================================
+
+# === ENVIRONNEMENT VIRTUEL ===
+venv/
+env/
+.venv/
+ENV/
+
+# === VARIABLES D'ENVIRONNEMENT (SENSIBLES) ===
+.env
+.env.local
+.env.production
+.env.*.local
+
+# === GIT ===
+.git/
+.gitignore
+.gitattributes
+
+# === IDE ET ÉDITEURS ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# === PYTHON ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# === DJANGO ===
+*.log
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+collected_static/
+
+# === LOGS ===
+logs/
+*.log
+
+# === TESTS ET COUVERTURE ===
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+.tox/
+.nox/
+coverage.xml
+
+# === DOCUMENTATION ===
+docs/_build/
+*.md
+!README.md
+
+# === DOCKER ===
+docker-compose.override.yml
+Dockerfile.dev
+
+# === SYSTÈME ===
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# === FRONTEND (optionnel si build séparé) ===
+node_modules/
+package-lock.json
+yarn-error.log
+
+# === AUTRES ===
+*.bak
+*.tmp
+*.temp
+.cache
+.mypy_cache/
+.ruff_cache/

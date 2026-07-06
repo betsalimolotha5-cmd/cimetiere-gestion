@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réservation du caveau {{ caveau.code }} - Gestion Cimetière</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 15px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 26px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .caveau-info {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .caveau-info h2 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .caveau-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .caveau-detail {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .caveau-detail .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            opacity: 0.9;
+            margin-bottom: 4px;
+        }
+        
+        .caveau-detail .value {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .form-container {
+            background: white;
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+        }
+        
+        .form-section h3 {
+            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 18px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .form-group label .required {
+            color: #e74c3c;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+        
+        .btn-secondary:hover {
+            background: #d5dbdb;
+        }
+        
+        .messages {
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .message.error {
+            background: #fee;
+            color: #c33;
+            border-left: 4px solid #c33;
+        }
+        
+        .message.success {
+            background: #efe;
+            color: #3c3;
+            border-left: 4px solid #3c3;
+        }
+        
+        .info-box {
+            background: #eaf4fc;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+        
+        .info-box strong {
+            color: #2980b9;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .btn-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="{% url 'carte_publique' %}" class="back-link">← Retour à la carte</a>
+            <h1>📝 Demande de réservation</h1>
+            <p class="subtitle">Remplissez le formulaire ci-dessous pour réserver ce caveau</p>
+        </header>
+
+        <div class="caveau-info">
+            <h2>⚰️ Caveau {{ caveau.code }}</h2>
+            <div class="caveau-details">
+                <div class="caveau-detail">
+                    <div class="label">Zone</div>
+                    <div class="value">{{ caveau.zone.nom|default:"Non définie" }}</div>
+                </div>
+                <div class="caveau-detail">
+                    <div class="label">Type</div>
+                    <div class="value">{{ caveau.get_type_caveau_display }}</div>
+                </div>
+                <div class="caveau-detail">
+                    <div class="label">Prix concession</div>
+                    <div class="value">{{ caveau.prix_concession|default:"0" }} FCFA</div>
+                </div>
+            </div>
+        </div>
+
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="form-container">
+            <div class="info-box">
+                <strong>ℹ️ Information :</strong> Votre demande sera transmise à l'administration pour validation. 
+                Vous recevrez une notification par email une fois la demande traitée.
+            </div>
+
+            <form method="post" action="{% url 'reservation_form' caveau.id %}">
+                {% csrf_token %}
+
+                <div class="form-section">
+                    <h3>👤 Informations sur le défunt</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="defunt_nom">
+                                Nom du défunt <span class="required">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="defunt_nom" 
+                                name="defunt_nom" 
+                                required
+                                placeholder="Ex: MBOUITY"
+                                value="{{ request.POST.defunt_nom|default:'' }}"
+                            >
+                        </div>
+                        <div class="form-group">
+                            <label for="defunt_prenom">
+                                Prénom du défunt <span class="required">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="defunt_prenom" 
+                                name="defunt_prenom" 
+                                required
+                                placeholder="Ex: Jean"
+                                value="{{ request.POST.defunt_prenom|default:'' }}"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date_deces">
+                            Date de décès <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="date" 
+                            id="date_deces" 
+                            name="date_deces" 
+                            required
+                            value="{{ request.POST.date_deces|default:'' }}"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>📞 Vos coordonnées</h3>
+                    
+                    <div class="form-group">
+                        <label for="lien_parente">
+                            Lien de parenté avec le défunt <span class="required">*</span>
+                        </label>
+                        <select id="lien_parente" name="lien_parente" required>
+                            <option value="">-- Sélectionnez --</option>
+                            <option value="Conjoint(e)" {% if request.POST.lien_parente == 'Conjoint(e)' %}selected{% endif %}>Conjoint(e)</option>
+                            <option value="Fils/Fille" {% if request.POST.lien_parente == 'Fils/Fille' %}selected{% endif %}>Fils/Fille</option>
+                            <option value="Père/Mère" {% if request.POST.lien_parente == 'Père/Mère' %}selected{% endif %}>Père/Mère</option>
+                            <option value="Frère/Sœur" {% if request.POST.lien_parente == 'Frère/Sœur' %}selected{% endif %}>Frère/Sœur</option>
+                            <option value="Autre membre de la famille" {% if request.POST.lien_parente == 'Autre membre de la famille' %}selected{% endif %}>Autre membre de la famille</option>
+                            <option value="Mandataire" {% if request.POST.lien_parente == 'Mandataire' %}selected{% endif %}>Mandataire</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telephone_contact">
+                            Téléphone de contact <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="telephone_contact" 
+                            name="telephone_contact" 
+                            required
+                            placeholder="Ex: +242 06 910 37 15"
+                            value="{{ request.POST.telephone_contact|default:'' }}"
+                        >
+                    </div>
+                </div>
+
+                <div class="btn-container">
+                    <a href="{% url 'carte_publique' %}" class="btn btn-secondary">
+                        Annuler
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        ✓ Soumettre la demande
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

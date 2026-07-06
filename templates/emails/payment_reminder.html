@@ -1,0 +1,25 @@
+{% extends "emails/base.html" %}
+{% block title %}Rappel de paiement{% endblock %}
+{% block content %}
+<h2>⚠️ Rappel de paiement</h2>
+<p>Bonjour {{ client.get_full_name|default:client.email }},</p>
+<p>Votre facture <strong>{{ facture.numero_facture }}</strong> est en retard de paiement.</p>
+<div class="warning-box">
+    <strong>📅 Informations importantes</strong>
+    <table style="margin-top: 10px;">
+        <tr><td>N° Facture</td><td>{{ facture.numero_facture }}</td></tr>
+        <tr><td>Date d'échéance</td><td><strong style="color: #F44336;">{{ facture.date_echeance|date:"d/m/Y" }}</strong></td></tr>
+        <tr><td>Jours de retard</td><td><strong>{{ jours_retard }} jour(s)</strong></td></tr>
+        <tr><td>Montant restant</td><td><strong style="color: #F44336; font-size: 18px;">{{ facture.montant_restant|floatformat:2 }} FC</strong></td></tr>
+    </table>
+</div>
+<h3>💳 Modes de paiement</h3>
+<ul>
+    <li>📱 Mobile Money</li>
+    <li>📱 Airtel Money</li>
+    <li>💵 Espèces (au bureau)</li>
+    <li>🏦 Virement bancaire</li>
+</ul>
+<p><strong>Référence :</strong> {{ facture.numero_facture }}</p>
+<p>Cordialement,<br>Le service de facturation</p>
+{% endblock %}

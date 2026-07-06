@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Facture {{ facture.numero_facture }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.5;
+            font-size: 11pt;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 3px solid #2E7D32;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .company-info h1 {
+            color: #2E7D32;
+            margin: 0;
+            font-size: 24pt;
+        }
+        .company-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .invoice-info {
+            text-align: right;
+        }
+        .invoice-title {
+            font-size: 28pt;
+            color: #2E7D32;
+            margin: 0;
+            font-weight: bold;
+        }
+        .invoice-number {
+            font-size: 14pt;
+            color: #666;
+            margin: 5px 0;
+        }
+        .parties {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .party {
+            width: 45%;
+        }
+        .party h3 {
+            color: #2E7D32;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        .party p {
+            margin: 3px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table thead {
+            background-color: #2E7D32;
+            color: white;
+        }
+        table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+        }
+        table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .totals {
+            margin-top: 20px;
+            width: 50%;
+            margin-left: auto;
+        }
+        .totals table {
+            margin: 0;
+        }
+        .totals td {
+            padding: 8px 12px;
+        }
+        .total-final {
+            background-color: #2E7D32 !important;
+            color: white !important;
+            font-size: 14pt;
+            font-weight: bold;
+        }
+        .payment-info {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-left: 4px solid #2E7D32;
+        }
+        .payment-info h3 {
+            margin-top: 0;
+            color: #2E7D32;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 9pt;
+            color: #999;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+        .status-paid {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .status-unpaid {
+            background-color: #FF9800;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-info">
+            <h1>🏛️ CIMETIÈRE</h1>
+            <p><strong>Service de Gestion Funéraire</strong></p>
+            <p>Adresse du cimetière</p>
+            <p>Tél : +243 XXX XXX XXX</p>
+            <p>Email : contact@cimetiere.local</p>
+        </div>
+        <div class="invoice-info">
+            <h2 class="invoice-title">FACTURE</h2>
+            <p class="invoice-number"><strong>N° {{ facture.numero_facture }}</strong></p>
+            <p>Date d'émission : {{ facture.date_emission|date:"d/m/Y" }}</p>
+            <p>Date d'échéance : <strong>{{ facture.date_echeance|date:"d/m/Y" }}</strong></p>
+            <p>
+                <span class="status-badge {% if facture.est_payee %}status-paid{% else %}status-unpaid{% endif %}">
+                    {{ facture.get_statut_display }}
+                </span>
+            </p>
+        </div>
+    </div>
+
+    <div class="parties">
+        <div class="party">
+            <h3>Émetteur</h3>
+            <p><strong>Cimetière Municipal</strong></p>
+            <p>Service de gestion funéraire</p>
+            <p>Adresse complète</p>
+        </div>
+        <div class="party">
+            <h3>Client</h3>
+            <p><strong>{{ client.get_full_name }}</strong></p>
+            <p>{{ client.email }}</p>
+            <p>{{ client.phone }}</p>
+            <p>{{ client.address|default:"Adresse non renseignée" }}</p>
+        </div>
+    </div>
+
+    <h3 style="color: #2E7D32;">Détails de la concession</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Quantité</th>
+                <th>Prix unitaire</th>
+                <th style="text-align: right;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <strong>Concession {{ concession.get_type_concession_display }}</strong><br>
+                    <small>Caveau {{ concession.caveau.code }} - Zone {{ concession.caveau.zone.nom }}</small>
+                    {% if concession.duree_annees %}<br><small>Durée : {{ concession.duree_annees }} an(s)</small>{% endif %}
+                </td>
+                <td>1</td>
+                <td>{{ facture.montant_ht|floatformat:2 }} FC</td>
+                <td style="text-align: right;">{{ facture.montant_ht|floatformat:2 }} FC</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td>Sous-total HT</td>
+                <td style="text-align: right;">{{ facture.montant_ht|floatformat:2 }} FC</td>
+            </tr>
+            <tr>
+                <td>TVA ({{ facture.taux_tva }}%)</td>
+                <td style="text-align: right;">{{ facture.montant_tva|floatformat:2 }} FC</td>
+            </tr>
+            <tr class="total-final">
+                <td>TOTAL TTC</td>
+                <td style="text-align: right;">{{ facture.montant_total|floatformat:2 }} FC</td>
+            </tr>
+            <tr>
+                <td>Montant payé</td>
+                <td style="text-align: right;">{{ facture.montant_paye|floatformat:2 }} FC</td>
+            </tr>
+            <tr style="background-color: #fff3e0;">
+                <td><strong>RESTE À PAYER</strong></td>
+                <td style="text-align: right;"><strong>{{ facture.montant_restant|floatformat:2 }} FC</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="payment-info">
+        <h3>💳 Modalités de paiement</h3>
+        <p><strong>Mobile Money :</strong> +243 XXX XXX XXX</p>
+        <p><strong>Airtel Money :</strong> +243 XXX XXX XXX</p>
+        <p><strong>Virement bancaire :</strong> [Coordonnées bancaires]</p>
+        <p><strong>Espèces :</strong> Au bureau d'accueil du cimetière</p>
+        <p style="margin-top: 15px;"><strong>Référence à indiquer :</strong> {{ facture.numero_facture }}</p>
+    </div>
+
+    <div class="footer">
+        <p>Cette facture a été générée automatiquement par le système de gestion du cimetière.</p>
+        <p>© 2026 - Service de Gestion Funéraire - Tous droits réservés</p>
+        <p>Pour toute question : support@cimetiere.local | +243 XXX XXX XXX</p>
+    </div>
+</body>
+</html>

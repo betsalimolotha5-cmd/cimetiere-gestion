@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détail Facture {{ facture.numero_facture }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo h1 { color: #2c3e50; font-size: 28px; margin-bottom: 5px; }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-outline {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h2 { color: #2c3e50; margin-bottom: 20px; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .info-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .info-item label {
+            display: block;
+            color: #7f8c8d;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .info-item .value {
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .montants {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .montant-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .montant-row:last-child { border-bottom: none; }
+        .montant-row.total {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e74c3c;
+            border-top: 2px solid #2c3e50;
+            margin-top: 10px;
+            padding-top: 15px;
+        }
+        .statut {
+            padding: 6px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+        }
+        .statut.EMISE { background: #f39c12; }
+        .statut.PAYEE { background: #27ae60; }
+        .statut.PARTIELLEMENT_PAYEE { background: #3498db; }
+        .statut.ANNULEE { background: #95a5a6; }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-action {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            color: white;
+        }
+        .btn-pay { background: #27ae60; }
+        .btn-pdf { background: #3498db; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ecf0f1; }
+        th { background: #f8f9fa; color: #2c3e50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>📄 Facture {{ facture.numero_facture }}</h1>
+            </div>
+            <a href="{% url 'mes_factures' %}" class="btn btn-outline">← Retour</a>
+        </header>
+
+        <div class="content">
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>N° de facture</label>
+                    <div class="value">{{ facture.numero_facture }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Statut</label>
+                    <div class="value">
+                        <span class="statut {{ facture.statut }}">
+                            {{ facture.get_statut_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <label>Date d'émission</label>
+                    <div class="value">{{ facture.date_emission|date:"d/m/Y" }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Date d'échéance</label>
+                    <div class="value">{{ facture.date_echeance|date:"d/m/Y" }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Caveau</label>
+                    <div class="value">{{ facture.concession.caveau.code }} - {{ facture.concession.caveau.zone.nom }}</div>
+                </div>
+                <div class="info-item">
+                    <label>Concessionnaire</label>
+                    <div class="value">{{ facture.client.get_full_name|default:facture.client.email }}</div>
+                </div>
+            </div>
+
+            <div class="montants">
+                <div class="montant-row">
+                    <span>Montant HT</span>
+                    <span>{{ facture.montant_ht|floatformat:0 }} FCFA</span>
+                </div>
+                <div class="montant-row">
+                    <span>TVA ({{ facture.taux_tva }}%)</span>
+                    <span>{{ facture.montant_tva|floatformat:0 }} FCFA</span>
+                </div>
+                <div class="montant-row total">
+                    <span>TOTAL TTC</span>
+                    <span>{{ facture.montant_total|floatformat:0 }} FCFA</span>
+                </div>
+                <div class="montant-row">
+                    <span>Montant payé</span>
+                    <span style="color: #27ae60;">{{ facture.montant_paye|floatformat:0 }} FCFA</span>
+                </div>
+                <div class="montant-row">
+                    <span>Montant restant</span>
+                    <span style="color: #e74c3c;">{{ facture.montant_restant|floatformat:0 }} FCFA</span>
+                </div>
+            </div>
+
+            {% if facture.description %}
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #2c3e50; margin-bottom: 10px;">Description</h3>
+                <p style="color: #555;">{{ facture.description }}</p>
+            </div>
+            {% endif %}
+
+            {% if paiements %}
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #2c3e50; margin-bottom: 10px;">Historique des paiements</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Montant</th>
+                            <th>Mode</th>
+                            <th>Référence</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paiement in paiements %}
+                        <tr>
+                            <td>{{ paiement.date_paiement|date:"d/m/Y H:i" }}</td>
+                            <td>{{ paiement.montant|floatformat:0 }} FCFA</td>
+                            <td>{{ paiement.get_mode_paiement_display }}</td>
+                            <td>{{ paiement.reference_transaction|default:"-" }}</td>
+                            <td>
+                                <span class="statut {{ paiement.statut }}">
+                                    {{ paiement.get_statut_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <div class="actions">
+                {% if not facture.est_payee and facture.statut != 'ANNULEE' %}
+                <a href="{% url 'payer_facture' facture.id %}" class="btn-action btn-pay">
+                    💳 Payer cette facture
+                </a>
+                {% endif %}
+                {% if facture.fichier_pdf %}
+                <a href="{{ facture.fichier_pdf.url }}" class="btn-action btn-pdf" target="_blank">
+                    📄 Télécharger PDF
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

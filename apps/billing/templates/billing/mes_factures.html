@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Factures - Gestion Cimetière</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .logo h1 {
+            color: #2c3e50;
+            font-size: 26px;
+            margin-bottom: 5px;
+        }
+        
+        .logo p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .page-title {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        
+        .page-title h2 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .page-title p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .factures-list {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .facture-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            border-left: 6px solid #95a5a6;
+        }
+        
+        .facture-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .facture-card.BROUILLON {
+            border-left-color: #95a5a6;
+        }
+        
+        .facture-card.EMISE {
+            border-left-color: #3498db;
+        }
+        
+        .facture-card.PARTIELLEMENT_PAYEE {
+            border-left-color: #f39c12;
+        }
+        
+        .facture-card.PAYEE {
+            border-left-color: #27ae60;
+        }
+        
+        .facture-card.ANNULEE {
+            border-left-color: #e74c3c;
+        }
+        
+        .facture-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .facture-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .facture-title .icon {
+            font-size: 32px;
+        }
+        
+        .facture-title h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 3px;
+        }
+        
+        .facture-title .numero {
+            color: #7f8c8d;
+            font-size: 13px;
+        }
+        
+        .statut-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: white;
+        }
+        
+        .statut-BROUILLON {
+            background: #95a5a6;
+        }
+        
+        .statut-EMISE {
+            background: #3498db;
+        }
+        
+        .statut-PARTIELLEMENT_PAYEE {
+            background: #f39c12;
+        }
+        
+        .statut-PAYEE {
+            background: #27ae60;
+        }
+        
+        .statut-ANNULEE {
+            background: #e74c3c;
+        }
+        
+        .facture-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .detail-item .label {
+            font-size: 11px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        
+        .detail-item .value {
+            font-size: 15px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        .facture-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .btn-payer {
+            background: #27ae60;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-payer:hover {
+            background: #229954;
+            transform: translateY(-2px);
+        }
+        
+        .btn-detail {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-detail:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .empty-state {
+            background: white;
+            padding: 60px 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            color: #2c3e50;
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            color: #7f8c8d;
+            margin-bottom: 25px;
+            font-size: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .facture-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>💰 Mes Factures</h1>
+                <p>Consultez et payez vos factures en ligne</p>
+            </div>
+            <div class="nav-buttons">
+                <a href="{% url 'carte_publique' %}" class="btn btn-outline">🗺️ Carte</a>
+                <a href="{% url 'mes_reservations' %}" class="btn btn-outline">📋 Mes réservations</a>
+                <a href="{% url 'logout' %}" class="btn btn-primary">🚪 Déconnexion</a>
+            </div>
+        </header>
+
+        <div class="page-title">
+            <h2>📄 Historique de vos factures</h2>
+            <p>Vous avez <strong>{{ factures|length }}</strong> facture(s) au total</p>
+        </div>
+
+        {% if factures %}
+            <div class="factures-list">
+                {% for facture in factures %}
+                <div class="facture-card {{ facture.statut }}">
+                    <div class="facture-header">
+                        <div class="facture-title">
+                            <span class="icon">📄</span>
+                            <div>
+                                <h3>Facture {{ facture.numero_facture }}</h3>
+                                <span class="numero">Caveau {{ facture.concession.caveau.code }} - Zone {{ facture.concession.caveau.zone.nom|default:"Non définie" }}</span>
+                            </div>
+                        </div>
+                        <span class="statut-badge statut-{{ facture.statut }}">
+                            {{ facture.get_statut_display }}
+                        </span>
+                    </div>
+
+                    <div class="facture-details">
+                        <div class="detail-item">
+                            <span class="label">Date d'émission</span>
+                            <span class="value">{{ facture.date_emission|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Date d'échéance</span>
+                            <span class="value">{{ facture.date_echeance|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Montant total</span>
+                            <span class="value">{{ facture.montant_total|floatformat:2 }} FCFA</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Montant payé</span>
+                            <span class="value">{{ facture.montant_paye|floatformat:2 }} FCFA</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Montant restant</span>
+                            <span class="value" style="color: {% if facture.montant_restant > 0 %}#e74c3c{% else %}#27ae60{% endif %}; font-weight: bold;">
+                                {{ facture.montant_restant|floatformat:2 }} FCFA
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="facture-footer">
+                        <div>
+                            {% if facture.est_en_retard %}
+                                <span style="color: #e74c3c; font-weight: bold;">
+                                    ⚠️ En retard de {{ facture.jours_retard }} jour(s)
+                                </span>
+                            {% elif facture.est_payee %}
+                                <span style="color: #27ae60; font-weight: bold;">
+                                    ✓ Entièrement payée
+                                </span>
+                            {% else %}
+                                <span style="color: #f39c12;">
+                                    ⏳ Paiement en attente
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <a href="{% url 'facture_detail' facture.id %}" class="btn-detail">
+                                📋 Voir le détail
+                            </a>
+                            {% if not facture.est_payee and facture.statut != 'ANNULEE' %}
+                                <a href="{% url 'paiement_form' facture.id %}" class="btn-payer">
+                                    💳 Payer maintenant
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="icon">📭</div>
+                <h3>Aucune facture pour le moment</h3>
+                <p>Vous n'avez pas encore de facture.</p>
+                <a href="{% url 'carte_publique' %}" class="btn btn-primary">
+                    🗺️ Consulter la carte des caveaux disponibles
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

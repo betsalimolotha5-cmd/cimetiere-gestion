@@ -1,0 +1,33 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Votre code de vérification{% endblock %}
+
+{% block content %}
+<h2>🔐 Code de vérification</h2>
+
+<p>Bonjour {{ user.get_full_name|default:user.email }},</p>
+
+<p>Vous avez demandé à vous connecter à votre compte. Voici votre code de vérification à usage unique :</p>
+
+<div class="code-box">
+    {{ code }}
+</div>
+
+<div class="info-box">
+    <strong>⏰ Important :</strong>
+    <ul>
+        <li>Ce code est valide pendant <strong>5 minutes</strong></li>
+        <li>Ne partagez jamais ce code avec qui que ce soit</li>
+        <li>Si vous n'avez pas demandé ce code, ignorez cet email</li>
+    </ul>
+</div>
+
+<p>Pour votre sécurité, nous vous recommandons de :</p>
+<ul>
+    <li>Ne jamais partager vos identifiants</li>
+    <li>Utiliser un mot de passe unique pour ce service</li>
+    <li>Vous déconnecter après chaque session sur un appareil partagé</li>
+</ul>
+
+<p>Cordialement,<br>L'équipe de gestion du cimetière</p>
+{% endblock %}

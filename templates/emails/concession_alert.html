@@ -1,0 +1,23 @@
+{% extends "emails/base.html" %}
+{% block title %}Alerte concession{% endblock %}
+{% block content %}
+<h2>⏰ Alerte : Concession à renouveler</h2>
+<p>Bonjour {{ user.get_full_name|default:user.email }},</p>
+<p>Votre concession funéraire arrive bientôt à échéance.</p>
+<div class="warning-box">
+    <strong>📋 Détails de votre concession</strong>
+    <table style="margin-top: 10px;">
+        <tr><td>N° de contrat</td><td><strong>{{ concession.numero_contrat }}</strong></td></tr>
+        <tr><td>Caveau</td><td>{{ concession.caveau.code }}</td></tr>
+        <tr><td>Date de fin</td><td><strong style="color: #FF9800;">{{ concession.date_fin|date:"d/m/Y" }}</strong></td></tr>
+        <tr><td>Jours restants</td><td><strong style="color: #FF9800; font-size: 18px;">{{ jours_restants }} jour(s)</strong></td></tr>
+    </table>
+</div>
+<h3>🔄 Comment renouveler ?</h3>
+<ol>
+    <li>Vous rendre au bureau d'accueil</li>
+    <li>Email : renouvellement@cimetiere.local</li>
+    <li>Option "Renouveler" dans votre espace</li>
+</ol>
+<p>Cordialement,<br>L'équipe de gestion du cimetière</p>
+{% endblock %}

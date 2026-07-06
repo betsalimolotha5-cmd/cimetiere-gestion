@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificat de Concession {{ concession.numero_contrat }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            color: #2c2c2c;
+            line-height: 1.6;
+        }
+        .border-frame {
+            border: 3px double #2E7D32;
+            padding: 30px;
+            min-height: 95vh;
+            position: relative;
+        }
+        .inner-border {
+            border: 1px solid #2E7D32;
+            padding: 30px;
+            min-height: 90vh;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #2E7D32;
+            font-size: 28pt;
+            margin: 0;
+            letter-spacing: 3px;
+        }
+        .header h2 {
+            color: #1B5E20;
+            font-size: 18pt;
+            margin: 10px 0;
+            font-style: italic;
+        }
+        .header p {
+            color: #666;
+            margin: 5px 0;
+        }
+        .title {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .title h1 {
+            font-size: 32pt;
+            color: #2E7D32;
+            margin: 0;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            border-top: 2px solid #2E7D32;
+            border-bottom: 2px solid #2E7D32;
+            padding: 15px 0;
+        }
+        .content {
+            font-size: 12pt;
+            text-align: justify;
+            margin: 30px 0;
+        }
+        .content p {
+            margin: 15px 0;
+            text-indent: 30px;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #1B5E20;
+            font-size: 13pt;
+        }
+        .info-table {
+            width: 100%;
+            margin: 30px 0;
+            border-collapse: collapse;
+        }
+        .info-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .info-table td:first-child {
+            font-weight: bold;
+            width: 40%;
+            color: #2E7D32;
+        }
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 60px;
+            padding-top: 30px;
+        }
+        .signature-block {
+            width: 45%;
+            text-align: center;
+        }
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 60px;
+            padding-top: 10px;
+        }
+        .seal {
+            text-align: center;
+            margin: 30px 0;
+            font-style: italic;
+            color: #666;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 9pt;
+            color: #999;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 80pt;
+            color: rgba(46, 125, 50, 0.05);
+            font-weight: bold;
+            letter-spacing: 10px;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="border-frame">
+        <div class="watermark">OFFICIEL</div>
+        <div class="inner-border">
+            
+            <div class="header">
+                <h1>🏛️ CIMETIÈRE MUNICIPAL</h1>
+                <h2>Service de Gestion Funéraire</h2>
+                <p>Document Officiel</p>
+            </div>
+
+            <div class="title">
+                <h1>Certificat de Concession</h1>
+            </div>
+
+            <div class="content">
+                <p>
+                    Nous soussignés, <span class="highlight">Administration du Cimetière Municipal</span>, 
+                    certifions par la présente que la concession funéraire décrite ci-dessous a été 
+                    régulièrement attribuée et enregistrée dans nos registres officiels.
+                </p>
+            </div>
+
+            <table class="info-table">
+                <tr>
+                    <td>Numéro de contrat</td>
+                    <td><strong>{{ concession.numero_contrat }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Type de concession</td>
+                    <td>{{ concession.get_type_concession_display }}</td>
+                </tr>
+                <tr>
+                    <td>Concessionnaire</td>
+                    <td><strong>{{ concession.concessionnaire.get_full_name }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Email du concessionnaire</td>
+                    <td>{{ concession.concessionnaire.email }}</td>
+                </tr>
+                <tr>
+                    <td>Emplacement</td>
+                    <td>
+                        Caveau <strong>{{ concession.caveau.code }}</strong><br>
+                        Zone : {{ concession.caveau.zone.nom }} ({{ concession.caveau.zone.code }})
+                    </td>
+                </tr>
+                <tr>
+                    <td>Dimensions</td>
+                    <td>
+                        {{ concession.caveau.longueur }}m × {{ concession.caveau.largeur }}m × {{ concession.caveau.profondeur }}m
+                    </td>
+                </tr>
+                {% if concession.duree_annees %}
+                <tr>
+                    <td>Durée</td>
+                    <td>{{ concession.duree_annees }} année(s)</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td>Date de début</td>
+                    <td>{{ concession.date_debut|date:"d F Y" }}</td>
+                </tr>
+                {% if concession.date_fin %}
+                <tr>
+                    <td>Date de fin</td>
+                    <td><strong>{{ concession.date_fin|date:"d F Y" }}</strong></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td>Durée</td>
+                    <td><strong>PERPÉTUELLE</strong></td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td>Date de signature</td>
+                    <td>{{ concession.date_signature|date:"d F Y" }}</td>
+                </tr>
+                <tr>
+                    <td>Montant total</td>
+                    <td><strong>{{ concession.montant_total|floatformat:2 }} FC</strong></td>
+                </tr>
+                <tr>
+                    <td>Statut</td>
+                    <td><strong style="color: {% if concession.est_active %}#2E7D32{% else %}#F44336{% endif %};">
+                        {{ concession.get_statut_display }}
+                    </strong></td>
+                </tr>
+            </table>
+
+            <div class="content">
+                <p>
+                    Ce certificat est délivré pour servir et valoir ce que de droit. 
+                    Le concessionnaire s'engage à respecter le règlement intérieur du cimetière 
+                    et à entretenir l'emplacement conformément aux règles en vigueur.
+                </p>
+                <p>
+                    Toute modification, renouvellement ou transmission de cette concession 
+                    doit être signalé à l'administration dans les délais prévus par la réglementation.
+                </p>
+            </div>
+
+            <div class="seal">
+                <p>Fait à [Ville], le {{ concession.date_signature|date:"d F Y" }}</p>
+            </div>
+
+            <div class="signatures">
+                <div class="signature-block">
+                    <div class="signature-line">
+                        <strong>Le Concessionnaire</strong><br>
+                        {{ concession.concessionnaire.get_full_name }}
+                    </div>
+                </div>
+                <div class="signature-block">
+                    <div class="signature-line">
+                        <strong>L'Administrateur</strong><br>
+                        Service de Gestion Funéraire<br>
+                        [Cachet officiel]
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p>Certificat généré automatiquement le {{ now|date:"d/m/Y à H:i" }}</p>
+                <p>Référence unique : {{ concession.reference|default:concession.numero_contrat }}</p>
+                <p>© 2026 - Service de Gestion Funéraire - Document officiel</p>
+                <p>Pour vérifier l'authenticité : support@cimetiere.local</p>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Gestion Cimetière</title>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+        }
+        header h1 { color: #2c3e50; font-size: 26px; margin-bottom: 5px; }
+        header p { color: #7f8c8d; font-size: 14px; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #3498db;
+            text-align: center;
+        }
+        .stat-card.green { border-left-color: #27ae60; }
+        .stat-card.orange { border-left-color: #f39c12; }
+        .stat-card.purple { border-left-color: #9b59b6; }
+        .stat-number { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
+        .stat-label { font-size: 13px; color: #7f8c8d; text-transform: uppercase; font-weight: 600; }
+        
+        .form-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        .form-section h2 {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .alert-success {
+            background: #d4edda;
+            border-left: 4px solid #27ae60;
+            color: #155724;
+        }
+        
+        .info-box {
+            background: #eaf4fc;
+            border-left: 4px solid #3498db;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .info-box h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .info-box p {
+            color: #34495e;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>{{ title }}</h1>
+            <p>Configuration des paramètres généraux du cimetière</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_zones }}</div>
+                <div class="stat-label">Zones configurées</div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-number">{{ total_caveaux }}</div>
+                <div class="stat-label">Total caveaux</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-number">{{ caveaux_disponibles }}</div>
+                <div class="stat-label">Caveaux disponibles</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="stat-number">{{ capacite_theorique }}</div>
+                <div class="stat-label">Capacité théorique</div>
+            </div>
+        </div>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-success">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <div class="info-box">
+            <h4>ℹ️ Calcul automatique de la capacité</h4>
+            <p>
+                La capacité théorique est calculée en fonction de la superficie totale du cimetière 
+                et de la taille standard des caveaux + allées. 
+                <strong>Formule : Superficie totale ÷ (Surface caveau + Surface allée)</strong>
+            </p>
+        </div>
+
+        <div class="form-section">
+            <h2>📝 Paramètres du cimetière</h2>
+            <form method="post">
+                {% csrf_token %}
+                
+                {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <small style="color: #7f8c8d; font-size: 12px; margin-top: 5px; display: block;">
+                        {{ field.help_text }}
+                    </small>
+                    {% endif %}
+                    {% if field.errors %}
+                    <div style="color: #e74c3c; font-size: 12px; margin-top: 5px;">
+                        {% for error in field.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <button type="submit" class="btn-submit">✓ Enregistrer les paramètres</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

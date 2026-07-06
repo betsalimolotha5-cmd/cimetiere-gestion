@@ -1,0 +1,172 @@
+# ============================================
+# Docker Compose pour l'application de gestion de cimetière
+# ============================================
+# Usage:
+#   docker-compose up -d          # Démarrer en arrière-plan
+#   docker-compose down           # Arrêter tous les services
+#   docker-compose logs -f        # Voir les logs en temps réel
+#   docker-compose exec web bash  # Entrer dans le conteneur web
+
+version: '3.8'
+
+services:
+  # === BASE DE DONNÉES POSTGRESQL + POSTGIS ===
+  db:
+    image: postgis/postgis:14-3.3
+    container_name: cimetiere_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cimetiere_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - cimetiere_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # === REDIS (Cache & Sessions) ===
+  redis:
+    image: redis:7-alpine
+    container_name: cimetiere_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cimetiere_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # === APPLICATION DJANGO ===
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cimetiere_web
+    restart: unless-stopped
+    environment:
+      # Configuration Django
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      
+      # Base de données
+      - DB_NAME=${DB_NAME:-cimetiere_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_HOST=db
+      - DB_PORT=5432
+      
+      # Redis
+      - REDIS_URL=redis://redis:6379/0
+      
+      # Email
+      - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-True}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@cimetiere.local}
+      
+      # Frontend
+      - API_BASE_URL=${API_BASE_URL:-http://localhost:8000/api}
+      
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./logs:/app/logs
+      - ./media:/app/media
+      - static_volume:/app/staticfiles
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - cimetiere_network
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput --clear &&
+             gunicorn config.wsgi:application
+             --bind 0.0.0.0:8000
+             --workers 3
+             --timeout 120
+             --access-logfile -
+             --error-logfile -"
+
+  # === TÂCHES PLANIFIÉES (Cron) ===
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cimetiere_scheduler
+    restart: unless-stopped
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DB_NAME=${DB_NAME:-cimetiere_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - db
+      - redis
+    networks:
+      - cimetiere_network
+    command: >
+      sh -c "while true; do
+               python manage.py run_daily_tasks;
+               sleep 86400;
+             done"
+
+  # === NGINX (Reverse Proxy) ===
+  nginx:
+    image: nginx:alpine
+    container_name: cimetiere_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_volume:/app/staticfiles:ro
+      - ./media:/app/media:ro
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - web
+    networks:
+      - cimetiere_network
+
+# === RÉSEAUX ===
+networks:
+  cimetiere_network:
+    driver: bridge
+
+# === VOLUMES ===
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  static_volume:
+    driver: local

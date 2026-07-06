@@ -1,0 +1,219 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .stat-card {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border-left: 5px solid #3498db;
+    }
+    .stat-card.green { border-left-color: #27ae60; }
+    .stat-card.red { border-left-color: #e74c3c; }
+    .stat-card.orange { border-left-color: #f39c12; }
+    .stat-card.purple { border-left-color: #9b59b6; }
+    .stat-card.blue { border-left-color: #3498db; }
+    .stat-card .stat-number {
+        font-size: 36px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    .stat-card .stat-label {
+        font-size: 14px;
+        color: #7f8c8d;
+        text-transform: uppercase;
+    }
+    .section-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin: 30px 0 15px 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #ecf0f1;
+    }
+    .recent-table {
+        width: 100%;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .recent-table th {
+        background: #2c3e50;
+        color: white;
+        padding: 12px 15px;
+        text-align: left;
+        font-size: 13px;
+        text-transform: uppercase;
+    }
+    .recent-table td {
+        padding: 10px 15px;
+        border-bottom: 1px solid #ecf0f1;
+        font-size: 14px;
+    }
+    .recent-table tr:hover {
+        background: #f8f9fa;
+    }
+    .badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+        color: white;
+    }
+    .badge-green { background: #27ae60; }
+    .badge-red { background: #e74c3c; }
+    .badge-orange { background: #f39c12; }
+    .badge-blue { background: #3498db; }
+    .btn-dashboard {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        transition: all 0.3s;
+    }
+    .btn-dashboard:hover { background: #2980b9; }
+    .action-buttons { margin-bottom: 25px; }
+    .action-buttons a {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 13px;
+        margin-right: 10px;
+        margin-bottom: 10px;
+        transition: all 0.3s;
+    }
+</style>
+
+<div class="action-buttons">
+    <a href="{% url 'admin:notifications_emaillog_changelist' %}" style="background: #3498db; color: white;">📧 Voir tous les emails</a>
+    <a href="{% url 'admin:notifications_notification_changelist' %}" style="background: #9b59b6; color: white;">🔔 Voir les notifications</a>
+    <a href="{% url 'admin:billing_facture_changelist' %}" style="background: #e67e22; color: white;">📄 Voir les factures</a>
+    <a href="{% url 'admin:billing_paiement_changelist' %}" style="background: #27ae60; color: white;">💳 Voir les paiements</a>
+</div>
+
+<h2>📊 Vue d'ensemble</h2>
+
+<div class="dashboard-grid">
+    <div class="stat-card green">
+        <div class="stat-number">{{ emails_envoyes }}</div>
+        <div class="stat-label">Emails envoyés avec succès</div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-number">{{ emails_echec }}</div>
+        <div class="stat-label">Emails en échec</div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-number">{{ emails_attente }}</div>
+        <div class="stat-label">Emails en attente</div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-number">{{ emails_7j }}</div>
+        <div class="stat-label">Emails envoyés (7 derniers jours)</div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="stat-card purple">
+        <div class="stat-number">{{ notifications_non_lues }}</div>
+        <div class="stat-label">Notifications non lues</div>
+    </div>
+    <div class="stat-card red">
+        <div class="stat-number">{{ notifications_urgentes }}</div>
+        <div class="stat-label">Notifications urgentes</div>
+    </div>
+    <div class="stat-card orange">
+        <div class="stat-number">{{ factures_en_retard }}</div>
+        <div class="stat-label">Factures en retard</div>
+    </div>
+    <div class="stat-card blue">
+        <div class="stat-number">{{ concessions_expirent_bientot }}</div>
+        <div class="stat-label">Concessions expirent bientôt</div>
+    </div>
+</div>
+
+{% if derniers_emails %}
+<h2 class="section-title">📧 Derniers emails envoyés</h2>
+<table class="recent-table">
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>Destinataire</th>
+            <th>Sujet</th>
+            <th>Statut</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for email in derniers_emails %}
+        <tr>
+            <td>{{ email.get_type_email_display }}</td>
+            <td>{{ email.destinataire }}</td>
+            <td>{{ email.sujet|truncatechars:50 }}</td>
+            <td>
+                {% if email.statut == 'ENVOYE' %}
+                    <span class="badge badge-green">Envoyé</span>
+                {% elif email.statut == 'ECHEC' %}
+                    <span class="badge badge-red">Échec</span>
+                {% else %}
+                    <span class="badge badge-orange">En attente</span>
+                {% endif %}
+            </td>
+            <td>{{ email.date_envoi_tente|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% if dernieres_notifications %}
+<h2 class="section-title">🔔 Notifications non lues récentes</h2>
+<table class="recent-table">
+    <thead>
+        <tr>
+            <th>Utilisateur</th>
+            <th>Titre</th>
+            <th>Priorité</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for notif in dernieres_notifications %}
+        <tr>
+            <td>{{ notif.utilisateur }}</td>
+            <td>{{ notif.titre|truncatechars:50 }}</td>
+            <td>
+                {% if notif.priorite == 'URGENTE' %}
+                    <span class="badge badge-red">Urgente</span>
+                {% elif notif.priorite == 'HAUTE' %}
+                    <span class="badge badge-orange">Haute</span>
+                {% else %}
+                    <span class="badge badge-blue">{{ notif.get_priorite_display }}</span>
+                {% endif %}
+            </td>
+            <td>{{ notif.date_creation|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% endblock %}

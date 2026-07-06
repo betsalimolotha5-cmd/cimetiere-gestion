@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Factures - Portail Client</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo h1 { color: #2c3e50; font-size: 28px; margin-bottom: 5px; }
+        .logo p { color: #7f8c8d; font-size: 14px; }
+        .auth-buttons { display: flex; gap: 10px; }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-outline {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h2 { color: #2c3e50; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ecf0f1; }
+        th { background: #f8f9fa; color: #2c3e50; font-weight: 600; }
+        .statut {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+        .statut.EMISE { background: #f39c12; }
+        .statut.PAYEE { background: #27ae60; }
+        .statut.PARTIELLEMENT_PAYEE { background: #3498db; }
+        .statut.ANNULEE { background: #95a5a6; }
+        .btn-action {
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            background: #667eea;
+        }
+        .btn-action:hover { background: #5568d3; }
+        .empty { text-align: center; padding: 40px; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>📄 Mes Factures</h1>
+                <p>Consultez et payez vos factures</p>
+            </div>
+            <div class="auth-buttons">
+                <a href="{% url 'carte_publique' %}" class="btn btn-outline">🗺️ Carte</a>
+                <a href="{% url 'mes_reservations' %}" class="btn btn-outline">📋 Mes réservations</a>
+                <a href="{% url 'logout' %}" class="btn btn-primary">🚪 Déconnexion</a>
+            </div>
+        </header>
+
+        <div class="content">
+            <h2>Liste de vos factures</h2>
+            
+            {% if factures %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>N° Facture</th>
+                        <th>Caveau</th>
+                        <th>Montant total</th>
+                        <th>Montant payé</th>
+                        <th>Restant</th>
+                        <th>Statut</th>
+                        <th>Date émission</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for facture in factures %}
+                    <tr>
+                        <td><strong>{{ facture.numero_facture }}</strong></td>
+                        <td>{{ facture.concession.caveau.code }}</td>
+                        <td>{{ facture.montant_total|floatformat:0 }} FCFA</td>
+                        <td>{{ facture.montant_paye|floatformat:0 }} FCFA</td>
+                        <td>{{ facture.montant_restant|floatformat:0 }} FCFA</td>
+                        <td>
+                            <span class="statut {{ facture.statut }}">
+                                {{ facture.get_statut_display }}
+                            </span>
+                        </td>
+                        <td>{{ facture.date_emission|date:"d/m/Y" }}</td>
+                        <td>
+                            <a href="{% url 'facture_detail' facture.id %}" class="btn-action">
+                                Voir
+                            </a>
+                            {% if not facture.est_payee and facture.statut != 'ANNULEE' %}
+                            <a href="{% url 'payer_facture' facture.id %}" class="btn-action" style="background: #27ae60;">
+                                Payer
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">
+                <p>Vous n'avez aucune facture pour le moment.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

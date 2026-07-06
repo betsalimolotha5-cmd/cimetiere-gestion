@@ -1,0 +1,173 @@
+# ============================================
+# APPLICATION DE GESTION DE CIMETIÈRE
+# Fichier .gitignore
+# ============================================
+
+# ============================================
+# PYTHON
+# ============================================
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+__pycache__/
+
+# ============================================
+# ENVIRONNEMENTS VIRTUELS
+# ============================================
+venv/
+env/
+ENV/
+.venv
+
+# ============================================
+# DJANGO
+# ============================================
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+/collected_static
+
+# ============================================
+# VARIABLES D'ENVIRONNEMENT (SENSIBLES)
+# ============================================
+.env
+.env.local
+.env.production
+.env.*.local
+
+# ============================================
+# IDE ET ÉDITEURS
+# ============================================
+# VS Code
+.vscode/
+.vscode/settings.json
+.vscode/launch.json
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================
+# SYSTÈME D'EXPLOITATION
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ============================================
+# BASE DE DONNÉES
+# ============================================
+*.sqlite3
+*.db
+*.sql
+
+# ============================================
+# LOGS
+# ============================================
+logs/
+*.log
+
+# ============================================
+# MÉDIAS ET FICHIERS UPLOADÉS
+# ============================================
+/media/
+/uploads/
+
+# ============================================
+# BACKUPS
+# ============================================
+backups/
+*.bak
+*.dump
+
+# ============================================
+# TESTS ET COUVERTURE
+# ============================================
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# ============================================
+# DOCUMENTATION
+# ============================================
+docs/_build/
+
+# ============================================
+# CELERY (si utilisé plus tard)
+# ============================================
+celerybeat-schedule
+celerybeat.pid
+
+# ============================================
+# DOCKER
+# ============================================
+docker-compose.override.yml
+
+# ============================================
+# AUTRES
+# ============================================
+*.bak
+*.tmp
+*.temp
+node_modules/
+package-lock.json
+yarn-error.log
+WILSON/

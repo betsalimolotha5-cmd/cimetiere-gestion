@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Réservations - Gestion Cimetière</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .logo h1 {
+            color: #2c3e50;
+            font-size: 26px;
+            margin-bottom: 5px;
+        }
+        
+        .logo p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .page-title {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+        
+        .page-title h2 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .page-title p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .reservations-list {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .reservation-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            border-left: 6px solid #95a5a6;
+        }
+        
+        .reservation-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .reservation-card.EN_ATTENTE {
+            border-left-color: #f39c12;
+        }
+        
+        .reservation-card.VALIDEE {
+            border-left-color: #e74c3c;
+        }
+        
+        .reservation-card.REFUSEE {
+            border-left-color: #c0392b;
+        }
+        
+        .reservation-card.ANNULEE {
+            border-left-color: #95a5a6;
+        }
+        
+        .reservation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .reservation-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .reservation-title .icon {
+            font-size: 32px;
+        }
+        
+        .reservation-title h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 3px;
+        }
+        
+        .reservation-title .zone {
+            color: #7f8c8d;
+            font-size: 13px;
+        }
+        
+        .statut-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: white;
+        }
+        
+        .statut-EN_ATTENTE {
+            background: #f39c12;
+        }
+        
+        .statut-VALIDEE {
+            background: #e74c3c;
+        }
+        
+        .statut-REFUSEE {
+            background: #c0392b;
+        }
+        
+        .statut-ANNULEE {
+            background: #95a5a6;
+        }
+        
+        .reservation-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .detail-item .label {
+            font-size: 11px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        
+        .detail-item .value {
+            font-size: 15px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        .reservation-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+            font-size: 13px;
+            color: #7f8c8d;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .motif-refus {
+            background: #fee;
+            border-left: 4px solid #c0392b;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #c0392b;
+        }
+        
+        .motif-refus strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .empty-state {
+            background: white;
+            padding: 60px 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            color: #2c3e50;
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            color: #7f8c8d;
+            margin-bottom: 25px;
+            font-size: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .reservation-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>🏛️ Mes Réservations</h1>
+                <p>Suivez l'état de vos demandes de réservation</p>
+            </div>
+            <div class="nav-buttons">
+                <a href="{% url 'carte_publique' %}" class="btn btn-outline">🗺️ Voir la carte</a>
+                <a href="{% url 'accueil' %}" class="btn btn-outline">🏠 Accueil</a>
+                <a href="{% url 'logout' %}" class="btn btn-primary">🚪 Déconnexion</a>
+            </div>
+        </header>
+
+        <div class="page-title">
+            <h2>📋 Historique de vos demandes</h2>
+            <p>Vous avez <strong>{{ reservations|length }}</strong> demande(s) de réservation au total</p>
+        </div>
+
+        {% if reservations %}
+            <div class="reservations-list">
+                {% for reservation in reservations %}
+                <div class="reservation-card {{ reservation.statut }}">
+                    <div class="reservation-header">
+                        <div class="reservation-title">
+                            <span class="icon">⚰️</span>
+                            <div>
+                                <h3>Caveau {{ reservation.caveau.code }}</h3>
+                                <span class="zone">Zone : {{ reservation.caveau.zone.nom|default:"Non définie" }}</span>
+                            </div>
+                        </div>
+                        <span class="statut-badge statut-{{ reservation.statut }}">
+                            {{ reservation.get_statut_display }}
+                        </span>
+                    </div>
+
+                    <div class="reservation-details">
+                        <div class="detail-item">
+                            <span class="label">Défunt</span>
+                            <span class="value">{{ reservation.defunt_prenom }} {{ reservation.defunt_nom }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Date de décès</span>
+                            <span class="value">{{ reservation.date_deces|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Lien de parenté</span>
+                            <span class="value">{{ reservation.lien_parente }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Téléphone</span>
+                            <span class="value">{{ reservation.telephone_contact }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Prix</span>
+                            <span class="value">{{ reservation.caveau.prix_concession|default:"0" }} FCFA</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="label">Date de demande</span>
+                            <span class="value">{{ reservation.date_demande|date:"d/m/Y à H:i" }}</span>
+                        </div>
+                    </div>
+
+                    {% if reservation.statut == 'VALIDEE' and reservation.traite_par %}
+                        <div class="reservation-footer">
+                            <span>✓ Validé par {{ reservation.traite_par.get_full_name|default:reservation.traite_par.email }}</span>
+                            <span>Le {{ reservation.date_traitement|date:"d/m/Y à H:i" }}</span>
+                        </div>
+                    {% elif reservation.statut == 'REFUSEE' %}
+                        {% if reservation.motif_refus %}
+                        <div class="motif-refus">
+                            <strong>❌ Motif du refus :</strong>
+                            {{ reservation.motif_refus }}
+                        </div>
+                        {% endif %}
+                        {% if reservation.traite_par %}
+                        <div class="reservation-footer">
+                            <span>Refusé par {{ reservation.traite_par.get_full_name|default:reservation.traite_par.email }}</span>
+                            <span>Le {{ reservation.date_traitement|date:"d/m/Y à H:i" }}</span>
+                        </div>
+                        {% endif %}
+                    {% elif reservation.statut == 'EN_ATTENTE' %}
+                        <div class="reservation-footer">
+                            <span>⏳ En attente de validation par l'administration</span>
+                            <span>Soumis le {{ reservation.date_demande|date:"d/m/Y à H:i" }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="icon">📭</div>
+                <h3>Aucune réservation pour le moment</h3>
+                <p>Vous n'avez pas encore effectué de demande de réservation.</p>
+                <a href="{% url 'carte_publique' %}" class="btn btn-primary">
+                    🗺️ Consulter la carte des caveaux disponibles
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
