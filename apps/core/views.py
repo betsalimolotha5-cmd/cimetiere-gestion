@@ -10,6 +10,50 @@ from datetime import datetime
 from django.core.management import call_command
 from django.http import HttpResponse
 from django.conf import settings
+from django.http import HttpResponse
+from django.core.management import call_command
+import os
+
+def init_db(request):
+    """Page temporaire pour initialiser la base de données"""
+    result = []
+    
+    try:
+        # 1. Migrations
+        result.append("📦 Application des migrations...")
+        call_command('migrate', verbosity=0)
+        result.append("✅ Migrations appliquées")
+        
+        # 2. Fichiers statiques
+        result.append("📁 Collecte des fichiers statiques...")
+        call_command('collectstatic', verbosity=0, interactive=False)
+        result.append("✅ Fichiers statiques collectés")
+        
+        # 3. Superutilisateur
+        from apps.accounts.models import User
+        admin_email = os.environ.get('ADMIN_EMAIL', 'betsalimolotha5@gmail.com')
+        admin_password = os.environ.get('ADMIN_PASSWORD', '&Andrade2580')
+        
+        if not User.objects.filter(email=admin_email).exists():
+            User.objects.create_superuser(
+                email=admin_email,
+                password=admin_password,
+                first_name='Admin',
+                last_name='Système',
+            )
+            result.append(f"✅ Superutilisateur créé: {admin_email}")
+        else:
+            result.append(f"⚠️ Superutilisateur existe déjà: {admin_email}")
+        
+        result.append("")
+        result.append("🎉 INITIALISATION TERMINÉE !")
+        result.append("<a href='/admin/'>👉 Aller à l'administration</a>")
+        
+    except Exception as e:
+        result.append(f"❌ ERREUR: {str(e)}")
+    
+    html = "<br>".join(result)
+    return HttpResponse(f"<h1>Initialisation</h1><p>{html}</p>")
 
 def init_db(request):
     """Page temporaire pour initialiser la base de données"""

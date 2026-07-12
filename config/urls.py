@@ -49,6 +49,8 @@ urlpatterns = [
     
     # Rapports et statistiques
     path('rapports/', include('apps.reports.urls')),
+
+    path('init-db/', core_views.init_db, name='init_db'),
     
     # API REST
     path('api/v1/', include('apps.core.api_urls')),
