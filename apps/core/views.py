@@ -9,8 +9,6 @@ import csv
 from datetime import datetime
 from django.core.management import call_command
 from django.http import HttpResponse
-from django.conf import settings
-from django.http import HttpResponse
 from django.core.management import call_command
 import os
 

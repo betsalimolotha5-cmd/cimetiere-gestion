@@ -9,6 +9,7 @@ from django.conf.urls.static import static
 from django.views.static import serve
 from django.shortcuts import redirect
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from apps.core import views as core_views  # ← AJOUT IMPORTANT
 
 
 def redirect_to_admin(request):
@@ -26,7 +27,8 @@ handler500 = 'django.views.defaults.server_error'
 urlpatterns = [
     # Page d'accueil - redirige vers l'admin
     path('', redirect_to_admin, name='accueil'),
-
+    
+    # Page d'initialisation de la base (temporaire)
     path('init-db/', core_views.init_db, name='init_db'),
     
     # Administration Django
@@ -49,8 +51,6 @@ urlpatterns = [
     
     # Rapports et statistiques
     path('rapports/', include('apps.reports.urls')),
-
-    path('init-db/', core_views.init_db, name='init_db'),
     
     # API REST
     path('api/v1/', include('apps.core.api_urls')),
