@@ -1,21 +1,12 @@
 """
 Django settings for cimetiere_gestion project.
 Conforme au CDC : sécurité, MFA, API REST, PostGIS.
-Compatible Render + Neon (hébergement gratuit).
+Optimisé pour Render + Neon (hébergement gratuit).
 """
 from pathlib import Path
 from decouple import config
 import os
 import dj_database_url
-
-# Configuration GDAL/GEOS pour PostGIS
-# En production (Render), ces variables sont gérées automatiquement
-if os.name == 'nt':  # Windows (développement local)
-    GDAL_LIBRARY_PATH = r'C:\Users\Mr WILSON\AppData\Local\Programs\OSGeo4W\bin\gdal313.dll'
-    GEOS_LIBRARY_PATH = r'C:\Users\Mr WILSON\AppData\Local\Programs\OSGeo4W\bin\geos_c.dll'
-    os.environ['PROJ_LIB'] = r'C:\Users\Mr WILSON\AppData\Local\Programs\OSGeo4W\share\proj'
-    os.environ['PROJ_DATA'] = r'C:\Users\Mr WILSON\AppData\Local\Programs\OSGeo4W\share\proj'
-    os.environ['GDAL_DATA'] = r'C:\Users\Mr WILSON\AppData\Local\Programs\OSGeo4W\share\gdal'
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,7 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# ALLOWED_HOSTS - Compatible Render
+# ALLOWED_HOSTS - Compatible Render (.onrender.com)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,.onrender.com').split(',')
 
 # Application definition
@@ -36,10 +27,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+    
+    # Apps tierces
     'rest_framework',
     'drf_spectacular',
     'django_filters',
     'corsheaders',
+    
+    # Apps locales
     'apps.accounts',
     'apps.core',
     'apps.billing',
@@ -51,7 +46,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise DOIT être ici
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -81,11 +76,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# Database - Compatible Render + Neon
+# ==============================================================================
+# BASE DE DONNÉES (SQLite en local, PostGIS en production)
+# ==============================================================================
 DATABASE_URL = config('DATABASE_URL', default=None)
 
 if DATABASE_URL:
-    # Production (Render + Neon)
+    # Production (Render + Neon + PostGIS)
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
@@ -94,15 +91,11 @@ if DATABASE_URL:
         )
     }
 else:
-    # Développement local
+    # Développement local (SQLite - pas besoin de GDAL/PostGIS)
     DATABASES = {
         'default': {
-            'ENGINE': 'django.contrib.gis.db.backends.postgis',
-            'NAME': config('DB_NAME', default='cimetiere_db'),
-            'USER': config('DB_USER', default='cimetiere_user'),
-            'PASSWORD': config('DB_PASSWORD', default=''),
-            'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='5432'),
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
@@ -120,20 +113,24 @@ TIME_ZONE = 'Africa/Kinshasa'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# ==============================================================================
+# FICHIERS STATIQUES & MÉDIAS (CRUCIAL POUR RENDER)
+# ==============================================================================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+# Utilisation de WhiteNoise pour servir les fichiers statiques en production
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Custom User Model
+# Custom User Model (Assure-toi que apps/accounts/apps.py a bien name = 'accounts')
 AUTH_USER_MODEL = 'accounts.User'
 
 # CORS Configuration
@@ -207,41 +204,19 @@ LOGGING = {
             'formatter': 'verbose',
             'level': 'DEBUG',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'formatter': 'verbose',
-            'level': 'INFO',
-        },
-        'audit_file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'audit.log',
-            'formatter': 'verbose',
-            'level': 'INFO',
-        },
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'audit': {
-            'handlers': ['console', 'audit_file'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': ['console'],
         'level': 'INFO',
     },
 }
-
-# Créer le dossier logs
-LOGS_DIR = BASE_DIR / 'logs'
-if not LOGS_DIR.exists():
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Configuration Django REST Framework
 REST_FRAMEWORK = {
@@ -278,11 +253,10 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# Backup Configuration
+# Backup & Upload Configuration
 BACKUP_DIR = BASE_DIR / 'backups'
 if not BACKUP_DIR.exists():
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
-# File Upload Configuration
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
