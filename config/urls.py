@@ -13,9 +13,9 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 from apps.core import views as core_views
 
 
-def redirect_to_admin(request):
-    return redirect('/admin/')
-
+def redirect_to_portal(request):
+    """Redirige la racine vers le portail client."""
+    return redirect('/portal/')
 
 handler400 = 'django.views.defaults.bad_request'
 handler403 = 'django.views.defaults.permission_denied'
@@ -24,7 +24,7 @@ handler500 = 'django.views.defaults.server_error'
 
 
 urlpatterns = [
-    path('', redirect_to_admin, name='accueil'),
+    path('', redirect_to_portal, name='accueil'),
     
     # Page d'initialisation de la base (temporaire, pour créer les tables et le superuser)
     path('init-db/', core_views.init_db, name='init_db'),
