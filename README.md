@@ -1,89 +1,167 @@
 # 🏛️ Application de Gestion de Cimetière
 
-## 📋 Description
+**Projet GI2 - 2026**  
+**Développé par : MVIBUNDULU Gaëtan**  
+📧 mvibundulugaetan1@gmail.com  
+📱 06 910 3715 / 05 322 1067
 
-Application web complète pour la gestion numérique des cimetières, développée dans le cadre du projet GI2 2026.
+---
 
-## ✨ Fonctionnalités principales
+## 📋 Table des matières
 
-### 🔐 Authentification et Sécurité
-- Authentification par email/mot de passe
-- Authentification à double facteur (MFA) par email
-- Système RBAC avec 4 rôles : Administrateurs, Secrétariat, Agents de terrain, Clients
+1. [Présentation du projet](#-présentation-du-projet)
+2. [Fonctionnalités](#-fonctionnalités)
+3. [Stack technique](#-stack-technique)
+4. [Architecture du projet](#-architecture-du-projet)
+5. [Installation locale](#-installation-locale)
+6. [Configuration](#-configuration)
+7. [Déploiement en production](#-déploiement-en-production)
+8. [Utilisation](#-utilisation)
+9. [API REST](#-api-rest)
+10. [Structure du projet](#-structure-du-projet)
+11. [Conformité au CDC](#-conformité-au-cdc)
+12. [Licence](#-licence)
 
-### 🗺️ Cartographie Interactive (SIG)
-- Carte dynamique avec code couleur :
+---
+
+## 🎯 Présentation du projet
+
+Cette application web permet la **numérisation complète de la gestion d'un cimetière** : cartographie interactive des emplacements, réservation en ligne par les citoyens, gestion des concessions, exhumations, facturation automatique et reporting.
+
+Elle répond aux besoins de traçabilité, de sécurité et d'accessibilité 24h/24.
+
+### 🌐 Site en ligne
+
+🔗 **URL publique** : [https://cimetiere-gestion.onrender.com](https://cimetiere-gestion.onrender.com)
+
+---
+
+## ✨ Fonctionnalités
+
+###  Gestion des utilisateurs et rôles (RBAC)
+- **4 rôles** : Administrateur, Agent de terrain, Secrétariat, Client (citoyen)
+- **Authentification sécurisée** : Email + Mot de passe
+- **MFA (Double authentification)** : Code TOTP par email obligatoire
+- **Permissions granulaires** : Accès différencié selon le rôle
+
+### ️ Cartographie Interactive (SIG)
+- **Carte dynamique Leaflet** avec géolocalisation des caveaux
+- **Code couleur en temps réel** :
   - 🟢 Vert : Disponible
-  - 🟠 Orange : Réservé / En attente
+  - 🟠 Orange : Réservé / En attente de validation
   - 🔴 Rouge : Occupé / Validé
-  - ⚫ Gris : Non exploitable
-- Sélection interactive des caveaux
-- Workflow de réservation complet
+  - ⚫ Gris : Zone non exploitable
+- **PostGIS** pour le stockage des coordonnées géographiques
 
-### 💰 Gestion Financière
-- Génération automatique de factures PDF
-- Envoi par email sécurisé
-- Paiements multi-canaux : Mobile Money, Airtel Money, espèces, virement
-- Suivi des paiements partiels
-- Journal d'audit financier
+### 📝 Processus de réservation et validation
+- **Workflow client** : Sélection sur carte → Formulaire → Soumission
+- **Validation Admin** : Passage du statut Orange → Rouge
+- **Facturation automatique** : Génération PDF + envoi par email sécurisé
 
-### 📋 Gestion des Concessions
-- Attribution et renouvellement
-- Gestion des concessions temporaires et perpétuelles
-- Alertes automatiques d'échéance (30, 15, 7 jours)
-- Documents légaux générés automatiquement
+### ⚰️ Gestion des concessions et exhumations
+- **Concessions** : Attribution, renouvellement, résiliation
+- **Suivi des durées** : Temporaires, perpétuelles, alertes d'échéance
+- **Exhumations** : Demandes, validation administrative, traçabilité
+- **Documents légaux** : Autorisations d'exhumation, procès-verbaux
 
-### ⚰️ Gestion des Exhumations
-- Demandes d'exhumation avec validation administrative
-- Génération automatique des autorisations et procès-verbaux PDF
-- Traçabilité complète
+### 💰 Gestion financière
+- **Paiements multi-canaux** : Mobile Money, Airtel Money, espèces, virement
+- **Suivi des soldes** : Paiements partiels, historique par client
 
-### 🔔 Notifications
-- Service de notifications centralisé
-- Rappels de paiement automatiques (3, 7, 15 jours)
-- Alertes d'échéance de concessions
-- Tableau de bord admin des notifications
+### 📊 Reporting et statistiques
+- **Tableaux de bord** : Taux d'occupation, jauge de saturation, revenus
+- **Exports** : CSV et Excel (caveaux, concessions, défunts, inhumations, exhumations)
 
-### 📊 Rapports et Statistiques
-- Rapport financier (recettes, paiements, évolution)
-- Rapport d'occupation (taux par zone)
-- Rapport des concessions (actives, expirées, renouvelées)
-- Rapport des notifications (taux de succès)
-- Exports CSV et Excel de tous les registres
+### 🔌 API REST documentée
+- **Django REST Framework** avec OpenAPI/Swagger
+- **Documentation interactive** : `/api/docs/` (Swagger UI) et `/api/redoc/` (ReDoc)
 
-### 🌐 API RESTful
-- API complète documentée via OpenAPI/Swagger
-- Endpoints pour toutes les ressources
-- Schéma YAML téléchargeable
+---
 
-## 🛠️ Technologies utilisées
+## 🛠️ Stack technique
 
-### Backend
-- **Django 5.0.1** - Framework Python
-- **Django REST Framework** - API RESTful
-- **PostgreSQL + PostGIS** - Base de données géographique
-- **ReportLab** - Génération de PDF
-- **drf-spectacular** - Documentation OpenAPI
+| Composant | Technologie |
+|-----------|-------------|
+| **Backend** | Django 5.2.15 (Python 3.11+) |
+| **Frontend** | HTML/CSS/JS + Leaflet (carte) + Flet (desktop) |
+| **Base de données** | PostgreSQL 15 + PostGIS 3.4 |
+| **API REST** | Django REST Framework + drf-spectacular |
+| **Authentification** | Django Auth + pyotp (MFA TOTP) |
+| **PDF** | WeasyPrint + ReportLab |
+| **Excel** | Openpyxl |
+| **Hébergement** | Render (Web) + Neon (PostgreSQL) |
+| **Serveur web** | Gunicorn + WhiteNoise (fichiers statiques) |
+| **Versionning** | Git + GitHub |
 
-### Frontend
-- **HTML5/CSS3** - Interface responsive
-- **JavaScript** - Interactivité carte
-- **Leaflet.js** - Cartographie interactive
+---
 
-### Sécurité
-- **TLS/SSL** - Chiffrement des échanges
-- **MFA par email** - Double authentification
-- **Audit Trail** - Journalisation complète
+## ️ Architecture du projet
 
-## 📦 Installation
+cimetiere-gestion/
+├── config/ # Configuration Django
+│ ├── settings.py # Paramètres (dev + prod)
+│ ├── urls.py # Routes principales
+│ └── wsgi.py # Point d'entrée WSGI
+├── apps/ # Applications métier
+│ ├── accounts/ # Utilisateurs, rôles, MFA
+│ ├── core/ # Cimetière, zones, caveaux, concessions
+│ ├── billing/ # Facturation, paiements
+│ ├── notifications/ # Emails, alertes
+│ ├── reports/ # Rapports, exports
+│ ├── mfa/ # Authentification double facteur
+│ └── portal/ # Portail client public
+├── static/ # Fichiers statiques (CSS, JS, images)
+├── templates/ # Templates HTML
+├── requirements.txt # Dépendances Python
+├── Procfile # Configuration Render
+├── manage.py # CLI Django
+└── README.md # Ce fichier
+
+
+
+##  Installation locale
 
 ### Prérequis
-- Python 3.11+
-- PostgreSQL 16+ avec PostGIS
-- GDAL/GEOS pour PostGIS
+- Python 3.11 ou supérieur
+- PostgreSQL 15 + PostGIS 3.4
+- Git
 
 ### Étapes d'installation
 
-1. **Installer les dépendances**
-```bash
-pip install -r requirements.txt
+1. **Cloner le dépôt**
+   ```bash
+   git clone https://github.com/betsalimolotha5-cmd/cimetiere-gestion.git
+   cd cimetiere-gestion
+
+
+
+cimetiere-gestion/
+├── apps/
+│   ├── accounts/
+│   │   ├── models.py          # Modèle User personnalisé + Rôles
+│   │   ├── views.py           # Vues d'authentification
+│   │   └── admin.py           # Administration Django
+│   ├── core/
+│   │   ├── models.py          # Zone, Caveau, Concession, Defunt, Inhumation
+│   │   ├── views.py           # Vues métier + exports CSV/Excel
+│   │   ├── api_views.py       # API REST
+│   │   └── services.py        # Logique métier (calculs, validations)
+│   ├── billing/
+│   │   ├── models.py          # Facture, Paiement
+│   │   └── views.py           # Gestion financière
+│   ├── notifications/
+│   │   ── tasks.py           # Envoi d'emails, alertes
+│   ├── reports/
+│   │   └── views.py           # Rapports, statistiques
+│   ├── mfa/
+│   │   └── views.py           # Authentification double facteur
+│   └── portal/
+│       └── views.py           # Portail client public
+├── config/
+│   ├── settings.py            # Configuration Django
+│   ── urls.py                # Routes principales
+├── static/                    # CSS, JS, images
+├── templates/                 # Templates HTML
+├── requirements.txt           # Dépendances
+├── Procfile                   # Configuration Render
+└── manage.py                  # CLI Django

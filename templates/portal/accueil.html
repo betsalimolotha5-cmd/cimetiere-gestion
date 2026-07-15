@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center p-4">
+                    <h1 class="display-5">
+                        <i class="fas fa-monument"></i>
+                        Bienvenue sur le Portail du Cimetière
+                    </h1>
+                    <p class="lead">Gestion numérique des emplacements funéraires</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes d'information -->
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-map-marked-alt fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Carte Interactive</h5>
+                    <p class="card-text">Consultez les emplacements disponibles en temps réel sur notre carte SIG.</p>
+                    <a href="/cimetiere/carte/" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> Voir la carte
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-file-contract fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">Concessions</h5>
+                    <p class="card-text">Informations sur les concessions, renouvellements et démarches administratives.</p>
+                    <a href="/cimetiere/concessions/" class="btn btn-primary">
+                        <i class="fas fa-info-circle"></i> En savoir plus
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-plus fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Réservation</h5>
+                    <p class="card-text">Faites une demande de réservation en ligne. Notre équipe vous contactera rapidement.</p>
+                    <a href="/portal/reservation/" class="btn btn-primary">
+                        <i class="fas fa-calendar-plus"></i> Réserver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie"></i> Statistiques rapides
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 col-6 mb-3">
+                            <h2 class="text-success">{{ total_caveaux|default:"0" }}</h2>
+                            <p class="text-muted mb-0">Caveaux totaux</p>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <h2 class="text-primary">{{ caveaux_disponibles|default:"0" }}</h2>
+                            <p class="text-muted mb-0">Disponibles</p>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <h2 class="text-warning">{{ caveaux_reserves|default:"0" }}</h2>
+                            <p class="text-muted mb-0">Réservés</p>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <h2 class="text-danger">{{ caveaux_occupes|default:"0" }}</h2>
+                            <p class="text-muted mb-0">Occupés</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
