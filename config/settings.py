@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
+    'anymail',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -142,17 +143,19 @@ CORS_ALLOWED_ORIGINS = config(
 CORS_ALLOW_CREDENTIALS = True
 
 # ==============================================================================
-# CONFIGURATION EMAIL (GMAIL SMTP STANDARD)
+# CONFIGURATION EMAIL (Resend API - HTTPS Port 443)
 # ==============================================================================
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
+# Resend utilise le port HTTPS 443 (non bloqué par Render Free)
+# au lieu du SMTP 587 (bloqué).
+EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
 
-# Ces valeurs seront lues depuis les variables d'environnement (.env ou Render)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='betsalimolotha5@gmail.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='mtajsqmcueazpgpt')
-DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default='')
+ANYMAIL = {
+    'RESEND_API_KEY': config('RESEND_API_KEY', default='re_jDtwo7Bf_EbN6N42HLmvqGkUtnWUfD51L'),
+}
+
+# En mode Sandbox (gratuit), Resend n'autorise l'envoi qu'à l'adresse
+# qui a créé le compte. Utilise cette même adresse pour DEFAULT_FROM_EMAIL.
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='onboarding@resend.dev')
 
 # Authentication MFA Configuration
 LOGIN_REDIRECT_URL = 'accueil'
