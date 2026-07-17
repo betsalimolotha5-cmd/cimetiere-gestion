@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Vérification MFA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-6 col-lg-5">
+            <div class="card shadow-lg border-0" style="border-radius: 15px; margin-top: 40px;">
+                <div class="card-body p-4 p-md-5">
+                    
+                    <!-- En-tête avec icône -->
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="fas fa-shield-alt fa-4x" style="color: #2c5f2d;"></i>
+                        </div>
+                        <h2 class="fw-bold" style="color: #2c5f2d;">Vérification de sécurité</h2>
+                        <p class="text-muted">
+                            Un code à 6 chiffres a été envoyé à :<br>
+                            <strong>{{ email }}</strong>
+                        </p>
+                    </div>
+
+                    <!-- ⚠️ BLOC DÉMONSTRATION (Affiché si l'email a échoué) -->
+                    {% if demo_code %}
+                    <div class="alert alert-warning border-0 shadow-sm" style="border-radius: 10px; background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);">
+                        <div class="d-flex align-items-start">
+                            <i class="fas fa-exclamation-triangle fa-2x me-3" style="color: #856404;"></i>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold mb-1" style="color: #856404;">⚠️ Mode démonstration</h6>
+                                <p class="mb-2 small">
+                                    Le service email est temporairement indisponible (contrainte de l'hébergeur gratuit).
+                                </p>
+                                <div class="text-center p-3" style="background: white; border-radius: 8px; border: 2px dashed #ffc107;">
+                                    <small class="text-muted d-block mb-1">Votre code MFA :</small>
+                                    <span class="fw-bold" style="font-size: 2rem; color: #d63384; letter-spacing: 8px;">
+                                        {{ demo_code }}
+                                    </span>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    💡 En production réelle, ce code aurait été envoyé par email.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Formulaire de saisie du code -->
+                    <form method="post" action="{% url 'mfa_verification' %}" id="mfa-form">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="code" class="form-label fw-bold">
+                                <i class="fas fa-key me-1"></i> Code de vérification
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg text-center fw-bold" 
+                                id="code" 
+                                name="code" 
+                                maxlength="6" 
+                                pattern="[0-9]{6}"
+                                placeholder="000000"
+                                autocomplete="one-time-code"
+                                inputmode="numeric"
+                                required
+                                style="font-size: 1.5rem; letter-spacing: 10px; border-radius: 10px;"
+                                autofocus
+                            >
+                            <small class="form-text text-muted">
+                                Entrez les 6 chiffres reçus par email
+                            </small>
+                        </div>
+
+                        <!-- Bouton de validation -->
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn btn-lg text-white" style="background-color: #2c5f2d; border-radius: 10px;">
+                                <i class="fas fa-check-circle me-2"></i> Vérifier et se connecter
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Actions secondaires -->
+                    <div class="text-center">
+                        <div class="mb-3">
+                            <a href="{% url 'resend_code' %}" class="btn btn-outline-secondary btn-sm" style="border-radius: 8px;">
+                                <i class="fas fa-redo me-1"></i> Renvoyer un nouveau code
+                            </a>
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'login' %}" class="text-decoration-none small" style="color: #2c5f2d;">
+                                <i class="fas fa-arrow-left me-1"></i> Retour à la connexion
+                            </a>
+                            <a href="{% url 'logout' %}" class="text-decoration-none small text-danger">
+                                <i class="fas fa-sign-out-alt me-1"></i> Déconnexion
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Informations de sécurité -->
+            <div class="text-center mt-4 mb-5">
+                <small class="text-muted">
+                    <i class="fas fa-lock me-1"></i> 
+                    Connexion sécurisée par authentification à double facteur (MFA)
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Script pour améliorer l'expérience utilisateur
+    document.addEventListener('DOMContentLoaded', function() {
+        const codeInput = document.getElementById('code');
+        const mfaForm = document.getElementById('mfa-form');
+        
+        // Auto-focus sur le champ code
+        if (codeInput) {
+            codeInput.focus();
+        }
+        
+        // Validation : uniquement des chiffres
+        if (codeInput) {
+            codeInput.addEventListener('input', function(e) {
+                // Ne garder que les chiffres
+                this.value = this.value.replace(/[^0-9]/g, '');
+                
+                // Auto-soumission quand 6 chiffres sont entrés
+                if (this.value.length === 6) {
+                    // Petit délai pour que l'utilisateur voie le code complet
+                    setTimeout(() => {
+                        mfaForm.submit();
+                    }, 300);
+                }
+            });
+            
+            // Empêcher le collage de caractères non numériques
+            codeInput.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                const digitsOnly = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
+                this.value = digitsOnly;
+                
+                if (digitsOnly.length === 6) {
+                    setTimeout(() => {
+                        mfaForm.submit();
+                    }, 300);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

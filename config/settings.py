@@ -18,6 +18,14 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # ALLOWED_HOSTS - Compatible Render (.onrender.com)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,.onrender.com').split(',')
 
+# OBLIGATOIRE POUR RENDER (Sinon erreur 403 sur les formulaires HTTPS)
+CSRF_TRUSTED_ORIGINS = [
+    'https://cimetiere-gestion.onrender.com',
+    'https://*.onrender.com',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -33,6 +41,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_filters',
     'corsheaders',
+    'anymail',  # <-- AJOUTÉ POUR BREVO
     
     # Apps locales
     'apps.accounts',
@@ -46,7 +55,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise DOIT être ici
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -82,7 +91,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASE_URL = config('DATABASE_URL', default=None)
 
 if DATABASE_URL:
-    # Production (Render + Neon + PostGIS)
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
@@ -91,7 +99,6 @@ if DATABASE_URL:
         )
     }
 else:
-    # Développement local (SQLite - pas besoin de GDAL/PostGIS)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -114,23 +121,17 @@ USE_I18N = True
 USE_TZ = True
 
 # ==============================================================================
-# FICHIERS STATIQUES & MÉDIAS (CRUCIAL POUR RENDER)
+# FICHIERS STATIQUES & MÉDIAS
 # ==============================================================================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
-# Utilisation de WhiteNoise pour servir les fichiers statiques en production
+STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Custom User Model (Assure-toi que apps/accounts/apps.py a bien name = 'accounts')
 AUTH_USER_MODEL = 'accounts.User'
 
 # CORS Configuration
@@ -140,14 +141,17 @@ CORS_ALLOWED_ORIGINS = config(
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
 
-# Email Configuration
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
+# ==============================================================================
+# CONFIGURATION EMAIL (BREVO API - Contourne le blocage SMTP de Render)
+# ==============================================================================
+EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+
+ANYMAIL = {
+    "BREVO_API_KEY": config("BREVO_API_KEY", default=""),
+}
+
+# ⚠️ IMPORTANT : Cette adresse DOIT être celle que tu as utilisée pour créer ton compte Brevo
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="betsalimolotha5@gmail.com")
 
 # Authentication MFA Configuration
 LOGIN_REDIRECT_URL = 'accueil'
@@ -162,7 +166,6 @@ CSRF_COOKIE_HTTPONLY = False
 X_FRAME_OPTIONS = 'DENY'
 SECURE_REFERRER_POLICY = 'same-origin'
 
-# Security Settings - Production only (HTTPS)
 if config('FORCE_HTTPS', default=False, cast=bool):
     SECURE_SSL_REDIRECT = True
     SECURE_HSTS_SECONDS = 31536000

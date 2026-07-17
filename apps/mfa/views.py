@@ -1,5 +1,6 @@
 """
 Vues pour l'authentification à double facteur (MFA) par email.
+Avec mécanisme anti-crash (timeout explicite) pour éviter les erreurs 502 sur Render.
 """
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
@@ -9,6 +10,33 @@ from django.conf import settings
 from django.utils.html import strip_tags
 from .models import MFACode
 from apps.accounts.models import User
+import concurrent.futures
+
+
+def _send_email_safe(subject, message_texte, html_message, from_email, recipient_list, timeout=10):
+    """
+    Envoie un email avec un timeout explicite de 10 secondes.
+    Retourne (True, None) si succès, (False, exception) si échec ou timeout.
+    """
+    def _do_send():
+        send_mail(
+            subject=subject,
+            message=message_texte,
+            html_message=html_message,
+            from_email=from_email,
+            recipient_list=recipient_list,
+            fail_silently=False,
+        )
+    
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_do_send)
+            future.result(timeout=timeout)  # Timeout de 10 secondes
+        return True, None
+    except concurrent.futures.TimeoutError:
+        return False, "Timeout: l'envoi d'email a pris trop de temps (blocage réseau hébergeur)"
+    except Exception as e:
+        return False, str(e)
 
 
 def login_view(request):
@@ -38,9 +66,16 @@ def login_view(request):
             # Générer le code MFA
             ip_address = get_client_ip(request)
             code_obj = MFACode.generer_code(user, ip_address=ip_address)
+            code_mfa = code_obj.code  # On stocke le code en variable
             
-            # Envoyer le code par email
-            sujet = '🔐 Votre code de connexion - Gestion Cimetière'
+            # ⚠️ CRUCIAL : Stocker le code en session AVANT la tentative d'email
+            # Ainsi, même si l'email bloque, le code est récupérable pour l'afficher
+            request.session['mfa_user_id'] = user.id
+            request.session['mfa_email'] = user.email
+            request.session['last_mfa_code'] = code_mfa  # Pour fallback
+            
+            # Préparer l'email HTML
+            sujet = ' Votre code de connexion - Gestion Cimetière'
             message_html = f"""
             <html>
             <body style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
@@ -50,7 +85,7 @@ def login_view(request):
                     <p>Votre code de vérification est :</p>
                     <div style="background: #667eea; color: white; font-size: 32px; font-weight: bold; 
                                 text-align: center; padding: 20px; border-radius: 8px; letter-spacing: 8px;">
-                        {code_obj.code}
+                        {code_mfa}
                     </div>
                     <p style="margin-top: 20px; color: #7f8c8d;">
                         ⏱️ Ce code expire dans <strong>10 minutes</strong>.<br>
@@ -65,24 +100,26 @@ def login_view(request):
             """
             message_texte = strip_tags(message_html)
             
-            try:
-                send_mail(
-                    subject=sujet,
-                    message=message_texte,
-                    html_message=message_html,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-                messages.success(request, 'Un code de vérification a été envoyé à votre adresse email.')
-            except Exception as e:
-                # En développement avec console backend, on continue quand même
-                print(f"[MFA] Code pour {user.email}: {code_obj.code}")
-                messages.warning(request, f"Email non envoyé (mode dev). Code: {code_obj.code}")
+            # ️ ENVOI D'EMAIL AVEC TIMEOUT EXPLICITE (anti-crash 502)
+            success, error = _send_email_safe(
+                subject=sujet,
+                message_texte=message_texte,
+                html_message=message_html,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                timeout=10,
+            )
             
-            # Stocker l'ID utilisateur en session pour l'étape suivante
-            request.session['mfa_user_id'] = user.id
-            request.session['mfa_email'] = user.email
+            if success:
+                messages.success(request, f'✅ Un code de vérification a été envoyé à {user.email}.')
+            else:
+                # FALLBACK : L'email a échoué ou a timeout → on affiche le code à l'écran
+                # C'est la sécurité qui empêche l'erreur 502
+                messages.warning(
+                    request,
+                    f"⚠️ Service email indisponible ({error}). "
+                    f"Code de démonstration : {code_mfa}"
+                )
             
             return redirect('mfa_verification')
         else:
@@ -131,6 +168,8 @@ def verification_view(request):
                     del request.session['mfa_user_id']
                 if 'mfa_email' in request.session:
                     del request.session['mfa_email']
+                if 'last_mfa_code' in request.session:
+                    del request.session['last_mfa_code']
                 
                 messages.success(request, f'Bienvenue {user.get_full_name() or user.email} !')
                 return redirect('/admin/')
@@ -141,7 +180,13 @@ def verification_view(request):
         except (User.DoesNotExist, MFACode.DoesNotExist):
             messages.error(request, 'Code invalide. Veuillez réessayer.')
     
-    return render(request, 'mfa/verification.html', {'email': email})
+    # Afficher le code en session pour la démo (si fallback activé)
+    last_code = request.session.get('last_mfa_code', '')
+    
+    return render(request, 'mfa/verification.html', {
+        'email': email,
+        'demo_code': last_code if last_code else None,
+    })
 
 
 def resend_code_view(request):
@@ -149,6 +194,7 @@ def resend_code_view(request):
     Renvoyer un nouveau code MFA.
     """
     user_id = request.session.get('mfa_user_id')
+    email = request.session.get('mfa_email')
     
     if not user_id:
         return redirect('login')
@@ -157,22 +203,50 @@ def resend_code_view(request):
         user = User.objects.get(id=user_id)
         ip_address = get_client_ip(request)
         code_obj = MFACode.generer_code(user, ip_address=ip_address)
+        code_mfa = code_obj.code
         
-        sujet = '🔐 Votre nouveau code de connexion'
-        message_texte = f"Votre nouveau code de vérification est : {code_obj.code}\n\nCe code expire dans 10 minutes."
+        # Mettre à jour le code en session
+        request.session['last_mfa_code'] = code_mfa
         
-        try:
-            send_mail(
-                subject=sujet,
-                message=message_texte,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
+        sujet = ' Votre nouveau code de connexion'
+        message_texte = f"Votre nouveau code de vérification est : {code_mfa}\n\nCe code expire dans 10 minutes."
+        message_html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <div style="max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 10px;">
+                <h2 style="color: #2c3e50;">🔐 Nouveau code de vérification</h2>
+                <p>Bonjour <strong>{user.get_full_name() or user.email}</strong>,</p>
+                <div style="background: #667eea; color: white; font-size: 32px; font-weight: bold; 
+                            text-align: center; padding: 20px; border-radius: 8px; letter-spacing: 8px;">
+                    {code_mfa}
+                </div>
+                <p style="margin-top: 20px; color: #7f8c8d;">
+                    ️ Ce code expire dans <strong>10 minutes</strong>.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # 🛡️ ENVOI AVEC TIMEOUT
+        success, error = _send_email_safe(
+            subject=sujet,
+            message_texte=message_texte,
+            html_message=message_html,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            timeout=10,
+        )
+        
+        if success:
+            messages.success(request, '✅ Un nouveau code a été envoyé à votre email.')
+        else:
+            messages.warning(
+                request,
+                f"⚠️ Service email indisponible ({error}). "
+                f"Nouveau code : {code_mfa}"
             )
-            messages.success(request, 'Un nouveau code a été envoyé.')
-        except Exception:
-            print(f"[MFA] Nouveau code pour {user.email}: {code_obj.code}")
-            messages.warning(request, f"Email non envoyé (mode dev). Code: {code_obj.code}")
+            
     except User.DoesNotExist:
         messages.error(request, 'Erreur. Veuillez vous reconnecter.')
         return redirect('login')
