@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_filters',
     'corsheaders',
-    'anymail',  # <-- AJOUTÉ POUR BREVO
+    # 'anymail' a été retiré car nous utilisons le SMTP standard de Django
     
     # Apps locales
     'apps.accounts',
@@ -142,16 +142,17 @@ CORS_ALLOWED_ORIGINS = config(
 CORS_ALLOW_CREDENTIALS = True
 
 # ==============================================================================
-# CONFIGURATION EMAIL (BREVO API - Contourne le blocage SMTP de Render)
+# CONFIGURATION EMAIL (GMAIL SMTP STANDARD)
 # ==============================================================================
-EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
 
-ANYMAIL = {
-    "BREVO_API_KEY": config("BREVO_API_KEY", default=""),
-}
-
-# ⚠️ IMPORTANT : Cette adresse DOIT être celle que tu as utilisée pour créer ton compte Brevo
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="betsalimolotha5@gmail.com")
+# Ces valeurs seront lues depuis les variables d'environnement (.env ou Render)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='betsalimolotha5@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='mtajsqmcueazpgpt')
+DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default='')
 
 # Authentication MFA Configuration
 LOGIN_REDIRECT_URL = 'accueil'
