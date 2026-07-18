@@ -21,30 +21,6 @@
                         </p>
                     </div>
 
-                    <!-- ⚠️ BLOC DÉMONSTRATION (Affiché si l'email a échoué) -->
-                    {% if demo_code %}
-                    <div class="alert alert-warning border-0 shadow-sm" style="border-radius: 10px; background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);">
-                        <div class="d-flex align-items-start">
-                            <i class="fas fa-exclamation-triangle fa-2x me-3" style="color: #856404;"></i>
-                            <div class="flex-grow-1">
-                                <h6 class="fw-bold mb-1" style="color: #856404;">⚠️ Mode démonstration</h6>
-                                <p class="mb-2 small">
-                                    Le service email est temporairement indisponible (contrainte de l'hébergeur gratuit).
-                                </p>
-                                <div class="text-center p-3" style="background: white; border-radius: 8px; border: 2px dashed #ffc107;">
-                                    <small class="text-muted d-block mb-1">Votre code MFA :</small>
-                                    <span class="fw-bold" style="font-size: 2rem; color: #d63384; letter-spacing: 8px;">
-                                        {{ demo_code }}
-                                    </span>
-                                </div>
-                                <small class="text-muted d-block mt-2">
-                                    💡 En production réelle, ce code aurait été envoyé par email.
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-
                     <!-- Formulaire de saisie du code -->
                     <form method="post" action="{% url 'mfa_verification' %}" id="mfa-form">
                         {% csrf_token %}
