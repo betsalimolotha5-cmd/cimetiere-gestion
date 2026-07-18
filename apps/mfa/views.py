@@ -53,30 +53,20 @@ def login_view(request):
         password = request.POST.get('password', '')
         
         # Récupérer l'utilisateur par email
-        try:
-            user_obj = User.objects.get(email=email)
-        except User.DoesNotExist:
-            messages.error(request, 'Email ou mot de passe incorrect.')
-            return render(request, 'mfa/login.html')
-        
-        # Authentification Django
-        user = authenticate(request, username=user_obj.email, password=password)
-        
-        if user is not None:
-            # Générer le code MFA
-            ip_address = get_client_ip(request)
-            code_obj = MFACode.generer_code(user, ip_address=ip_address)
-            code_mfa = code_obj.code  # On stocke le code en variable
-            
-            # ⚠️ CRUCIAL : Stocker le code en session AVANT la tentative d'email
-            # Ainsi, même si l'email bloque, le code est récupérable pour l'afficher
-            request.session['mfa_user_id'] = user.id
-            request.session['mfa_email'] = user.email
-            request.session['last_mfa_code'] = code_mfa  # Pour fallback
-            
-            # Préparer l'email HTML
-            sujet = ' Votre code de connexion - Gestion Cimetière'
-            message_html = f"""
+                    try:
+                send_mail(
+                    subject='🔐 Votre code de connexion - Gestion Cimetière',
+                    message=f'Bonjour {user.get_full_name() or user.email},\n\nVotre code de vérification est : {code_obj.code}\n\nCe code expire dans 10 minutes.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+                messages.success(request, f'✅ Un code de vérification a été envoyé à {user.email}.')
+            except Exception as e:
+                # On force l'affichage de l'erreur exacte dans les logs Render
+                print(f"🚨 ERREUR ENVOI EMAIL BREVO : {e}")
+                messages.error(request, f'Erreur lors de l\'envoi de l\'email. Vérifiez les logs. Détail: {e}')
+                return render(request, 'mfa/login.html')
             <html>
             <body style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
                 <div style="max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 10px;">
