@@ -21,6 +21,38 @@
                         </p>
                     </div>
 
+                    <!-- ⭐⭐⭐ BOÎTE D'ALERTE PERMANENTE POUR LA DÉMO (Ne disparaît pas) ⭐⭐⭐ -->
+                    {% if demo_code %}
+                    <div class="alert border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-radius: 12px; border-left: 5px solid #ffc107 !important;">
+                        <div class="d-flex align-items-start">
+                            <div class="me-3">
+                                <i class="fas fa-exclamation-triangle" style="color: #d68910; font-size: 1.8rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-2 fw-bold" style="color: #856404;">
+                                    <i class="fas fa-info-circle me-1"></i> Mode Démo Activé
+                                </h6>
+                                <p class="mb-3 small" style="color: #856404; line-height: 1.5;">
+                                    En raison des restrictions de sécurité des hébergeurs gratuits, l'email a été filtré par les serveurs de messagerie (politique DMARC). 
+                                    <br><strong>Utilisez le code ci-dessous pour continuer la démonstration :</strong>
+                                </p>
+                                
+                                <!-- Code mis en évidence -->
+                                <div class="bg-white border rounded p-3 text-center shadow-sm" style="border: 2px dashed #ffc107 !important;">
+                                    <span class="fw-bold" style="color: #2c5f2d; font-size: 2rem; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                                        {{ demo_code }}
+                                    </span>
+                                </div>
+                                
+                                <p class="mb-0 mt-3 small fst-italic" style="color: #856404;">
+                                    <i class="fas fa-check-circle me-1"></i> Ce code est valide et sécurisé. En production, un domaine authentifié résout ce filtrage.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <!-- ⭐⭐⭐ FIN BOÎTE D'ALERTE ⭐⭐⭐ -->
+
                     <!-- Formulaire de saisie du code -->
                     <form method="post" action="{% url 'mfa_verification' %}" id="mfa-form">
                         {% csrf_token %}
