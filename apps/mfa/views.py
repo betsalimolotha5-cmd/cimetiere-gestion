@@ -1,13 +1,13 @@
 """
 Vues pour l'authentification à double facteur (MFA) par email.
-Conforme au CDC : robuste, sans crash (pas d'erreur 500), avec fallback de démo.
-Optimisé pour Render (utilise l'API HTTPS Port 443, non bloqué).
+Conforme au CDC : robuste, sans crash, avec affichage persistant du code de démo.
 """
 import requests
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 from django.conf import settings
+from django.db.utils import OperationalError  # ⭐ AJOUTÉ : Pour gérer les coupures DB Neon
 from .models import MFACode
 from apps.accounts.models import User
 
@@ -21,10 +21,7 @@ def get_client_ip(request):
 
 
 def send_mfa_email_via_api(user, code):
-    """
-    Envoie le code MFA via l'API HTTPS de Brevo (Port 443).
-    Retourne True si succès, False si échec (pour activer le fallback).
-    """
+    """Envoie le code MFA via l'API HTTPS de Brevo (Port 443)."""
     print(f"📧 [MFA] Tentative d'envoi du code {code} à {user.email}")
     
     url = "https://api.brevo.com/v3/smtp/email"
@@ -32,7 +29,7 @@ def send_mfa_email_via_api(user, code):
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
     
     if not api_key or api_key == 'ta_cle_api_ici':
-        print("❌ [MFA] ERREUR CRITIQUE : BREVO_API_KEY manquante dans les variables Render.")
+        print("❌ [MFA] ERREUR : BREVO_API_KEY manquante.")
         return False
 
     headers = {
@@ -45,31 +42,17 @@ def send_mfa_email_via_api(user, code):
         "sender": {"name": "Gestion Cimetière", "email": from_email},
         "to": [{"email": user.email}],
         "subject": "🔐 Votre code de connexion sécurisé",
-        "htmlContent": f"""
-        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px; max-width: 400px;">
-            <h2 style="color: #2563eb; margin-top: 0;">Code de vérification</h2>
-            <p>Bonjour {user.get_full_name() or user.email},</p>
-            <p>Votre code de connexion à l'application Gestion Cimetière est :</p>
-            <h1 style="background: #f3f4f6; padding: 15px; text-align: center; letter-spacing: 5px; font-size: 28px; border-radius: 4px; margin: 20px 0;">{code}</h1>
-            <p style="color: #666; font-size: 14px;">Ce code expire dans 10 minutes. Ne le partagez avec personne.</p>
-        </div>
-        """
+        "htmlContent": f"<p>Bonjour,</p><p>Votre code est : <strong>{code}</strong></p><p>Expire dans 10 min.</p>"
     }
     
     try:
-        # Timeout de 10s pour éviter le blocage "WORKER TIMEOUT" de Render
         response = requests.post(url, json=payload, headers=headers, timeout=10)
-        
         if response.status_code in [200, 201]:
-            print(f"✅ [MFA] SUCCÈS : Email envoyé via Brevo API (Status: {response.status_code})")
+            print(f"✅ [MFA] SUCCÈS : Email envoyé (Status: {response.status_code})")
             return True
         else:
-            print(f"❌ [MFA] ÉCHEC BREVO : Status {response.status_code} - {response.text[:100]}")
+            print(f"❌ [MFA] ÉCHEC BREVO : Status {response.status_code}")
             return False
-            
-    except requests.exceptions.Timeout:
-        print("❌ [MFA] ÉCHEC : Timeout de l'API Brevo (problème réseau Render)")
-        return False
     except Exception as e:
         print(f"❌ [MFA] ÉCHEC CRITIQUE : {str(e)}")
         return False
@@ -93,28 +76,24 @@ def login_view(request):
         user = authenticate(request, username=user_obj.email, password=password)
         
         if user is not None:
-            # 1. Générer le code MFA
             ip_address = get_client_ip(request)
             code_obj = MFACode.generer_code(user, ip_address=ip_address)
             
-            # 2. Stocker en session
             request.session['mfa_user_id'] = user.id
             request.session['mfa_email'] = user.email
             
-            # 3. Tenter d'envoyer l'email via API HTTPS (Port 443)
+            # Nettoyage de l'ancien code de démo s'il existe
+            if 'mfa_demo_code' in request.session:
+                del request.session['mfa_demo_code']
+            
             email_sent = send_mfa_email_via_api(user, code_obj.code)
             
-            # 4. GESTION ROBUSTE : Succès OU Fallback pour la démo
             if email_sent:
                 messages.success(request, f'✅ Un code de vérification a été envoyé à {user.email}.')
             else:
-                # ⭐ FALLBACK : Si l'email est bloqué par les filtres spam, on affiche le code à l'écran
-                # Cela garantit que la démo fonctionne à 100% sans erreur 500.
-                messages.warning(
-                    request, 
-                    f'⚠️ Restriction de l\'hébergeur gratuit : l\'email a été filtré. '
-                    f'Utilisez ce code de secours pour la démo : {code_obj.code}'
-                )
+                # ⭐ ASTUCE : On sauvegarde le code dans la session pour l'afficher en gros sur la page suivante
+                request.session['mfa_demo_code'] = code_obj.code
+                messages.warning(request, '⚠️ Restriction hébergeur : Email filtré. Voir le code ci-dessous.')
             
             return redirect('mfa_verification')
         else:
@@ -124,21 +103,25 @@ def login_view(request):
 
 
 def verification_view(request):
-    """Page de vérification du code MFA à 6 chiffres."""
-    user_id = request.session.get('mfa_user_id')
-    email = request.session.get('mfa_email')
-    
-    if not user_id:
-        return redirect('login')
-    
-    if request.method == 'POST':
-        code_saisi = request.POST.get('code', '').strip()
+    """Page de vérification du code MFA à 6 chiffres, blindée contre les coupures DB."""
+    try:
+        # ⭐ On enveloppe tout dans un try/except pour capturer les coupures Neon
+        user_id = request.session.get('mfa_user_id')
+        email = request.session.get('mfa_email')
         
-        if not code_saisi.isdigit() or len(code_saisi) != 6:
-            messages.error(request, 'Le code doit contenir exactement 6 chiffres.')
-            return render(request, 'mfa/verification.html', {'email': email})
+        # ⭐ On récupère le code de démo (et on le retire de la session pour qu'il ne s'affiche qu'une fois)
+        demo_code = request.session.pop('mfa_demo_code', None)
         
-        try:
+        if not user_id:
+            return redirect('login')
+        
+        if request.method == 'POST':
+            code_saisi = request.POST.get('code', '').strip()
+            
+            if not code_saisi.isdigit() or len(code_saisi) != 6:
+                messages.error(request, 'Le code doit contenir exactement 6 chiffres.')
+                return render(request, 'mfa/verification.html', {'email': email, 'demo_code': demo_code})
+            
             user = User.objects.get(id=user_id)
             code_obj = MFACode.objects.filter(
                 utilisateur=user,
@@ -163,10 +146,19 @@ def verification_view(request):
                 messages.error(request, 'Code expiré. Veuillez vous reconnecter.')
                 return redirect('login')
                 
-        except (User.DoesNotExist, MFACode.DoesNotExist):
-            messages.error(request, 'Code invalide. Veuillez réessayer.')
+    except (User.DoesNotExist, MFACode.DoesNotExist):
+        messages.error(request, 'Code invalide. Veuillez réessayer.')
+        return render(request, 'mfa/verification.html', {'email': email, 'demo_code': demo_code})
     
-    return render(request, 'mfa/verification.html', {'email': email})
+    except OperationalError:
+        # ⭐ GESTION DES COUPURES NEON : La DB s'est endormie.
+        # On nettoie la session et on renvoie au login pour forcer une connexion saine.
+        request.session.flush()
+        messages.warning(request, '⚠️ La base de données était en veille. Veuillez vous reconnecter.')
+        return redirect('login')
+    
+    # Fallback par défaut si rien ne matche (ex: méthode GET)
+    return render(request, 'mfa/verification.html', {'email': email, 'demo_code': demo_code})
 
 
 def resend_code_view(request):
@@ -181,17 +173,14 @@ def resend_code_view(request):
         ip_address = get_client_ip(request)
         code_obj = MFACode.generer_code(user, ip_address=ip_address)
         
-        # Tenter d'envoyer le nouveau code
         email_sent = send_mfa_email_via_api(user, code_obj.code)
         
         if email_sent:
             messages.success(request, 'Un nouveau code a été envoyé par email.')
         else:
-            # ⭐ FALLBACK pour le renvoi également
-            messages.warning(
-                request, 
-                f'⚠️ Restriction hébergeur. Code de secours : {code_obj.code}'
-            )
+            # ⭐ Sauvegarde pour affichage persistant
+            request.session['mfa_demo_code'] = code_obj.code
+            messages.warning(request, '⚠️ Restriction hébergeur. Voir le code sur la page de vérification.')
             
     except User.DoesNotExist:
         messages.error(request, 'Erreur. Veuillez vous reconnecter.')
