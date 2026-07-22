@@ -24,6 +24,11 @@ import requests
 import os
 from django.conf import settings
 
+
+import requests
+import os
+from django.conf import settings
+
 def send_mfa_email_via_api(user, code):
     """Envoie le code MFA via l'API HTTPS de Brevo (Port 443)."""
     print(f"📧 [MFA] Tentative d'envoi du code {code} à {user.email}")
