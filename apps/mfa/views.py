@@ -200,6 +200,67 @@ def resend_code_view(request):
     return redirect('mfa_verification')
 
 
+def register_view(request):
+    """Page de création de compte utilisateur."""
+    if request.user.is_authenticated:
+        return redirect('/admin/')
+    
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        password = request.POST.get('password', '')
+        password_confirm = request.POST.get('password_confirm', '')
+        
+        # Validations
+        erreurs = []
+        if not email:
+            erreurs.append("L'email est obligatoire.")
+        elif User.objects.filter(email=email).exists():
+            erreurs.append("Un compte existe déjà avec cet email.")
+        if not first_name:
+            erreurs.append("Le prénom est obligatoire.")
+        if not last_name:
+            erreurs.append("Le nom est obligatoire.")
+        if not password:
+            erreurs.append("Le mot de passe est obligatoire.")
+        elif len(password) < 8:
+            erreurs.append("Le mot de passe doit contenir au moins 8 caractères.")
+        if password != password_confirm:
+            erreurs.append("Les mots de passe ne correspondent pas.")
+        
+        if erreurs:
+            for e in erreurs:
+                messages.error(request, e)
+            return render(request, 'mfa/register.html', {
+                'email': email,
+                'first_name': first_name,
+                'last_name': last_name,
+            })
+        
+        # Création du compte
+        try:
+            user = User.objects.create_user(
+                username=email,  # username = email pour simplifier
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+            )
+            user.is_active = True
+            user.save()
+            
+            messages.success(
+                request, 
+                f'✅ Compte créé avec succès ! Vous pouvez maintenant vous connecter avec {email}.'
+            )
+            return redirect('login')
+        except Exception as e:
+            messages.error(request, f'Erreur lors de la création du compte : {e}')
+    
+    return render(request, 'mfa/register.html')
+
+
 def logout_view(request):
     """Déconnexion de l'utilisateur."""
     logout(request)
