@@ -142,16 +142,20 @@ CORS_ALLOWED_ORIGINS = config(
 CORS_ALLOW_CREDENTIALS = True
 
 # ==============================================================================
-# CONFIGURATION EMAIL (Brevo API - Envoi MFA sécurisé via HTTPS Port 443)
+# CONFIGURATION EMAIL (API HTTPS Brevo - Lecture directe OS)
 # ==============================================================================
-EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+import os
 
-ANYMAIL = {
-    'BREVO_API_KEY': config('BREVO_API_KEY', default=''),
-}
+# Lecture directe depuis l'environnement du serveur Render
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
 
-# L'email expéditeur (doit correspondre à ton compte Brevo ou à un domaine vérifié)
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='www.cimetieregestion@yahoo.com')
+# Debug au démarrage du serveur pour confirmer que Render a bien lu la variable
+if BREVO_API_KEY:
+    print(f"✅ [SYSTEME] BREVO_API_KEY chargée avec succès. Début: {BREVO_API_KEY[:15]}...")
+else:
+    print("❌ [SYSTEME] ERREUR CRITIQUE : BREVO_API_KEY est VIDE au démarrage du serveur !")
+
 
 # Authentication MFA Configuration
 LOGIN_REDIRECT_URL = 'accueil'

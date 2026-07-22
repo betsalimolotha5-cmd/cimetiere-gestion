@@ -20,21 +20,24 @@ def get_client_ip(request):
     return request.META.get('REMOTE_ADDR')
 
 
+import requests
+import os
+from django.conf import settings
+
 def send_mfa_email_via_api(user, code):
-    """
-    Envoie le code MFA via l'API HTTPS de Brevo (Port 443).
-    Retourne True si succès, False si échec (pour activer le fallback).
-    """
+    """Envoie le code MFA via l'API HTTPS de Brevo (Port 443)."""
     print(f"📧 [MFA] Tentative d'envoi du code {code} à {user.email}")
     
-    url = "https://api.brevo.com/v3/smtp/email"
-    api_key = getattr(settings, 'BREVO_API_KEY', '')
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'www.cimetieregestion@yahoo.com')
+    # Lecture directe et sécurisée
+    api_key = os.environ.get('BREVO_API_KEY', '')
+    from_email = os.environ.get('DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
     
-    if not api_key or api_key == 'ta_cle_api_ici':
-        print("❌ [MFA] ERREUR CRITIQUE : BREVO_API_KEY manquante dans les variables Render.")
+    if not api_key or not api_key.startswith('xkeysib-'):
+        print("❌ [MFA] ERREUR : La clé API est invalide ou manquante dans Render.")
         return False
 
+    url = "https://api.brevo.com/v3/smtp/email"
+    
     headers = {
         "accept": "application/json",
         "api-key": api_key,
@@ -46,34 +49,36 @@ def send_mfa_email_via_api(user, code):
         "to": [{"email": user.email}],
         "subject": "🔐 Votre code de connexion sécurisé",
         "htmlContent": f"""
-        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px; max-width: 400px;">
-            <h2 style="color: #2563eb; margin-top: 0;">Code de vérification</h2>
+        <div style="font-family: Arial, sans-serif; padding: 25px; background-color: #f9f9f9; border-radius: 8px;">
+            <h2 style="color: #2c5f2d; margin-top: 0;">Code de vérification</h2>
             <p>Bonjour {user.get_full_name() or user.email},</p>
-            <p>Votre code de connexion à l'application Gestion Cimetière est :</p>
-            <h1 style="background: #f3f4f6; padding: 15px; text-align: center; letter-spacing: 5px; font-size: 28px; border-radius: 4px; margin: 20px 0;">{code}</h1>
-            <p style="color: #666; font-size: 14px;">Ce code expire dans 10 minutes. Ne le partagez avec personne.</p>
+            <p>Pour finaliser votre connexion, veuillez utiliser le code suivant :</p>
+            <h1 style="background: #ffffff; padding: 20px; text-align: center; letter-spacing: 8px; font-size: 36px; border: 2px dashed #2c5f2d; border-radius: 8px; margin: 20px 0; color: #2c5f2d;">{code}</h1>
+            <p style="color: #666; font-size: 14px;">Ce code est valable 10 minutes. Ne le partagez avec personne.</p>
         </div>
         """
     }
     
     try:
-        # Timeout de 10s pour éviter le blocage "WORKER TIMEOUT" de Render
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        # Timeout de 15s pour éviter les blocages Render
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
         
-        if response.status_code in [200, 201]:
-            print(f"✅ [MFA] SUCCÈS : Email envoyé via Brevo API (Status: {response.status_code})")
-            return True
-        else:
-            print(f"❌ [MFA] ÉCHEC BREVO : Status {response.status_code} - {response.text[:100]}")
+        print(f"📬 [MFA] Réponse HTTP Brevo : {response.status_code}")
+        
+        # Si Brevo rejette, on affiche la raison exacte (ex: "sender not verified", "sandbox mode")
+        if response.status_code not in [200, 201]:
+            print(f"❌ [MFA] DÉTAILS DU REJET BREVO : {response.text}")
             return False
             
+        print(f"✅ [MFA] SUCCÈS : Email envoyé avec succès à {user.email}")
+        return True
+        
     except requests.exceptions.Timeout:
-        print("❌ [MFA] ÉCHEC : Timeout de l'API Brevo (problème réseau Render)")
+        print("❌ [MFA] ÉCHEC : Timeout de la connexion à Brevo")
         return False
     except Exception as e:
-        print(f"❌ [MFA] ÉCHEC CRITIQUE : {str(e)}")
+        print(f"❌ [MFA] EXCEPTION SYSTÈME : {str(e)}")
         return False
-
 
 def login_view(request):
     """Page de connexion avec identifiants email/password."""
