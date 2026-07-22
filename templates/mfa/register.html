@@ -22,31 +22,13 @@
                             <label for="first_name" class="form-label-modern">
                                 <i class="bi bi-person-fill me-1"></i> Prénom
                             </label>
-                            <input 
-                                type="text" 
-                                class="form-control form-control-modern" 
-                                id="first_name" 
-                                name="first_name" 
-                                value="{{ first_name|default:'' }}"
-                                placeholder="Votre prénom"
-                                required
-                                autofocus
-                            >
+                            <input type="text" class="form-control form-control-modern" id="first_name" name="first_name" value="{{ first_name|default:'' }}" placeholder="Votre prénom" required autofocus>
                         </div>
-                        
                         <div class="col-md-6 mb-3">
                             <label for="last_name" class="form-label-modern">
                                 <i class="bi bi-person-fill me-1"></i> Nom
                             </label>
-                            <input 
-                                type="text" 
-                                class="form-control form-control-modern" 
-                                id="last_name" 
-                                name="last_name" 
-                                value="{{ last_name|default:'' }}"
-                                placeholder="Votre nom"
-                                required
-                            >
+                            <input type="text" class="form-control form-control-modern" id="last_name" name="last_name" value="{{ last_name|default:'' }}" placeholder="Votre nom" required>
                         </div>
                     </div>
                     
@@ -54,74 +36,43 @@
                         <label for="email" class="form-label-modern">
                             <i class="bi bi-envelope-fill me-1"></i> Adresse email
                         </label>
-                        <input 
-                            type="email" 
-                            class="form-control form-control-modern" 
-                            id="email" 
-                            name="email" 
-                            value="{{ email|default:'' }}"
-                            placeholder="votre@email.com"
-                            required
-                            autocomplete="email"
-                        >
-                        <small class="form-text text-muted">
-                            <i class="bi bi-info-circle me-1"></i>
-                            Cet email servira pour la connexion et la réception du code MFA
-                        </small>
+                        <input type="email" class="form-control form-control-modern" id="email" name="email" value="{{ email|default:'' }}" placeholder="votre@email.com" required autocomplete="email">
+                        <small class="form-text text-muted"><i class="bi bi-info-circle me-1"></i> Cet email servira pour la connexion et la réception du code MFA</small>
                     </div>
                     
                     <div class="mb-3">
                         <label for="password" class="form-label-modern">
                             <i class="bi bi-key-fill me-1"></i> Mot de passe
                         </label>
-                        <input 
-                            type="password" 
-                            class="form-control form-control-modern" 
-                            id="password" 
-                            name="password" 
-                            placeholder="Minimum 8 caractères"
-                            required
-                            minlength="8"
-                            autocomplete="new-password"
-                        >
+                        <input type="password" class="form-control form-control-modern" id="password" name="password" placeholder="Minimum 8 caractères" required minlength="8" autocomplete="new-password">
                     </div>
                     
                     <div class="mb-4">
                         <label for="password_confirm" class="form-label-modern">
                             <i class="bi bi-key-fill me-1"></i> Confirmer le mot de passe
                         </label>
-                        <input 
-                            type="password" 
-                            class="form-control form-control-modern" 
-                            id="password_confirm" 
-                            name="password_confirm" 
-                            placeholder="Retapez le mot de passe"
-                            required
-                            autocomplete="new-password"
-                        >
+                        <input type="password" class="form-control form-control-modern" id="password_confirm" name="password_confirm" placeholder="Retapez le mot de passe" required autocomplete="new-password">
                     </div>
                     
                     <button type="submit" class="btn btn-modern btn-primary-modern w-100 py-3">
-                        <i class="bi bi-person-check-fill me-2"></i>
-                        Créer mon compte
+                        <i class="bi bi-person-check-fill me-2"></i> Créer mon compte
                     </button>
                 </form>
                 
                 <div class="text-center mt-4">
                     <small class="text-muted">
                         Déjà un compte ? 
-                        <a href="{% url 'login' %}" style="color: var(--primary-color); font-weight: 600;">
-                            Se connecter ici
-                        </a>
+                        <a href="{% url 'login' %}" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Se connecter ici</a>
                     </small>
                 </div>
             </div>
         </div>
         
-        <div class="text-center mt-4">
+        <!-- Footer 100% générique et professionnel -->
+        <div class="text-center mt-4 mb-5">
             <small class="text-muted opacity-75">
                 <i class="bi bi-shield-check me-1"></i>
-                Inscription sécurisée par chiffrement SSL
+                &copy; 2026 Gestion Cimetière. Inscription sécurisée par chiffrement SSL.
             </small>
         </div>
     </div>

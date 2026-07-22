@@ -1,85 +1,83 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Connexion{% endblock %}
+{% block title %}Connexion Sécurisée - Gestion Cimetière{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-12 col-md-6 col-lg-5">
-            <div class="card shadow-lg border-0" style="border-radius: 15px; margin-top: 40px;">
-                <div class="card-body p-4 p-md-5">
+<div class="d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 200px);">
+    <div class="col-12 col-md-8 col-lg-5 col-xl-4">
+        <div class="card card-modern shadow-lg border-0 fade-in-up">
+            <div class="card-header-custom text-center py-4">
+                <i class="bi bi-shield-lock-fill text-white" style="font-size: 3.5rem;"></i>
+                <h3 class="mt-3 mb-1 fw-bold">Connexion Sécurisée</h3>
+                <p class="mb-0 text-white-50" style="font-size: 0.95rem;">Authentification à double facteur (MFA)</p>
+            </div>
+            
+            <div class="card-body p-4 p-md-5">
+                <form method="post" novalidate>
+                    {% csrf_token %}
                     
-                    <!-- En-tête -->
-                    <div class="text-center mb-4">
-                        <div class="mb-3">
-                            <i class="fas fa-monument fa-4x" style="color: #2c5f2d;"></i>
-                        </div>
-                        <h2 class="fw-bold" style="color: #2c5f2d;">Gestion Cimetière</h2>
-                        <p class="text-muted">Connectez-vous à votre espace sécurisé</p>
+                    <div class="mb-4">
+                        <label for="email" class="form-label-modern">
+                            <i class="bi bi-envelope-fill me-1"></i> Adresse email
+                        </label>
+                        <input 
+                            type="email" 
+                            class="form-control form-control-modern" 
+                            id="email" 
+                            name="email" 
+                            placeholder="votre@email.com"
+                            required
+                            autocomplete="email"
+                            autofocus
+                        >
                     </div>
-
-                    <!-- Formulaire de connexion -->
-                    <form method="post" action="{% url 'login' %}">
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="email" class="form-label fw-bold">
-                                <i class="fas fa-envelope me-1"></i> Adresse email
-                            </label>
-                            <input 
-                                type="email" 
-                                class="form-control form-control-lg" 
-                                id="email" 
-                                name="email" 
-                                placeholder="votre@email.com"
-                                required
-                                autofocus
-                                style="border-radius: 10px;"
-                            >
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="password" class="form-label fw-bold">
-                                <i class="fas fa-lock me-1"></i> Mot de passe
-                            </label>
-                            <input 
-                                type="password" 
-                                class="form-control form-control-lg" 
-                                id="password" 
-                                name="password" 
-                                placeholder="••••••••"
-                                required
-                                style="border-radius: 10px;"
-                            >
-                        </div>
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-lg text-white" style="background-color: #2c5f2d; border-radius: 10px;">
-                                <i class="fas fa-sign-in-alt me-2"></i> Se connecter
-                            </button>
-                        </div>
-
-			<div class="text-center mt-3">
-   				 <small class="text-muted">
-      				  Pas encore de compte ? 
-       				 <a href="{% url 'register' %}" style="color: var(--primary-color); font-weight: 600;">
-          			  Créer un compte
-        				</a>
-   				 </small>
-			</div>
-                    </form>
-
-                    <hr class="my-4">
                     
-                    <div class="text-center">
-                        <small class="text-muted">
-                            <i class="fas fa-shield-alt me-1"></i> 
-                            Authentification sécurisée à double facteur (MFA)
-                        </small>
+                    <div class="mb-4">
+                        <label for="password" class="form-label-modern">
+                            <i class="bi bi-key-fill me-1"></i> Mot de passe
+                        </label>
+                        <input 
+                            type="password" 
+                            class="form-control form-control-modern" 
+                            id="password" 
+                            name="password" 
+                            placeholder="••••••••"
+                            required
+                            autocomplete="current-password"
+                        >
                     </div>
+                    
+                    <button type="submit" class="btn btn-modern btn-primary-modern w-100 py-3">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                        Se connecter
+                    </button>
+                </form>
+                
+                <div class="text-center mt-4">
+                    <small class="text-muted">
+                        Pas encore de compte ? 
+                        <a href="{% url 'register' %}" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">
+                            Créer un compte
+                        </a>
+                    </small>
+                </div>
 
+                <div class="text-center mt-3">
+                    <small class="text-muted opacity-75">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        Un code de vérification vous sera envoyé par email
+                    </small>
                 </div>
             </div>
+        </div>
+        
+        <!-- Footer 100% générique et professionnel -->
+        <div class="text-center mt-4 mb-5">
+            <small class="text-muted opacity-75">
+                <i class="bi bi-shield-check me-1"></i>
+                &copy; 2026 Gestion Cimetière. Système sécurisé conforme aux normes de protection des données.
+            </small>
         </div>
     </div>
 </div>
