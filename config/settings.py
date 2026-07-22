@@ -151,7 +151,7 @@ ANYMAIL = {
 }
 
 # L'email expéditeur (doit correspondre à ton compte Brevo ou à un domaine vérifié)
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='betsalimolotha5@gmail.com')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='www.cimetieregestion@yahoo.com')
 
 # Authentication MFA Configuration
 LOGIN_REDIRECT_URL = 'accueil'

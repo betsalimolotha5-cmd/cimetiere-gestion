@@ -29,7 +29,7 @@ def send_mfa_email_via_api(user, code):
     
     url = "https://api.brevo.com/v3/smtp/email"
     api_key = getattr(settings, 'BREVO_API_KEY', '')
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'www.cimetieregestion@yahoo.com')
     
     if not api_key or api_key == 'ta_cle_api_ici':
         print("❌ [MFA] ERREUR CRITIQUE : BREVO_API_KEY manquante dans les variables Render.")
