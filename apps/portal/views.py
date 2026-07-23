@@ -11,6 +11,166 @@ from .models import DemandeReservation
 from apps.core.models import Caveau, Zone
 from apps.billing.models import Facture, Paiement
 from decimal import Decimal
+from django.db.models import Sum, Count, Q, F
+from django.utils import timezone
+from datetime import timedelta
+from django.core.cache import cache
+
+
+@login_required
+def dashboard_admin(request):
+    """Dashboard admin optimisé - Cache de 5 minutes."""
+    
+    if not request.user.is_staff:
+        messages.error(request, "Accès réservé aux administrateurs.")
+        return redirect('carte_publique')
+    
+    # ⭐ CACHE : Évite de recalculer à chaque chargement
+    cache_key = f'dashboard_admin_{request.user.id}'
+    cached_data = cache.get(cache_key)
+    
+    if cached_data:
+        return render(request, 'portal/dashboard_admin.html', cached_data)
+    
+    # ============================================
+    # 1. STATISTIQUES TERRAIN (1 seule requête optimisée)
+    # ============================================
+    stats_caveaux = Caveau.objects.aggregate(
+        total=Count('id'),
+        disponibles=Count('id', filter=Q(statut='DISPONIBLE')),
+        reserves=Count('id', filter=Q(statut='RESERVE')),
+        occupes=Count('id', filter=Q(statut='OCCUPE')),
+        non_exploitables=Count('id', filter=Q(statut='NON_EXPLOITABLE')),
+    )
+    
+    total_caveaux = stats_caveaux['total'] or 0
+    caveaux_disponibles = stats_caveaux['disponibles'] or 0
+    caveaux_reserves = stats_caveaux['reserves'] or 0
+    caveaux_occupes = stats_caveaux['occupes'] or 0
+    caveaux_non_exploitables = stats_caveaux['non_exploitables'] or 0
+    total_zones = Zone.objects.count()
+    
+    taux_occupation = round((caveaux_occupes / total_caveaux * 100), 1) if total_caveaux > 0 else 0
+    
+    # ============================================
+    # 2. RÉSERVATIONS (1 seule requête)
+    # ============================================
+    reservations_qs = DemandeReservation.objects.filter(
+        statut=DemandeReservation.Statut.EN_ATTENTE
+    ).select_related('client', 'caveau', 'caveau__zone').order_by('-date_creation')
+    
+    total_reservations_attente = reservations_qs.count()
+    reservations_en_attente = reservations_qs[:10]
+    
+    # ============================================
+    # 3. FINANCES (requêtes groupées)
+    # ============================================
+    revenus_agg = Paiement.objects.filter(
+        statut=Paiement.StatutPaiement.VALIDE
+    ).aggregate(total=Sum('montant'))
+    revenus_totaux = revenus_agg['total'] or 0
+    
+    revenus_par_mode = list(
+        Paiement.objects.filter(statut=Paiement.StatutPaiement.VALIDE)
+        .values('mode_paiement')
+        .annotate(total=Sum('montant'), count=Count('id'))
+        .order_by('-total')
+    )
+    
+    paiements_recents = Paiement.objects.select_related(
+        'client', 'facture'
+    ).order_by('-date_paiement')[:10]
+    
+    # ⭐ Revenus mensuels optimisés (1 seule requête au lieu de 6)
+    six_mois_avant = timezone.now() - timedelta(days=180)
+    paiements_mensuels = Paiement.objects.filter(
+        statut=Paiement.StatutPaiement.VALIDE,
+        date_paiement__gte=six_mois_avant
+    ).extra(
+        select={'mois': "TO_CHAR(date_paiement, 'YYYY-MM')"}
+    ).values('mois').annotate(total=Sum('montant')).order_by('mois')
+    
+    revenus_mensuels = [
+        {'mois': p['mois'], 'total': float(p['total'])}
+        for p in paiements_mensuels
+    ]
+    
+    # ============================================
+    # 4. FACTURES
+    # ============================================
+    factures_stats = Facture.objects.aggregate(
+        total=Count('id'),
+        impayees=Count('id', filter=Q(statut=Facture.StatutFacture.EN_ATTENTE)),
+        payees=Count('id', filter=Q(statut=Facture.StatutFacture.PAYEE)),
+    )
+    
+    total_factures = factures_stats['total'] or 0
+    factures_impayees = factures_stats['impayees'] or 0
+    factures_payees = factures_stats['payees'] or 0
+    factures_recents = Facture.objects.select_related(
+        'client', 'concession'
+    ).order_by('-date_creation')[:10]
+    
+    # ============================================
+    # 5. UTILISATEURS
+    # ============================================
+    from apps.accounts.models import User
+    total_users = User.objects.filter(is_active=True).count()
+    admins_count = User.objects.filter(is_staff=True).count()
+    
+    # ============================================
+    # 6. OCCUPATION PAR ZONE (1 requête au lieu de N)
+    # ============================================
+    occupation_par_zone = list(
+        Zone.objects.annotate(
+            total_caveaux=Count('caveaux'),
+            caveaux_occupes=Count('caveaux', filter=Q(caveaux__statut='OCCUPE'))
+        ).values('nom', 'total_caveaux', 'caveaux_occupes')[:10]
+    )
+    
+    # Calcul du taux
+    for zone in occupation_par_zone:
+        total = zone['total_caveaux'] or 0
+        occupes = zone['caveaux_occupes'] or 0
+        zone['taux'] = round((occupes / total * 100), 1) if total > 0 else 0
+        zone['total'] = total
+        zone['occupes'] = occupes
+    
+    # ============================================
+    # 7. AUDIT
+    # ============================================
+    actions_recentes = DemandeReservation.objects.filter(
+        statut__in=[DemandeReservation.Statut.VALIDEE, DemandeReservation.Statut.REFUSEE]
+    ).select_related('client', 'caveau', 'traite_par').order_by('-date_modification')[:10]
+    
+    context = {
+        'total_caveaux': total_caveaux,
+        'caveaux_disponibles': caveaux_disponibles,
+        'caveaux_reserves': caveaux_reserves,
+        'caveaux_occupes': caveaux_occupes,
+        'caveaux_non_exploitables': caveaux_non_exploitables,
+        'total_zones': total_zones,
+        'taux_occupation': taux_occupation,
+        'reservations_en_attente': reservations_en_attente,
+        'total_reservations_attente': total_reservations_attente,
+        'revenus_totaux': revenus_totaux,
+        'revenus_par_mode': revenus_par_mode,
+        'paiements_recents': paiements_recents,
+        'revenus_mensuels': revenus_mensuels,
+        'total_factures': total_factures,
+        'factures_impayees': factures_impayees,
+        'factures_payees': factures_payees,
+        'factures_recents': factures_recents,
+        'total_users': total_users,
+        'admins_count': admins_count,
+        'occupation_par_zone': occupation_par_zone,
+        'actions_recentes': actions_recentes,
+    }
+    
+    # ⭐ Sauvegarde en cache pour 5 minutes
+    cache.set(cache_key, context, timeout=300)
+    
+    return render(request, 'portal/dashboard_admin.html', context)
 
 
 def extraire_coordonnees(point_gps):
@@ -120,6 +280,8 @@ def api_carte_publique(request):
             'reservable': reservable,
             'position': position,
             'prix': float(caveau.prix_concession) if caveau.prix_concession else 0,
+            'longitude': position['lng'] if position else None,
+            'latitude': position['lat'] if position else None,
         })
 
     return JsonResponse({'caveaux': caveaux_data}, safe=False)
