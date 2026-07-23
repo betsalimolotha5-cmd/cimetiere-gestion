@@ -10,6 +10,28 @@ from .models import (
     ParametreCimetiere, DemandeExhumation
 )
 
+from django.contrib.gis.geos import Polygon, Point
+from django.core.exceptions import ValidationError
+
+# ⭐ PÉRIMÈTRE DU CIMETIÈRE (mêmes coordonnées que sur la carte)
+CIMETIERE_PERIMETRE = Polygon((
+    (15.2655, -4.4425),  # Nord-Ouest [lng, lat]
+    (15.2670, -4.4425),  # Nord-Est
+    (15.2670, -4.4415),  # Sud-Est
+    (15.2655, -4.4415),  # Sud-Ouest
+    (15.2655, -4.4425),  # Fermeture du polygone
+), srid=4326)
+
+
+def clean(self):
+    """Vérifie que le caveau est dans le périmètre du cimetière."""
+    super().clean()
+    if hasattr(self, 'position_gps') and self.position_gps:
+        if not CIMETIERE_PERIMETRE.contains(self.position_gps):
+            raise ValidationError(
+                "❌ Ce caveau est en dehors du périmètre du cimetière. "
+                "Veuillez choisir un emplacement à l'intérieur des limites."
+            )
 
 @admin.register(Zone)
 class ZoneAdmin(admin.ModelAdmin):
