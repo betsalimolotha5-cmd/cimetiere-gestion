@@ -88,7 +88,7 @@ def send_mfa_email_via_api(user, code):
 def login_view(request):
     """Page de connexion avec identifiants email/password."""
     if request.user.is_authenticated:
-        return redirect('/admin/')
+        return redirect('dashboard_admin')
     
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
@@ -168,7 +168,7 @@ def verification_view(request):
                     del request.session['mfa_email']
                 
                 messages.success(request, f'Bienvenue {user.get_full_name() or user.email} !')
-                return redirect('/admin/')
+                return redirect('dashboard_admin')
             else:
                 messages.error(request, 'Code expiré. Veuillez vous reconnecter.')
                 return redirect('login')

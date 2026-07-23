@@ -322,3 +322,191 @@ def payer_facture(request, facture_id):
         'facture': facture,
     }
     return render(request, 'portal/payer_facture.html', context)
+
+
+from django.db.models import Sum, Count, Q
+from django.utils import timezone
+from datetime import timedelta
+
+
+@login_required
+def dashboard_admin(request):
+    """Dashboard administrateur complet - Conforme CDC sections 2.2, 2.5, 2.6, 4, 7."""
+    
+    # Vérifier que l'utilisateur est admin
+    if not request.user.is_staff:
+        messages.error(request, "Accès réservé aux administrateurs.")
+        return redirect('carte_publique')
+    
+    # ============================================
+    # 1. STATISTIQUES GLOBALES DU TERRAIN (CDC 2.2)
+    # ============================================
+    try:
+        total_caveaux = Caveau.objects.count()
+        caveaux_disponibles = Caveau.objects.filter(statut='DISPONIBLE').count()
+        caveaux_reserves = Caveau.objects.filter(statut='RESERVE').count()
+        caveaux_occupes = Caveau.objects.filter(statut='OCCUPE').count()
+        caveaux_non_exploitables = Caveau.objects.filter(statut='NON_EXPLOITABLE').count()
+        total_zones = Zone.objects.count()
+        
+        # Taux d'occupation
+        taux_occupation = round((caveaux_occupes / total_caveaux * 100), 1) if total_caveaux > 0 else 0
+    except Exception as e:
+        print(f"[DASHBOARD] Erreur stats terrain: {e}")
+        total_caveaux = caveaux_disponibles = caveaux_reserves = caveaux_occupes = 0
+        caveaux_non_exploitables = total_zones = taux_occupation = 0
+    
+    # ============================================
+    # 2. RÉSERVATIONS (CDC 2.4)
+    # ============================================
+    try:
+        reservations_en_attente = DemandeReservation.objects.filter(
+            statut=DemandeReservation.Statut.EN_ATTENTE
+        ).select_related('client', 'caveau', 'caveau__zone').order_by('-date_creation')[:10]
+        
+        total_reservations_attente = DemandeReservation.objects.filter(
+            statut=DemandeReservation.Statut.EN_ATTENTE
+        ).count()
+    except Exception as e:
+        print(f"[DASHBOARD] Erreur réservations: {e}")
+        reservations_en_attente = []
+        total_reservations_attente = 0
+    
+    # ============================================
+    # 3. FINANCES (CDC 2.6)
+    # ============================================
+    try:
+        # Revenus totaux
+        revenus_totaux = Paiement.objects.filter(
+            statut=Paiement.StatutPaiement.VALIDE
+        ).aggregate(total=Sum('montant'))['total'] or 0
+        
+        # Revenus par mode de paiement
+        revenus_par_mode = Paiement.objects.filter(
+            statut=Paiement.StatutPaiement.VALIDE
+        ).values('mode_paiement').annotate(
+            total=Sum('montant'),
+            count=Count('id')
+        ).order_by('-total')
+        
+        # Paiements récents
+        paiements_recents = Paiement.objects.all().select_related(
+            'client', 'facture'
+        ).order_by('-date_paiement')[:10]
+        
+        # Revenus mensuels (6 derniers mois)
+        revenus_mensuels = []
+        for i in range(5, -1, -1):
+            date_debut = timezone.now().replace(day=1) - timedelta(days=i*30)
+            date_fin = date_debut + timedelta(days=30)
+            total_mois = Paiement.objects.filter(
+                statut=Paiement.StatutPaiement.VALIDE,
+                date_paiement__gte=date_debut,
+                date_paiement__lt=date_fin
+            ).aggregate(total=Sum('montant'))['total'] or 0
+            revenus_mensuels.append({
+                'mois': date_debut.strftime('%b %Y'),
+                'total': float(total_mois)
+            })
+    except Exception as e:
+        print(f"[DASHBOARD] Erreur finances: {e}")
+        revenus_totaux = 0
+        revenus_par_mode = []
+        paiements_recents = []
+        revenus_mensuels = []
+    
+    # ============================================
+    # 4. FACTURES (CDC 2.6)
+    # ============================================
+    try:
+        total_factures = Facture.objects.count()
+        factures_impayees = Facture.objects.filter(statut=Facture.StatutFacture.EN_ATTENTE).count()
+        factures_payees = Facture.objects.filter(statut=Facture.StatutFacture.PAYEE).count()
+        factures_recents = Facture.objects.all().select_related(
+            'client', 'concession'
+        ).order_by('-date_creation')[:10]
+    except Exception as e:
+        print(f"[DASHBOARD] Erreur factures: {e}")
+        total_factures = factures_impayees = factures_payees = 0
+        factures_recents = []
+    
+    # ============================================
+    # 5. UTILISATEURS
+    # ============================================
+    try:
+        from apps.accounts.models import User
+        total_users = User.objects.filter(is_active=True).count()
+        admins_count = User.objects.filter(is_staff=True).count()
+    except Exception as e:
+        print(f"[DASHBOARD] Erreur users: {e}")
+        total_users = admins_count = 0
+    
+    # ============================================
+    # 6. TAUX D'OCCUPATION PAR ZONE (CDC 7)
+    # ============================================
+    try:
+        occupation_par_zone = []
+        for zone in Zone.objects.all()[:10]:
+            total_zone = Caveau.objects.filter(zone=zone).count()
+            occupes_zone = Caveau.objects.filter(zone=zone, statut='OCCUPE').count()
+            taux = round((occupes_zone / total_zone * 100), 1) if total_zone > 0 else 0
+            occupation_par_zone.append({
+                'nom': zone.nom,
+                'total': total_zone,
+                'occupes': occupes_zone,
+                'taux': taux
+            })
+    except Exception as e:
+        print(f"[DASHBOARD] Erreur occupation par zone: {e}")
+        occupation_par_zone = []
+    
+    # ============================================
+    # 7. AUDIT TRAIL (CDC 4) - Dernières actions
+    # ============================================
+    try:
+        # Récupérer les dernières réservations validées comme "audit"
+        actions_recentes = DemandeReservation.objects.filter(
+            statut__in=[DemandeReservation.Statut.VALIDEE, DemandeReservation.Statut.REFUSEE]
+        ).select_related('client', 'caveau', 'traite_par').order_by('-date_modification')[:10]
+    except Exception as e:
+        print(f"[DASHBOARD] Erreur audit: {e}")
+        actions_recentes = []
+    
+    context = {
+        # Terrain
+        'total_caveaux': total_caveaux,
+        'caveaux_disponibles': caveaux_disponibles,
+        'caveaux_reserves': caveaux_reserves,
+        'caveaux_occupes': caveaux_occupes,
+        'caveaux_non_exploitables': caveaux_non_exploitables,
+        'total_zones': total_zones,
+        'taux_occupation': taux_occupation,
+        
+        # Réservations
+        'reservations_en_attente': reservations_en_attente,
+        'total_reservations_attente': total_reservations_attente,
+        
+        # Finances
+        'revenus_totaux': revenus_totaux,
+        'revenus_par_mode': list(revenus_par_mode),
+        'paiements_recents': paiements_recents,
+        'revenus_mensuels': revenus_mensuels,
+        
+        # Factures
+        'total_factures': total_factures,
+        'factures_impayees': factures_impayees,
+        'factures_payees': factures_payees,
+        'factures_recents': factures_recents,
+        
+        # Users
+        'total_users': total_users,
+        'admins_count': admins_count,
+        
+        # Occupation par zone
+        'occupation_par_zone': occupation_par_zone,
+        
+        # Audit
+        'actions_recentes': actions_recentes,
+    }
+    
+    return render(request, 'portal/dashboard_admin.html', context)
