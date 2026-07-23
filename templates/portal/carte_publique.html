@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Carte Interactive du Cimetière{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+<style>
+    /* Conteneur de la carte */
+    #map { 
+        width: 100%; 
+        height: calc(100vh - 80px);
+        min-height: 500px;
+        z-index: 1;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    /* Légende conforme CDC Section 2.3 */
+    .cdc-legend {
+        background: rgba(255, 255, 255, 0.98);
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        font-size: 0.9rem;
+        line-height: 1.6;
+        backdrop-filter: blur(10px);
+        max-width: 220px;
+    }
+    
+    .cdc-legend h6 {
+        margin: 0 0 10px 0;
+        font-weight: 700;
+        color: #2c5f2d;
+        border-bottom: 2px solid #97bc62;
+        padding-bottom: 6px;
+        font-size: 1rem;
+    }
+    
+    .legend-item { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        margin: 8px 0; 
+        font-weight: 500;
+    }
+    
+    .legend-color { 
+        width: 20px; 
+        height: 20px; 
+        border-radius: 4px; 
+        border: 2px solid rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Popup personnalisé */
+    .leaflet-popup-content-wrapper {
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    
+    .leaflet-popup-content {
+        margin: 15px 20px;
+        font-size: 0.95rem;
+    }
+
+    /* Optimisation Mobile */
+    @media (max-width: 768px) {
+        #map { 
+            height: calc(100vh - 60px); 
+            border-radius: 0;
+        }
+        
+        .leaflet-control-zoom a { 
+            width: 40px !important; 
+            height: 40px !important; 
+            font-size: 1.3rem !important; 
+        }
+        
+        .cdc-legend { 
+            padding: 10px 15px; 
+            font-size: 0.8rem;
+            max-width: 180px;
+        }
+        
+        .legend-color { 
+            width: 16px; 
+            height: 16px; 
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div id="map"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // ============================================
+        // 1. INITIALISATION DE LA CARTE
+        // ============================================
+        const map = L.map('map', {
+            zoomControl: true,
+            scrollWheelZoom: true
+        }).setView([-4.4419, 15.2663], 16); // Centre par défaut (à ajuster selon ton cimetière)
+        
+        // Fond de carte OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+        }).addTo(map);
+
+        // ============================================
+        // 2. DÉLIMITATION DU CIMETIÈRE (POLYGONE)
+        // ============================================
+        // ⚠️ REMPLACE CES COORDONNÉES PAR LES VRAIES LIMITES DE TON CIMETIÈRE
+        const cimetiereBounds = [
+            [-4.4425, 15.2655], // Coin Nord-Ouest [lat, lng]
+            [-4.4425, 15.2670], // Coin Nord-Est
+            [-4.4415, 15.2670], // Coin Sud-Est
+            [-4.4415, 15.2655]  // Coin Sud-Ouest
+        ];
+
+        const cimetierePolygon = L.polygon(cimetiereBounds, {
+            color: '#2c5f2d',
+            weight: 3,
+            fillColor: '#97bc62',
+            fillOpacity: 0.15,
+            dashArray: '10, 5'
+        }).addTo(map);
+        
+        cimetierePolygon.bindPopup('<strong style="color: #2c5f2d;"><i class="fas fa-map"></i> Limites du Cimetière</strong>');
+
+        // Ajuster la vue pour englober le cimetière
+        map.fitBounds(cimetiereBounds, { padding: [30, 30] });
+
+        // ============================================
+        // 3. LÉGENDE CONFORME CDC
+        // ============================================
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function() {
+            const div = L.DomUtil.create('div', 'cdc-legend');
+            div.innerHTML = `
+                <h6><i class="fas fa-info-circle"></i> État des Caveaux</h6>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #27ae60;"></div>
+                    <span>Disponible</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <span>Réservé / En attente</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e74c3c;"></div>
+                    <span>Occupé / Validé</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #95a5a6;"></div>
+                    <span>Non exploitable</span>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+
+        // ============================================
+        // 4. CHARGEMENT DES DONNÉES DES CAVEAUX
+        // ============================================
+        fetch('/portal/api/carte/')
+            .then(response => {
+                if (!response.ok) throw new Error('Erreur réseau');
+                return response.json();
+            })
+            .then(data => {
+                if (!data.caveaux || data.caveaux.length === 0) {
+                    console.warn("Aucun caveau trouvé dans la base de données.");
+                    return;
+                }
+
+                // Fonction pour créer le popup avec toutes les infos
+                function createPopupContent(c) {
+                    let popupContent = `<div style="min-width: 280px;">`;
+                    popupContent += `<h5 class="mb-2" style="color: #2c5f2d; font-weight: 700;">`;
+                    popupContent += `<i class="fas fa-map-marker-alt"></i> Caveau ${c.code}</h5>`;
+                    popupContent += `<hr style="margin: 0.5rem 0; border-color: #97bc62;">`;
+                    
+                    // Infos de base
+                    popupContent += `<p class="mb-1"><strong>Zone :</strong> ${c.zone || 'Non définie'}</p>`;
+                    popupContent += `<p class="mb-1"><strong>Type :</strong> ${c.type_caveau || 'Standard'}</p>`;
+                    popupContent += `<p class="mb-1"><strong>Statut :</strong> <span style="color: ${c.couleur}; font-weight: bold;">${c.statut_affiche}</span></p>`;
+                    popupContent += `<p class="mb-2"><strong>Prix :</strong> <span style="color: #2c5f2d; font-weight: 700;">${c.prix.toLocaleString()} FCFA</span></p>`;
+                    
+                    // ⭐ COORDONNÉES GPS
+                    if (c.longitude && c.latitude) {
+                        popupContent += `<hr style="margin: 0.5rem 0; border-color: #e9ecef;">`;
+                        popupContent += `<p class="mb-1 small text-muted"><i class="fas fa-location-arrow"></i> <strong>Emplacement GPS :</strong></p>`;
+                        popupContent += `<p class="mb-1 small"><strong>Longitude :</strong> ${c.longitude.toFixed(6)}</p>`;
+                        popupContent += `<p class="mb-2 small"><strong>Latitude :</strong> ${c.latitude.toFixed(6)}</p>`;
+                    }
+                    
+                    // Bouton de réservation
+                    if (c.reservable) {
+                        popupContent += `<a href="/portal/reservation/${c.id}/" class="btn btn-sm btn-success w-100 mt-2" style="background-color: #2c5f2d; border: none;">
+                            <i class="fas fa-calendar-check"></i> Réserver ce caveau
+                        </a>`;
+                    } else {
+                        popupContent += `<p class="text-muted small mt-2 mb-0"><i class="fas fa-lock"></i> Ce caveau n'est pas disponible.</p>`;
+                    }
+                    
+                    popupContent += `</div>`;
+                    return popupContent;
+                }
+
+                // Ajouter chaque caveau comme un marqueur circulaire
+                data.caveaux.forEach(c => {
+                    if (c.position) {
+                        const marker = L.circleMarker([c.position.lat, c.position.lng], {
+                            radius: 10,
+                            fillColor: c.couleur,
+                            color: '#ffffff',
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.85
+                        }).addTo(map);
+
+                        marker.bindPopup(createPopupContent(c));
+                        
+                        // Effet au survol
+                        marker.on('mouseover', function() {
+                            this.setStyle({ weight: 3, fillOpacity: 1, radius: 12 });
+                        });
+                        marker.on('mouseout', function() {
+                            this.setStyle({ weight: 2, fillOpacity: 0.85, radius: 10 });
+                        });
+                    }
+                });
+            })
+            .catch(err => {
+                console.error('Erreur chargement carte:', err);
+                alert("Impossible de charger les données de la carte. Vérifiez la connexion.");
+            });
+    });
+</script>
+{% endblock %}
