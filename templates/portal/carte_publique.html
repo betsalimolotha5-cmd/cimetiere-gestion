@@ -6,48 +6,70 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
+    /* Carte */
     #map { 
         width: 100%; 
         height: calc(100vh - 80px); 
         min-height: 600px; 
         z-index: 1; 
-        border-radius: 8px; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+        border-radius: 12px; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+    }
+
+    /* THÈME VIOLET pour l'interface (Légende, Popup, Boutons) */
+    .cdc-legend {
+        background: rgba(255, 255, 255, 0.98);
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(142, 68, 173, 0.2);
+        font-size: 0.9rem;
+        border-left: 5px solid #8e44ad; /* Violet */
     }
     
-    /* Légende strictement conforme CDC Section 2.3 */
-    .cdc-legend {
-        background: white;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        font-size: 0.9rem;
-        border-left: 4px solid #2c5f2d;
+    .cdc-legend h6 {
+        margin: 0 0 10px 0;
+        font-weight: 700;
+        color: #8e44ad; /* Violet */
+        border-bottom: 2px solid #9b59b6;
+        padding-bottom: 6px;
     }
-    .cdc-legend h6 { margin: 0 0 10px 0; font-weight: 700; color: #333; }
-    .legend-item { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
-    .legend-color { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    
+    .legend-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+    .legend-color { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-    /* Popup propre et informatif */
-    .leaflet-popup-content-wrapper { border-radius: 8px; }
-    .popup-title { font-weight: 700; font-size: 1.1rem; color: #2c5f2d; margin-bottom: 8px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+    /* Popup style violet */
+    .leaflet-popup-content-wrapper {
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(142, 68, 173, 0.2);
+        border-top: 4px solid #8e44ad; /* Bordure violette en haut du popup */
+    }
+    
+    .popup-title {
+        color: #8e44ad;
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+    }
+    
     .popup-row { margin: 6px 0; font-size: 0.95rem; display: flex; justify-content: space-between; }
     .popup-label { font-weight: 600; color: #555; }
     
     .gps-box {
-        background: #f8f9fa;
+        background: #f3e5f5; /* Fond violet très clair */
         padding: 8px;
         border-radius: 6px;
         margin-top: 10px;
-        font-family: monospace;
+        font-family: 'Courier New', monospace;
         font-size: 0.85rem;
-        color: #333;
+        color: #6a1b9a;
         text-align: center;
-        border: 1px dashed #ccc;
+        border: 1px dashed #ce93d8;
     }
 
     .btn-reserver {
-        background: #2c5f2d;
+        background: #8e44ad;
         color: white;
         border: none;
         padding: 10px;
@@ -58,8 +80,9 @@
         text-decoration: none;
         display: inline-block;
         text-align: center;
+        transition: background 0.3s;
     }
-    .btn-reserver:hover { background: #1e4220; color: white; }
+    .btn-reserver:hover { background: #732d91; color: white; }
 
     @media (max-width: 768px) {
         #map { height: calc(100vh - 60px); border-radius: 0; }
@@ -77,7 +100,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialisation carte
+        // 1. Initialisation de la carte
         const map = L.map('map').setView([-4.4419, 15.2663], 16);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -85,78 +108,94 @@
             maxZoom: 19
         }).addTo(map);
 
-        // Chargement des données depuis l'API
+        // 2. Chargement des données depuis l'API
         fetch('/portal/api/carte/')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error("Erreur API");
+                return response.json();
+            })
             .then(data => {
-                // 1. Délimitation automatique du cimetière depuis la BDD (CDC 2.2)
+                console.log("✅ Données reçues de l'API:", data); // Vérifie la console du navigateur (F12)
+
+                // A. Délimitation automatique du cimetière (Depuis la BDD)
                 if (data.perimetre && data.perimetre.length > 0) {
                     L.polygon(data.perimetre, {
-                        color: '#2c5f2d',
+                        color: '#8e44ad',       // Contour violet
                         weight: 3,
-                        fillColor: '#97bc62',
+                        fillColor: '#9b59b6',   // Remplissage violet clair
                         fillOpacity: 0.15,
                         dashArray: '8, 6'
                     }).addTo(map).bindPopup("<b>Limites du Cimetière</b><br>Périmètre officiel");
                     
+                    // Ajuste la carte pour montrer tout le périmètre
                     map.fitBounds(data.perimetre, { padding: [30, 30] });
                 } else if (data.centre) {
                     map.setView(data.centre, 17);
                 }
 
-                // 2. Légende conforme CDC 2.3
+                // B. Légende (Couleurs strictes du CDC)
                 const legend = L.control({position: 'bottomright'});
                 legend.onAdd = function() {
                     const div = L.DomUtil.create('div', 'cdc-legend');
                     div.innerHTML = `
-                        <h6>État des Caveaux</h6>
-                        <div class="legend-item"><div class="legend-color" style="background: #27ae60;"></div> Disponible (Vert)</div>
-                        <div class="legend-item"><div class="legend-color" style="background: #f39c12;"></div> Réservé / En attente (Orange)</div>
-                        <div class="legend-item"><div class="legend-color" style="background: #e74c3c;"></div> Occupé / Validé (Rouge)</div>
-                        <div class="legend-item"><div class="legend-color" style="background: #95a5a6;"></div> Non exploitable (Gris)</div>
+                        <h6>État des Caveaux (CDC)</h6>
+                        <div class="legend-item"><div class="legend-color" style="background: #27ae60;"></div> Disponible</div>
+                        <div class="legend-item"><div class="legend-color" style="background: #f39c12;"></div> Réservé / En attente</div>
+                        <div class="legend-item"><div class="legend-color" style="background: #e74c3c;"></div> Occupé / Validé</div>
+                        <div class="legend-item"><div class="legend-color" style="background: #95a5a6;"></div> Non exploitable</div>
                     `;
                     return div;
                 };
                 legend.addTo(map);
 
-                // 3. Affichage des caveaux
-                if (!data.caveaux || data.caveaux.length === 0) return;
+                // C. Affichage des caveaux
+                if (!data.caveaux || data.caveaux.length === 0) {
+                    console.warn("⚠️ Aucun caveau reçu de l'API.");
+                    return;
+                }
 
                 data.caveaux.forEach(c => {
                     if (c.position) {
+                        // Marqueur avec la couleur CDC
                         const marker = L.circleMarker([c.position.lat, c.position.lng], {
-                            radius: 9,
-                            fillColor: c.couleur, // Vert, Orange, Rouge ou Gris selon CDC
+                            radius: 10,
+                            fillColor: c.couleur, // Vert, Orange, Rouge ou Gris
                             color: '#ffffff',
                             weight: 2,
                             fillOpacity: 0.9
                         }).addTo(map);
 
-                        // Construction du popup avec TOUTES les infos demandées
-                        let html = `<div class="popup-title">Caveau ${c.code}</div>`;
-                        html += `<div class="popup-row"><span class="popup-label">Zone:</span> <span>${c.zone || 'N/A'}</span></div>`;
+                        // Construction du POPUP détaillé
+                        let html = `<div class="popup-title"><i class="fas fa-map-marker-alt"></i> Caveau ${c.code}</div>`;
+                        html += `<div class="popup-row"><span class="popup-label">Zone:</span> <span>${c.zone || 'Non définie'}</span></div>`;
                         html += `<div class="popup-row"><span class="popup-label">Type:</span> <span>${c.type_caveau || 'Standard'}</span></div>`;
                         html += `<div class="popup-row"><span class="popup-label">Statut:</span> <span style="color:${c.couleur}; font-weight:bold;">${c.statut_affiche}</span></div>`;
                         html += `<div class="popup-row"><span class="popup-label">Prix:</span> <span>${c.prix ? c.prix.toLocaleString() : '0'} FCFA</span></div>`;
                         
-                        // Coordonnées GPS (CDC 2.3 - Point géolocalisé)
+                        // Coordonnées GPS
                         if (c.latitude && c.longitude) {
-                            html += `<div class="gps-box">📍 Lat: ${c.latitude.toFixed(6)}<br>📍 Lng: ${c.longitude.toFixed(6)}</div>`;
+                            html += `<div class="gps-box">📍 Latitude : ${c.latitude.toFixed(6)}<br>📍 Longitude : ${c.longitude.toFixed(6)}</div>`;
                         }
                         
-                        // Bouton de réservation (CDC 2.4)
+                        // Bouton d'action
                         if (c.reservable) {
                             html += `<a href="/portal/reservation/${c.id}/" class="btn-reserver">Réserver ce caveau</a>`;
                         } else {
                             html += `<div style="margin-top:10px; color:#999; font-size:0.9rem; text-align:center;"><i class="fas fa-lock"></i> Non disponible</div>`;
                         }
 
+                        // Liaison et ouverture au clic
                         marker.bindPopup(html);
-                        marker.on('click', function() { this.openPopup(); }); // Garantit que le clic fonctionne
+                        marker.on('click', function() { 
+                            this.openPopup(); 
+                        });
                     }
                 });
             })
-            .catch(err => console.error("Erreur chargement carte:", err));
+            .catch(err => {
+                console.error("❌ Erreur chargement carte:", err);
+                alert("Impossible de charger la carte. Vérifiez votre connexion.");
+            });
     });
 </script>
 {% endblock %}
