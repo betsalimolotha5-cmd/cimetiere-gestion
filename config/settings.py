@@ -3,15 +3,17 @@ Django settings for cimetiere_gestion project.
 Conforme au CDC : sécurité, MFA, API REST, PostGIS.
 Optimisé pour Render + Neon (hébergement gratuit).
 """
+import os
 from pathlib import Path
 from decouple import config
-import os
 import dj_database_url
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY
+# ==============================================================================
+# SECURITY & DEBUG
+# ==============================================================================
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
@@ -26,7 +28,9 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
 ]
 
-# Application definition
+# ==============================================================================
+# APPLICATION DEFINITION
+# ==============================================================================
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -41,7 +45,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_filters',
     'corsheaders',
-    'anymail',  # <-- UNIQUEMENT ICI, pour gérer Brevo
+    'anymail',
     
     # Apps locales
     'apps.accounts',
@@ -86,7 +90,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # ==============================================================================
-# BASE DE DONNÉES (SQLite en local, PostGIS en production)
+# BASE DE DONNÉES (SQLite en local, PostGIS en production via Render)
 # ==============================================================================
 DATABASE_URL = config('DATABASE_URL', default=None)
 
@@ -106,15 +110,40 @@ else:
         }
     }
 
-# Password validation
+# ==============================================================================
+# AUTHENTIFICATION & UTILISATEUR (CORE DU MFA)
+# ==============================================================================
+AUTH_USER_MODEL = 'accounts.User'
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 10}},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# ⭐ CORRECTION CRUCIALE : Forcer l'utilisation des vues MFA
+# Cela empêche Django de chercher "accounts/login.html" et le redirige vers ton MFA
+LOGIN_URL = '/mfa/login/'
+LOGIN_REDIRECT_URL = '/portal/'  # Redirection par défaut après succès (la vue MFA gère le cas Admin)
+LOGOUT_REDIRECT_URL = '/mfa/login/'
+
+# ==============================================================================
+# CONFIGURATION EMAIL (API HTTPS Brevo - Lecture directe OS)
+# ==============================================================================
+# Lecture directe depuis l'environnement du serveur Render (méthode qui a fonctionné)
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
+
+# Debug au démarrage du serveur
+if BREVO_API_KEY:
+    print(f"✅ [SYSTEME] BREVO_API_KEY chargée avec succès. Début: {BREVO_API_KEY[:15]}...")
+else:
+    print("❌ [SYSTEME] ERREUR CRITIQUE : BREVO_API_KEY est VIDE au démarrage du serveur !")
+
+# ==============================================================================
+# INTERNATIONALIZATION & TIMEZONE
+# ==============================================================================
 LANGUAGE_CODE = 'fr-fr'
 TIME_ZONE = 'Africa/Kinshasa'
 USE_I18N = True
@@ -125,44 +154,26 @@ USE_TZ = True
 # ==============================================================================
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-AUTH_USER_MODEL = 'accounts.User'
 
+# ==============================================================================
 # CORS Configuration
+# ==============================================================================
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:8550,http://127.0.0.1:8550,http://localhost:8000,http://127.0.0.1:8000'
+    default='http://localhost:8550,http://127.0.0.1:8550,http://localhost:8000,http://127.0.0.1:8000,https://cimetiere-gestion.onrender.com'
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 # ==============================================================================
-# CONFIGURATION EMAIL (API HTTPS Brevo - Lecture directe OS)
+# SECURITY SETTINGS (Production)
 # ==============================================================================
-import os
-
-# Lecture directe depuis l'environnement du serveur Render
-BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
-
-# Debug au démarrage du serveur pour confirmer que Render a bien lu la variable
-if BREVO_API_KEY:
-    print(f"✅ [SYSTEME] BREVO_API_KEY chargée avec succès. Début: {BREVO_API_KEY[:15]}...")
-else:
-    print("❌ [SYSTEME] ERREUR CRITIQUE : BREVO_API_KEY est VIDE au démarrage du serveur !")
-
-
-# Authentication MFA Configuration
-LOGIN_REDIRECT_URL = 'accueil'
-LOGIN_URL = 'login'
-LOGOUT_REDIRECT_URL = 'login'
-
-# Security Settings
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SESSION_COOKIE_HTTPONLY = True
@@ -179,7 +190,9 @@ if config('FORCE_HTTPS', default=False, cast=bool):
     CSRF_COOKIE_SECURE = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Cache Configuration
+# ==============================================================================
+# CACHE & SESSION
+# ==============================================================================
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -189,13 +202,14 @@ CACHES = {
     }
 }
 
-# Session Configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 3600
 SESSION_COOKIE_NAME = 'cimetiere_session'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-# Logging Configuration
+# ==============================================================================
+# LOGGING
+# ==============================================================================
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -225,7 +239,9 @@ LOGGING = {
     },
 }
 
-# Configuration Django REST Framework
+# ==============================================================================
+# DJANGO REST FRAMEWORK & SPECTACULAR
+# ==============================================================================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
@@ -252,7 +268,6 @@ REST_FRAMEWORK = {
     },
 }
 
-# Spectacular Configuration
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Gestion Cimetière API',
     'DESCRIPTION': 'API REST pour la gestion du cimetière - Conforme au CDC',
@@ -260,7 +275,9 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# Backup & Upload Configuration
+# ==============================================================================
+# UPLOADS & BACKUPS
+# ==============================================================================
 BACKUP_DIR = BASE_DIR / 'backups'
 if not BACKUP_DIR.exists():
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
