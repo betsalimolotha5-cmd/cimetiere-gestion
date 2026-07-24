@@ -106,23 +106,25 @@ def api_carte_publique(request):
         })
 
     # ============================================
-    # ⭐ Récupération dynamique du périmètre et du centre
+    # ⭐ Récupération dynamique du périmètre et du centre (Anti-Océan)
     # ============================================
-    # MODIFICATION : Coordonnées par défaut centrées sur Pointe-Noire [Lat, Lng]
+    # Valeur par défaut robuste : Pointe-Noire [Lat, Lng]
     centre_data = [-4.7692, 11.8644] 
     perimetre_data = []
     
     try:
         parametres = ParametreCimetiere.objects.first()
         if parametres:
-            # 1. Centre (Format Leaflet: [Latitude, Longitude])
+            # 1. Centre : On l'utilise SEULEMENT si ce n'est pas le point (0,0) de l'océan
             if hasattr(parametres, 'coordonnees_centre') and parametres.coordonnees_centre:
-                centre_data = [parametres.coordonnees_centre.y, parametres.coordonnees_centre.x]
+                if parametres.coordonnees_centre.x != 0.0 and parametres.coordonnees_centre.y != 0.0:
+                    centre_data = [parametres.coordonnees_centre.y, parametres.coordonnees_centre.x]
             
-            # 2. Périmètre (Format Leaflet: [[Lat, Lng], [Lat, Lng], ...])
+            # 2. Périmètre : On l'utilise SEULEMENT si la longitude du premier point n'est pas 0
             if hasattr(parametres, 'perimetre') and parametres.perimetre:
-                # GeoDjango renvoie (Lng, Lat), on inverse pour Leaflet (Lat, Lng)
-                perimetre_data = [[coord[1], coord[0]] for coord in parametres.perimetre.coords[0]]
+                coords = parametres.perimetre.coords[0]
+                if coords[0][0] != 0.0:
+                    perimetre_data = [[coord[1], coord[0]] for coord in coords]
     except Exception as e:
         print(f"⚠️ Impossible de charger le périmètre dynamique depuis la BDD: {e}")
 
