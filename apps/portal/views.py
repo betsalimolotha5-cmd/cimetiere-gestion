@@ -106,27 +106,36 @@ def api_carte_publique(request):
         })
 
     # ============================================
-    # ⭐ Récupération dynamique du périmètre et du centre (Anti-Océan)
+    # ⭐ Récupération dynamique du périmètre et du centre (Anti-Océan Renforcé)
     # ============================================
-    # Valeur par défaut robuste : Pointe-Noire [Lat, Lng]
+    # Valeur par défaut FORCÉE : Pointe-Noire [Lat, Lng]
     centre_data = [-4.7692, 11.8644] 
     perimetre_data = []
     
     try:
         parametres = ParametreCimetiere.objects.first()
         if parametres:
-            # 1. Centre : On l'utilise SEULEMENT si ce n'est pas le point (0,0) de l'océan
+            # 1. Centre : On l'utilise SEULEMENT si les coordonnées sont significatives (> 0.1)
+            # Cela élimine définitivement le point (0,0) de l'océan.
             if hasattr(parametres, 'coordonnees_centre') and parametres.coordonnees_centre:
-                if parametres.coordonnees_centre.x != 0.0 and parametres.coordonnees_centre.y != 0.0:
+                if abs(parametres.coordonnees_centre.x) > 0.1 and abs(parametres.coordonnees_centre.y) > 0.1:
                     centre_data = [parametres.coordonnees_centre.y, parametres.coordonnees_centre.x]
+                    print(f"✅ [API CARTE] Centre chargé depuis BDD : {centre_data}")
+                else:
+                    print(f"⚠️ [API CARTE] Centre BDD invalide (proche de 0,0). Force Pointe-Noire : {centre_data}")
             
-            # 2. Périmètre : On l'utilise SEULEMENT si la longitude du premier point n'est pas 0
+            # 2. Périmètre : On l'utilise SEULEMENT si la longitude du premier point est significative
             if hasattr(parametres, 'perimetre') and parametres.perimetre:
                 coords = parametres.perimetre.coords[0]
-                if coords[0][0] != 0.0:
+                if abs(coords[0][0]) > 0.1:
                     perimetre_data = [[coord[1], coord[0]] for coord in coords]
+                    print(f"✅ [API CARTE] Périmètre chargé depuis BDD : {len(perimetre_data)} points")
+                else:
+                    print("⚠️ [API CARTE] Périmètre BDD invalide (proche de 0,0). Ignoré.")
     except Exception as e:
-        print(f"⚠️ Impossible de charger le périmètre dynamique depuis la BDD: {e}")
+        print(f"❌ [API CARTE] Erreur critique chargement BDD : {e}. Utilisation des valeurs par défaut.")
+
+    print(f"🚀 [API CARTE] Données finales envoyées au frontend -> Centre: {centre_data}, Périmètre: {len(perimetre_data)} points")
 
     return JsonResponse({
         'caveaux': caveaux_data,
