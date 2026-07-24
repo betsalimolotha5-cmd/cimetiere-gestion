@@ -1,9 +1,12 @@
 """
 Administration Django pour l'application core (cimetière).
-Conforme au CDC : gestion des zones, caveaux, concessions et validation du périmètre GPS.
+Conforme au CDC : gestion des zones, caveaux, concessions et validation stricte du périmètre GPS.
+Configuration optimisée pour Pointe-Noire, République du Congo.
 """
 from django.contrib import admin, messages
-from django.contrib.gis.geos import Polygon
+from django.contrib.gis.geos import Polygon, Point
+from django.contrib.gis.db import models as gis_models
+from django.contrib.gis.forms import OSMWidget
 from django.core.exceptions import ValidationError
 from django import forms
 from django.utils.html import format_html
@@ -13,31 +16,58 @@ from .models import (
 )
 
 # ==============================================================================
-# ⚠️ CONFIGURATION DU PÉRIMÈTRE DU CIMETIÈRE
+# ️ CONFIGURATION DU PÉRIMÈTRE DU CIMETIÈRE (POINTE-NOIRE)
 # ==============================================================================
+# Coordonnées réelles de Pointe-Noire, République du Congo
 # Format GeoDjango : (Longitude, Latitude) -> C'est l'INVERSE de Leaflet/Google Maps !
-# Remplace ces valeurs par les vraies coordonnées de ton cimetière.
+# Périmètre réaliste pour un cimetière de ~5000m² (100m x 50m)
+
 CIMETIERE_PERIMETRE = Polygon((
-    (15.2655, -4.4425),  # Coin Nord-Ouest (Lng, Lat)
-    (15.2670, -4.4425),  # Coin Nord-Est
-    (15.2670, -4.4415),  # Coin Sud-Est
-    (15.2655, -4.4415),  # Coin Sud-Ouest
-    (15.2655, -4.4425),  # Fermeture du polygone (doit être identique au 1er point)
+    (11.8639, -4.7690),  # Coin Nord-Ouest (Lng, Lat)
+    (11.8649, -4.7690),  # Coin Nord-Est
+    (11.8649, -4.7694),  # Coin Sud-Est
+    (11.8639, -4.7694),  # Coin Sud-Ouest
+    (11.8639, -4.7690),  # Fermeture du polygone (doit être identique au 1er point)
 ), srid=4326)
 
+# Centre du cimetière pour le widget de carte
+CIMETIERE_CENTRE_LAT = -4.7692
+CIMETIERE_CENTRE_LNG = 11.8644
+CIMETIERE_ZOOM_DEFAULT = 17
+
 
 # ==============================================================================
-# ADMIN : CAVEAU (Avec validation du périmètre)
+# ADMIN : CAVEAU (Avec validation STRICTE du périmètre)
 # ==============================================================================
 class CaveauAdminForm(forms.ModelForm):
+    """Formulaire avec validation stricte : le caveau DOIT être dans le périmètre."""
+    
     class Meta:
         model = Caveau
         fields = '__all__'
+        widgets = {
+            'position_gps': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            }),
+        }
+
+    def clean_position_gps(self):
+        """Validation stricte : le caveau doit être dans le périmètre du cimetière."""
+        position = self.cleaned_data.get('position_gps')
+        
+        if position:
+            if not CIMETIERE_PERIMETRE.contains(position):
+                raise ValidationError(
+                    "❌ Ce caveau est en dehors du périmètre officiel du cimetière de Pointe-Noire. "
+                    "Veuillez placer le caveau à l'intérieur des limites définies."
+                )
+        return position
 
     def clean(self):
+        """Validation globale du formulaire."""
         cleaned_data = super().clean()
-        # ⚠️ IMPORTANT : Vérifie que 'position_gps' est bien le nom de ton champ dans models.py
-        # Si ton champ s'appelle 'location', 'geom' ou 'coordonnees', change-le ici.
         position = cleaned_data.get('position_gps')
         
         if position:
@@ -51,10 +81,28 @@ class CaveauAdminForm(forms.ModelForm):
 
 @admin.register(Caveau)
 class CaveauAdmin(admin.ModelAdmin):
-    form = CaveauAdminForm  # Utilisation du formulaire avec validation
+    form = CaveauAdminForm  # Utilisation du formulaire avec validation stricte
     list_display = ('code', 'zone', 'statut_badge', 'type_caveau', 'prix_concession', 'position_display')
     list_filter = ('statut', 'type_caveau', 'zone')
     search_fields = ('code', 'zone__nom')
+    
+    # Configuration du widget de carte pour tous les champs PointField
+    formfield_overrides = {
+        gis_models.PointField: {
+            'widget': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            })
+        },
+        gis_models.PolygonField: {
+            'widget': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            })
+        },
+    }
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
@@ -87,6 +135,16 @@ class ZoneAdmin(admin.ModelAdmin):
     list_display = ('code', 'nom', 'type_zone', 'est_exploitable', 'superficie', 'capacite_theorique')
     list_filter = ('type_zone', 'est_exploitable')
     search_fields = ('code', 'nom')
+    
+    formfield_overrides = {
+        gis_models.PolygonField: {
+            'widget': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            })
+        },
+    }
     
     @admin.display(description='Capacité théorique')
     def capacite_theorique(self, obj):
@@ -147,14 +205,68 @@ class InhumationAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : PARAMÈTRES
+# ADMIN : PARAMÈTRES DU CIMETIÈRE (Avec valeurs par défaut)
 # ==============================================================================
+class ParametreCimetiereAdminForm(forms.ModelForm):
+    """Formulaire avec valeurs par défaut pour Pointe-Noire."""
+    
+    class Meta:
+        model = ParametreCimetiere
+        fields = '__all__'
+        widgets = {
+            'coordonnees_centre': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            }),
+            'perimetre': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Valeurs par défaut si le formulaire est vide (création)
+        if not self.instance.pk:
+            if not self.instance.superficie_totale:
+                self.instance.superficie_totale = 5000  # 5000m² par défaut
+
+
 @admin.register(ParametreCimetiere)
 class ParametreCimetiereAdmin(admin.ModelAdmin):
+    form = ParametreCimetiereAdminForm
     list_display = ('nom', 'superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau')
+    
+    formfield_overrides = {
+        gis_models.PointField: {
+            'widget': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            })
+        },
+        gis_models.PolygonField: {
+            'widget': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            })
+        },
+    }
+    
     fieldsets = (
-        ('Informations générales', {'fields': ('nom', 'adresse', 'coordonnees_centre')}),
-        ('Dimensions', {'fields': ('superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau', 'largeur_allee')}),
+        ('Informations générales', {
+            'fields': ('nom', 'adresse', 'coordonnees_centre')
+        }),
+        ('Périmètre du cimetière', {
+            'fields': ('perimetre',),
+            'description': 'Définissez les limites exactes du cimetière sur la carte. Superficie recommandée : 5000m²'
+        }),
+        ('Dimensions', {
+            'fields': ('superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau', 'largeur_allee')
+        }),
     )
 
 
@@ -244,7 +356,7 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
         if count > 0:
             messages.success(request, f'{count} demande(s) refusée(s).')
     
-    @admin.action(description='📄 Générer autorisation PDF')
+    @admin.action(description=' Générer autorisation PDF')
     def generer_autorisation_pdf(self, request, queryset):
         from apps.billing.pdf_generator import generer_autorisation_exhumation
         count = 0
@@ -259,7 +371,7 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
         if count > 0:
             messages.success(request, f'{count} autorisation(s) générée(s).')
 
-    @admin.action(description='📄 Générer procès-verbal PDF')
+    @admin.action(description=' Générer procès-verbal PDF')
     def generer_proces_verbal_pdf(self, request, queryset):
         from apps.billing.pdf_generator import generer_proces_verbal_exhumation
         count = 0
