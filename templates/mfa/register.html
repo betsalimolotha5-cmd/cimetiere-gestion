@@ -6,74 +6,79 @@
 {% block content %}
 <div class="d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 200px);">
     <div class="col-12 col-md-8 col-lg-6 col-xl-5">
-        <div class="card card-modern shadow-lg border-0 fade-in-up">
-            <div class="card-header-custom text-center py-4">
-                <i class="bi bi-person-plus-fill text-white" style="font-size: 3.5rem;"></i>
-                <h3 class="mt-3 mb-1 fw-bold">Créer un compte</h3>
-                <p class="mb-0 text-white-50" style="font-size: 0.95rem;">Rejoignez la plateforme de gestion</p>
+        <div class="card shadow-lg border-0">
+            <!-- En-tête de la carte utilisant les variables de base.html -->
+            <div class="card-header text-center py-4" style="background-color: var(--primary-color); color: white; border-radius: 12px 12px 0 0 !important;">
+                <i class="fas fa-user-plus fa-3x mb-3"></i>
+                <h3 class="fw-bold mb-1">Créer un compte</h3>
+                <p class="mb-0 opacity-75" style="font-size: 0.95rem;">Rejoignez la plateforme de gestion</p>
             </div>
             
             <div class="card-body p-4 p-md-5">
                 <form method="post" novalidate>
                     {% csrf_token %}
                     
+                    <!-- Affichage des messages d'erreur Django (ex: mots de passe différents) -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-3" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i> {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="first_name" class="form-label-modern">
-                                <i class="bi bi-person-fill me-1"></i> Prénom
+                            <label for="first_name" class="form-label fw-bold">
+                                <i class="fas fa-user me-1 text-muted"></i> Prénom
                             </label>
-                            <input type="text" class="form-control form-control-modern" id="first_name" name="first_name" value="{{ first_name|default:'' }}" placeholder="Votre prénom" required autofocus>
+                            <input type="text" class="form-control" id="first_name" name="first_name" value="{{ first_name|default:'' }}" placeholder="Votre prénom" required autofocus>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="last_name" class="form-label-modern">
-                                <i class="bi bi-person-fill me-1"></i> Nom
+                            <label for="last_name" class="form-label fw-bold">
+                                <i class="fas fa-user me-1 text-muted"></i> Nom
                             </label>
-                            <input type="text" class="form-control form-control-modern" id="last_name" name="last_name" value="{{ last_name|default:'' }}" placeholder="Votre nom" required>
+                            <input type="text" class="form-control" id="last_name" name="last_name" value="{{ last_name|default:'' }}" placeholder="Votre nom" required>
                         </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="email" class="form-label-modern">
-                            <i class="bi bi-envelope-fill me-1"></i> Adresse email
+                        <label for="email" class="form-label fw-bold">
+                            <i class="fas fa-envelope me-1 text-muted"></i> Adresse email
                         </label>
-                        <input type="email" class="form-control form-control-modern" id="email" name="email" value="{{ email|default:'' }}" placeholder="votre@email.com" required autocomplete="email">
-                        <small class="form-text text-muted"><i class="bi bi-info-circle me-1"></i> Cet email servira pour la connexion et la réception du code MFA</small>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ email|default:'' }}" placeholder="votre@email.com" required autocomplete="email">
+                        <div class="form-text text-muted">
+                            <i class="fas fa-info-circle me-1"></i> Cet email servira pour la connexion et la réception du code MFA.
+                        </div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="password" class="form-label-modern">
-                            <i class="bi bi-key-fill me-1"></i> Mot de passe
+                        <label for="password" class="form-label fw-bold">
+                            <i class="fas fa-lock me-1 text-muted"></i> Mot de passe
                         </label>
-                        <input type="password" class="form-control form-control-modern" id="password" name="password" placeholder="Minimum 8 caractères" required minlength="8" autocomplete="new-password">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Minimum 8 caractères" required minlength="8" autocomplete="new-password">
                     </div>
                     
                     <div class="mb-4">
-                        <label for="password_confirm" class="form-label-modern">
-                            <i class="bi bi-key-fill me-1"></i> Confirmer le mot de passe
+                        <label for="password_confirm" class="form-label fw-bold">
+                            <i class="fas fa-lock me-1 text-muted"></i> Confirmer le mot de passe
                         </label>
-                        <input type="password" class="form-control form-control-modern" id="password_confirm" name="password_confirm" placeholder="Retapez le mot de passe" required autocomplete="new-password">
+                        <input type="password" class="form-control" id="password_confirm" name="password_confirm" placeholder="Retapez le mot de passe" required autocomplete="new-password">
                     </div>
                     
-                    <button type="submit" class="btn btn-modern btn-primary-modern w-100 py-3">
-                        <i class="bi bi-person-check-fill me-2"></i> Créer mon compte
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">
+                        <i class="fas fa-user-check me-2"></i> Créer mon compte
                     </button>
                 </form>
                 
                 <div class="text-center mt-4">
                     <small class="text-muted">
                         Déjà un compte ? 
-                        <a href="{% url 'login' %}" style="color: var(--primary-color); font-weight: 600; text-decoration: none;">Se connecter ici</a>
+                        <a href="/mfa/login/" class="fw-bold text-decoration-none" style="color: var(--primary-color);">Se connecter ici</a>
                     </small>
                 </div>
             </div>
-        </div>
-        
-        <!-- Footer 100% générique et professionnel -->
-        <div class="text-center mt-4 mb-5">
-            <small class="text-muted opacity-75">
-                <i class="bi bi-shield-check me-1"></i>
-                &copy; 2026 Gestion Cimetière. Inscription sécurisée par chiffrement SSL.
-            </small>
         </div>
     </div>
 </div>

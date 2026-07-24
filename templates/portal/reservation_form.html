@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Réservation du Caveau {{ caveau.code }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-7">
+            
+            <!-- EN-TÊTE DE LA PAGE -->
+            <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%); color: white; border-radius: 12px;">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="fw-bold mb-1">
+                                <i class="fas fa-calendar-plus me-2"></i>Demande de Réservation
+                            </h2>
+                            <p class="mb-0 opacity-75">
+                                Remplissez les informations pour le caveau sélectionné.
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <a href="/portal/" class="btn btn-light fw-bold text-success shadow-sm">
+                                <i class="fas fa-arrow-left me-2"></i>Retour à la carte
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARTE D'INFORMATION DU CAVEAU -->
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px; border-left: 5px solid var(--primary-color);">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3" style="color: var(--dark-color);">
+                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>Caveau sélectionné
+                    </h5>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded text-center">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Code</small>
+                                <h4 class="fw-bold mb-0 mt-1" style="color: var(--primary-color);">{{ caveau.code }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded text-center">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Zone</small>
+                                <h4 class="fw-bold mb-0 mt-1" style="color: var(--primary-color);">{{ caveau.zone.nom|default:"—" }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded text-center">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Prix</small>
+                                <h4 class="fw-bold mb-0 mt-1 text-success">{{ caveau.prix_concession|floatformat:0 }} FCFA</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FORMULAIRE DE RÉSERVATION -->
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-body p-4 p-md-5">
+                    
+                    <!-- Affichage des messages d'erreur Django -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i> {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <h5 class="fw-bold mb-3 pb-2 border-bottom" style="color: var(--dark-color);">
+                            <i class="fas fa-cross me-2 text-muted"></i>Informations du défunt
+                        </h5>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="defunt_nom" class="form-label fw-bold">
+                                    <i class="fas fa-user me-1 text-muted"></i> Nom du défunt
+                                </label>
+                                <input type="text" class="form-control" id="defunt_nom" name="defunt_nom" required autofocus>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="defunt_prenom" class="form-label fw-bold">
+                                    <i class="fas fa-user me-1 text-muted"></i> Prénom du défunt
+                                </label>
+                                <input type="text" class="form-control" id="defunt_prenom" name="defunt_prenom" required>
+                            </div>
+                            <div class="col-12">
+                                <label for="date_deces" class="form-label fw-bold">
+                                    <i class="fas fa-calendar-day me-1 text-muted"></i> Date de décès
+                                </label>
+                                <input type="date" class="form-control" id="date_deces" name="date_deces" required>
+                            </div>
+                        </div>
+
+                        <h5 class="fw-bold mb-3 pb-2 border-bottom" style="color: var(--dark-color);">
+                            <i class="fas fa-users me-2 text-muted"></i>Informations du demandeur
+                        </h5>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="lien_parente" class="form-label fw-bold">
+                                    <i class="fas fa-link me-1 text-muted"></i> Lien de parenté
+                                </label>
+                                <input type="text" class="form-control" id="lien_parente" name="lien_parente" placeholder="Ex: Fils, Épouse, Frère..." required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="telephone_contact" class="form-label fw-bold">
+                                    <i class="fas fa-phone me-1 text-muted"></i> Téléphone de contact
+                                </label>
+                                <input type="tel" class="form-control" id="telephone_contact" name="telephone_contact" placeholder="+243..." required>
+                            </div>
+                        </div>
+
+                        <!-- Boutons d'action -->
+                        <div class="d-flex gap-3 mt-5">
+                            <a href="/portal/" class="btn btn-outline-secondary px-4 py-2">
+                                <i class="fas fa-times me-2"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary px-4 py-2 flex-grow-1 fw-bold">
+                                <i class="fas fa-paper-plane me-2"></i>Soumettre la demande
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Votre demande sera examinée par l'administration. Vous recevrez une facture par email si elle est validée.
+                            </small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

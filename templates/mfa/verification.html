@@ -6,33 +6,30 @@
 {% block content %}
 <div class="d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 200px);">
     <div class="col-12 col-md-8 col-lg-5 col-xl-4">
-        <div class="card card-modern shadow-lg border-0 fade-in-up">
-            <div class="card-header-custom text-center py-4">
-                <i class="bi bi-shield-check text-white" style="font-size: 3.5rem;"></i>
-                <h3 class="mt-3 mb-1 fw-bold">Vérification de sécurité</h3>
-                <p class="mb-0 text-white-50" style="font-size: 0.95rem;">
+        <div class="card shadow-lg border-0">
+            <!-- En-tête de la carte -->
+            <div class="card-header text-center py-4" style="background-color: var(--primary-color); color: white; border-radius: 12px 12px 0 0 !important;">
+                <i class="fas fa-shield-alt fa-3x mb-3"></i>
+                <h3 class="fw-bold mb-1">Vérification de sécurité</h3>
+                <p class="mb-0 opacity-75" style="font-size: 0.95rem;">
                     Code envoyé à : <strong class="text-white">{{ email }}</strong>
                 </p>
             </div>
             
             <div class="card-body p-4 p-md-5">
                 
-                <!-- Boîte d'alerte pour la démo (si l'email est filtré) -->
+                <!-- Boîte d'alerte pour le mode démo (si l'email est filtré par l'hébergeur) -->
                 {% if demo_code %}
-                <div class="alert border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border-radius: 12px; border-left: 5px solid #ffc107 !important;">
+                <div class="alert alert-warning border-0 shadow-sm mb-4" style="border-left: 5px solid #ffc107 !important; border-radius: 8px;">
                     <div class="d-flex align-items-start">
-                        <div class="me-3 mt-1">
-                            <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 1.5rem;"></i>
-                        </div>
+                        <i class="fas fa-exclamation-triangle fa-lg me-3 mt-1 text-warning"></i>
                         <div class="flex-grow-1">
-                            <h6 class="mb-2 fw-bold text-dark">
-                                <i class="bi bi-info-circle me-1"></i> Mode Démo Activé
-                            </h6>
-                            <p class="mb-3 small text-muted" style="line-height: 1.5;">
-                                En raison des restrictions de sécurité des hébergeurs gratuits, l'email a été filtré. 
+                            <h6 class="mb-2 fw-bold text-dark">Mode Démo Activé</h6>
+                            <p class="mb-3 small text-muted">
+                                En raison des restrictions de sécurité des hébergeurs gratuits, l'email a pu être filtré.
                                 <br><strong>Utilisez le code ci-dessous pour continuer :</strong>
                             </p>
-                            <div class="bg-white border rounded p-3 text-center shadow-sm" style="border: 2px dashed #ffc107 !important;">
+                            <div class="bg-white border border-warning rounded p-3 text-center shadow-sm" style="border-style: dashed !important;">
                                 <span class="fw-bold text-dark" style="font-size: 2rem; letter-spacing: 8px; font-family: 'Courier New', monospace;">
                                     {{ demo_code }}
                                 </span>
@@ -42,25 +39,29 @@
                 </div>
                 {% endif %}
 
-                <div class="alert alert-info-modern mb-4">
-                    <i class="bi bi-envelope-check-fill me-2"></i>
-                    <div>
-                        <strong>Vérifiez votre boîte mail</strong>
-                        <p class="mb-0 mt-1 small opacity-75">
-                            Un code à 6 chiffres vous a été envoyé. Il expire dans 10 minutes.
-                        </p>
+                <!-- Alerte d'information standard -->
+                <div class="alert alert-info border-0 shadow-sm mb-4" style="border-left: 5px solid #17a2b8 !important; border-radius: 8px;">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-envelope-open-text fa-lg me-3 text-info"></i>
+                        <div>
+                            <strong class="text-dark">Vérifiez votre boîte mail</strong>
+                            <p class="mb-0 mt-1 small text-muted">
+                                Un code à 6 chiffres vous a été envoyé via Brevo. Il expire dans 10 minutes.
+                            </p>
+                        </div>
                     </div>
                 </div>
                 
+                <!-- Formulaire de saisie du code -->
                 <form method="post" action="{% url 'mfa_verification' %}" id="mfa-form" novalidate>
                     {% csrf_token %}
                     <div class="mb-4">
-                        <label for="code" class="form-label-modern text-center d-block">
-                            <i class="bi bi-key-fill me-1"></i> Code de vérification
+                        <label for="code" class="form-label fw-bold text-center d-block">
+                            <i class="fas fa-key me-1 text-muted"></i> Code de vérification
                         </label>
                         <input 
                             type="text" 
-                            class="form-control form-control-modern text-center fw-bold" 
+                            class="form-control text-center fw-bold" 
                             id="code" 
                             name="code" 
                             maxlength="6" 
@@ -70,42 +71,35 @@
                             inputmode="numeric"
                             required
                             autofocus
-                            style="font-size: 1.8rem; letter-spacing: 12px;"
+                            style="font-size: 1.8rem; letter-spacing: 12px; border: 2px solid var(--light-bg);"
                         >
                     </div>
 
                     <div class="d-grid gap-2 mb-3">
-                        <button type="submit" class="btn btn-modern btn-primary-modern w-100 py-3">
-                            <i class="bi bi-check-circle-fill me-2"></i> Vérifier et se connecter
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold">
+                            <i class="fas fa-check-circle me-2"></i> Vérifier et se connecter
                         </button>
                     </div>
                 </form>
 
+                <!-- Actions secondaires -->
                 <div class="text-center mt-4">
-                    <a href="{% url 'resend_code' %}" class="btn btn-modern btn-outline-modern w-100 mb-3">
-                        <i class="bi bi-arrow-clockwise me-2"></i> Renvoyer un nouveau code
+                    <a href="{% url 'resend_code' %}" class="btn btn-outline-secondary w-100 mb-3">
+                        <i class="fas fa-redo me-2"></i> Renvoyer un nouveau code
                     </a>
                     
                     <hr class="my-3 opacity-25">
                     
                     <div class="d-flex justify-content-between align-items-center">
-                        <a href="{% url 'login' %}" class="text-decoration-none small fw-medium" style="color: var(--primary-color);">
-                            <i class="bi bi-arrow-left me-1"></i> Retour
+                        <a href="/mfa/login/" class="text-decoration-none small fw-medium" style="color: var(--primary-color);">
+                            <i class="fas fa-arrow-left me-1"></i> Retour
                         </a>
-                        <a href="{% url 'logout' %}" class="text-decoration-none small fw-medium text-danger">
-                            <i class="bi bi-box-arrow-right me-1"></i> Déconnexion
+                        <a href="/mfa/logout/" class="text-decoration-none small fw-medium text-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i> Déconnexion
                         </a>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Footer 100% générique et professionnel -->
-        <div class="text-center mt-4 mb-5">
-            <small class="text-muted opacity-75">
-                <i class="bi bi-shield-lock me-1"></i> 
-                &copy; 2026 Gestion Cimetière. Authentification à double facteur (MFA) active.
-            </small>
         </div>
     </div>
 </div>
@@ -115,12 +109,17 @@
     document.addEventListener('DOMContentLoaded', function() {
         const codeInput = document.getElementById('code');
         const mfaForm = document.getElementById('mfa-form');
+        
         if (codeInput) {
             codeInput.focus();
+            
+            // Empêcher la saisie de caractères non numériques et soumettre automatiquement à 6 chiffres
             codeInput.addEventListener('input', function(e) {
                 this.value = this.value.replace(/[^0-9]/g, '');
                 if (this.value.length === 6) {
-                    setTimeout(() => { mfaForm.submit(); }, 300);
+                    setTimeout(() => { 
+                        mfaForm.submit(); 
+                    }, 300); // Petit délai pour l'UX
                 }
             });
         }

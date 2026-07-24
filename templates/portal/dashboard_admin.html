@@ -5,82 +5,131 @@
 
 {% block extra_css %}
 <style>
+    /* En-tête du Dashboard */
     .dashboard-header {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%);
         color: white;
         padding: 2rem;
         border-radius: 12px;
         margin-bottom: 2rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        box-shadow: 0 8px 24px rgba(44, 95, 45, 0.2);
     }
     
+    /* Cartes de statistiques */
     .stat-card {
         background: white;
         border-radius: 12px;
         padding: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        box-shadow: var(--card-shadow);
         transition: all 0.3s ease;
-        border-left: 4px solid var(--primary-color);
+        border-left: 5px solid var(--primary-color);
         height: 100%;
+        position: relative;
+        overflow: hidden;
     }
     
     .stat-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
     }
     
-    .stat-card .icon {
-        font-size: 2.5rem;
-        opacity: 0.2;
+    .stat-card .icon-bg {
+        font-size: 4rem;
+        opacity: 0.08;
         position: absolute;
-        right: 1rem;
-        top: 1rem;
+        right: -10px;
+        bottom: -10px;
+        transform: rotate(-15deg);
     }
     
     .stat-card .value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--primary-color);
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--dark-color);
+        line-height: 1.2;
     }
     
     .stat-card .label {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         color: #6c757d;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.8px;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
     }
     
-    .chart-container {
+    /* Conteneurs de graphiques et tableaux */
+    .dashboard-panel {
         background: white;
         border-radius: 12px;
         padding: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        box-shadow: var(--card-shadow);
         margin-bottom: 2rem;
+        height: 100%;
     }
     
+    .panel-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--dark-color);
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--light-bg);
+        display: flex;
+        align-items: center;
+    }
+    
+    .panel-title i {
+        margin-right: 10px;
+        color: var(--primary-color);
+    }
+
+    /* Tableaux modernes */
     .table-modern {
-        background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        margin-bottom: 0;
+        font-size: 0.95rem;
     }
     
-    .table-modern thead {
-        background: var(--primary-color);
-        color: white;
+    .table-modern thead th {
+        background-color: var(--light-bg);
+        color: var(--dark-color);
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #dee2e6;
+        padding: 1rem;
     }
     
+    .table-modern tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f3f5;
+    }
+    
+    .table-modern tbody tr:hover {
+        background-color: rgba(44, 95, 45, 0.03);
+    }
+
+    /* Barres de progression */
     .progress-custom {
-        height: 8px;
-        border-radius: 4px;
-        background: #e9ecef;
+        height: 10px;
+        border-radius: 5px;
+        background-color: #e9ecef;
+        overflow: hidden;
     }
     
-    .badge-action {
+    .progress-custom .progress-bar {
+        transition: width 1s ease-in-out;
+    }
+
+    /* Badges de statut */
+    .badge-status {
         padding: 0.4em 0.8em;
         font-size: 0.75rem;
         border-radius: 20px;
         font-weight: 600;
+        letter-spacing: 0.3px;
     }
 </style>
 {% endblock %}
@@ -92,13 +141,13 @@
     <div class="dashboard-header">
         <div class="row align-items-center">
             <div class="col-md-8">
-                <h2 class="mb-1"><i class="fas fa-tachometer-alt me-2"></i>Tableau de Bord</h2>
-                <p class="mb-0 opacity-75">Vue d'ensemble de la gestion du cimetière - {{ total_zones }} zones, {{ total_caveaux }} caveaux</p>
+                <h2 class="mb-2 fw-bold"><i class="fas fa-tachometer-alt me-2"></i>Tableau de Bord Administrateur</h2>
+                <p class="mb-0 opacity-75 fs-5">Vue d'ensemble en temps réel : {{ total_zones }} zones, {{ total_caveaux }} caveaux répertoriés.</p>
             </div>
-            <div class="col-md-4 text-md-end">
-                <span class="badge bg-light text-dark fs-6">
-                    <i class="fas fa-user-shield me-1"></i> Administrateur
-                </span>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a href="/admin/" class="btn btn-light fw-bold text-success shadow-sm">
+                    <i class="fas fa-cogs me-2"></i>Administration Django
+                </a>
             </div>
         </div>
     </div>
@@ -106,58 +155,66 @@
     <!-- ============================================ -->
     <!-- 1. STATISTIQUES CLÉS (CDC 2.2, 2.6) -->
     <!-- ============================================ -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3 col-sm-6">
-            <div class="stat-card position-relative">
-                <i class="fas fa-map-marker-alt icon"></i>
+    <div class="row g-4 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card">
+                <i class="fas fa-map-marked-alt icon-bg"></i>
                 <div class="label">Total Caveaux</div>
                 <div class="value">{{ total_caveaux }}</div>
-                <small class="text-muted">{{ total_zones }} zones</small>
+                <small class="text-muted"><i class="fas fa-layer-group me-1"></i>Répartis en {{ total_zones }} zones</small>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="stat-card position-relative" style="border-left-color: #28a745;">
-                <i class="fas fa-check-circle icon" style="color: #28a745;"></i>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card" style="border-left-color: #28a745;">
+                <i class="fas fa-check-circle icon-bg" style="color: #28a745;"></i>
                 <div class="label">Disponibles</div>
                 <div class="value" style="color: #28a745;">{{ caveaux_disponibles }}</div>
-                <small class="text-muted">Prêts à réserver</small>
+                <small class="text-muted"><i class="fas fa-arrow-up me-1"></i>Prêts à la réservation</small>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="stat-card position-relative" style="border-left-color: #dc3545;">
-                <i class="fas fa-user icon" style="color: #dc3545;"></i>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card" style="border-left-color: #dc3545;">
+                <i class="fas fa-user icon-bg" style="color: #dc3545;"></i>
                 <div class="label">Occupés</div>
                 <div class="value" style="color: #dc3545;">{{ caveaux_occupes }}</div>
-                <small class="text-muted">Taux: {{ taux_occupation }}%</small>
+                <small class="text-muted"><i class="fas fa-chart-pie me-1"></i>Taux d'occupation : {{ taux_occupation }}%</small>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="stat-card position-relative" style="border-left-color: #ffc107;">
-                <i class="fas fa-money-bill-wave icon" style="color: #ffc107;"></i>
+        <div class="col-xl-3 col-md-6">
+            <div class="stat-card" style="border-left-color: #ffc107;">
+                <i class="fas fa-coins icon-bg" style="color: #ffc107;"></i>
                 <div class="label">Revenus Totaux</div>
-                <div class="value" style="color: #ffc107;">{{ revenus_totaux|floatformat:0 }} F</div>
-                <small class="text-muted">{{ total_factures }} factures</small>
+                <div class="value" style="color: #d39e00;">{{ revenus_totaux|floatformat:0 }} <small style="font-size: 1rem;">FCFA</small></div>
+                <small class="text-muted"><i class="fas fa-file-invoice me-1"></i>Sur {{ total_factures }} factures émises</small>
             </div>
-        </div>
+        </div
     </div>
     
     <!-- ============================================ -->
     <!-- 2. GRAPHIQUES (CDC 7 - Reporting) -->
     <!-- ============================================ -->
-    <div class="row g-3 mb-4">
+    <div class="row g-4 mb-4">
         <!-- Taux d'occupation global (CDC 2.3) -->
         <div class="col-lg-4">
-            <div class="chart-container">
-                <h5 class="mb-3"><i class="fas fa-chart-pie me-2 text-primary"></i>Saturation Globale</h5>
-                <canvas id="occupationChart" height="250"></canvas>
+            <div class="dashboard-panel">
+                <div class="panel-title">
+                    <i class="fas fa-chart-pie"></i> Saturation Globale
+                </div>
+                <div style="position: relative; height: 280px;">
+                    <canvas id="occupationChart"></canvas>
+                </div>
             </div>
         </div>
         
         <!-- Revenus mensuels (CDC 2.6) -->
         <div class="col-lg-8">
-            <div class="chart-container">
-                <h5 class="mb-3"><i class="fas fa-chart-line me-2 text-primary"></i>Revenus des 6 derniers mois</h5>
-                <canvas id="revenusChart" height="120"></canvas>
+            <div class="dashboard-panel">
+                <div class="panel-title">
+                    <i class="fas fa-chart-line"></i> Évolution des Revenus (6 derniers mois)
+                </div>
+                <div style="position: relative; height: 280px;">
+                    <canvas id="revenusChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -165,25 +222,32 @@
     <!-- ============================================ -->
     <!-- 3. OCCUPATION PAR ZONE (CDC 7) -->
     <!-- ============================================ -->
-    <div class="row g-3 mb-4">
+    <div class="row g-4 mb-4">
         <div class="col-12">
-            <div class="chart-container">
-                <h5 class="mb-3"><i class="fas fa-chart-bar me-2 text-primary"></i>Taux d'Occupation par Zone</h5>
-                <div class="row g-3">
+            <div class="dashboard-panel">
+                <div class="panel-title">
+                    <i class="fas fa-chart-bar"></i> Taux d'Occupation par Zone
+                </div>
+                <div class="row g-4">
                     {% for zone in occupation_par_zone %}
-                    <div class="col-md-6">
-                        <div class="d-flex justify-content-between mb-1">
-                            <strong>{{ zone.nom }}</strong>
-                            <span class="text-muted">{{ zone.occupes }}/{{ zone.total }} ({{ zone.taux }}%)</span>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong class="text-dark">{{ zone.nom }}</strong>
+                            <span class="text-muted fw-bold">{{ zone.occupes }}/{{ zone.total }} ({{ zone.taux }}%)</span>
                         </div>
                         <div class="progress progress-custom">
                             <div class="progress-bar {% if zone.taux > 80 %}bg-danger{% elif zone.taux > 50 %}bg-warning{% else %}bg-success{% endif %}" 
-                                 style="width: {{ zone.taux }}%"></div>
+                                 role="progressbar" 
+                                 style="width: {{ zone.taux }}%" 
+                                 aria-valuenow="{{ zone.taux }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
                         </div>
                     </div>
                     {% empty %}
                     <div class="col-12 text-center text-muted py-4">
-                        <i class="fas fa-info-circle me-2"></i>Aucune zone configurée
+                        <i class="fas fa-info-circle me-2"></i>Aucune donnée de zone disponible.
                     </div>
                     {% endfor %}
                 </div>
@@ -194,40 +258,41 @@
     <!-- ============================================ -->
     <!-- 4. ACTIONS RÉCENTES & RÉSERVATIONS (CDC 2.4, 4) -->
     <!-- ============================================ -->
-    <div class="row g-3 mb-4">
+    <div class="row g-4 mb-4">
         <!-- Demandes en attente (CDC 2.4) -->
         <div class="col-lg-6">
-            <div class="chart-container">
-                <h5 class="mb-3">
-                    <i class="fas fa-clock me-2 text-warning"></i>
-                    Demandes en Attente 
-                    <span class="badge bg-warning text-dark ms-2">{{ total_reservations_attente }}</span>
-                </h5>
+            <div class="dashboard-panel">
+                <div class="panel-title">
+                    <i class="fas fa-clock text-warning"></i> Demandes en Attente 
+                    <span class="badge bg-warning text-dark ms-auto fs-6">{{ total_reservations_attente }}</span>
+                </div>
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-modern table-hover">
                         <thead>
                             <tr>
                                 <th>Client</th>
                                 <th>Caveau</th>
                                 <th>Date</th>
-                                <th>Action</th>
+                                <th class="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for res in reservations_en_attente %}
                             <tr>
-                                <td>{{ res.client.get_full_name|default:res.client.email }}</td>
-                                <td><span class="badge bg-light text-dark">{{ res.caveau.code }}</span></td>
-                                <td><small>{{ res.date_creation|date:"d/m/Y" }}</small></td>
-                                <td>
-                                    <a href="/admin/portal/demandereservation/{{ res.id }}/change/" class="btn btn-sm btn-primary">
+                                <td class="fw-bold">{{ res.client.get_full_name|default:res.client.email }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ res.caveau.code }}</span></td>
+                                <td class="text-muted"><small>{{ res.date_creation|date:"d/m/Y" }}</small></td>
+                                <td class="text-end">
+                                    <a href="/admin/portal/demandereservation/{{ res.id }}/change/" class="btn btn-sm btn-outline-primary" title="Voir dans l'admin">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3">Aucune demande en attente</td>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    <i class="fas fa-check-circle text-success me-2"></i>Aucune demande en attente.
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -238,13 +303,12 @@
         
         <!-- Audit Trail (CDC 4) -->
         <div class="col-lg-6">
-            <div class="chart-container">
-                <h5 class="mb-3">
-                    <i class="fas fa-history me-2 text-info"></i>
-                    Journal d'Audit
-                </h5>
+            <div class="dashboard-panel">
+                <div class="panel-title">
+                    <i class="fas fa-history text-info"></i> Journal d'Audit (Dernières actions)
+                </div>
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-modern table-hover">
                         <thead>
                             <tr>
                                 <th>Action</th>
@@ -258,18 +322,20 @@
                             <tr>
                                 <td>
                                     {% if action.statut == 'VALIDEE' %}
-                                        <span class="badge-action bg-success text-white">Validée</span>
+                                        <span class="badge-status bg-success bg-opacity-10 text-success">Validée</span>
                                     {% else %}
-                                        <span class="badge-action bg-danger text-white">Refusée</span>
+                                        <span class="badge-status bg-danger bg-opacity-10 text-danger">Refusée</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ action.caveau.code }}</td>
-                                <td><small>{{ action.traite_par.get_full_name|default:"-" }}</small></td>
-                                <td><small>{{ action.date_modification|date:"d/m/Y H:i" }}</small></td>
+                                <td class="fw-bold">{{ action.caveau.code }}</td>
+                                <td class="text-muted"><small>{{ action.traite_par.get_full_name|default:"Système" }}</small></td>
+                                <td class="text-muted"><small>{{ action.date_modification|date:"d/m/Y H:i" }}</small></td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-3">Aucune action récente</td>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox me-2"></i>Aucune action récente enregistrée.
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -282,17 +348,19 @@
     <!-- ============================================ -->
     <!-- 5. PAIEMENTS RÉCENTS (CDC 2.6) -->
     <!-- ============================================ -->
-    <div class="row g-3 mb-4">
+    <div class="row g-4 mb-4">
         <div class="col-12">
-            <div class="chart-container">
-                <h5 class="mb-3"><i class="fas fa-credit-card me-2 text-primary"></i>Derniers Paiements</h5>
+            <div class="dashboard-panel">
+                <div class="panel-title">
+                    <i class="fas fa-credit-card text-primary"></i> Dernières Transactions Financières
+                </div>
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-modern table-hover">
                         <thead>
                             <tr>
                                 <th>Client</th>
                                 <th>Montant</th>
-                                <th>Mode</th>
+                                <th>Mode de Paiement</th>
                                 <th>Statut</th>
                                 <th>Date</th>
                             </tr>
@@ -300,31 +368,33 @@
                         <tbody>
                             {% for paiement in paiements_recents %}
                             <tr>
-                                <td>{{ paiement.client.get_full_name|default:paiement.client.email }}</td>
-                                <td><strong>{{ paiement.montant|floatformat:0 }} FCFA</strong></td>
+                                <td class="fw-bold">{{ paiement.client.get_full_name|default:paiement.client.email }}</td>
+                                <td class="fw-bold text-success">{{ paiement.montant|floatformat:0 }} FCFA</td>
                                 <td>
                                     {% if paiement.mode_paiement == 'MOBILE_MONEY' %}
-                                        <span class="badge bg-info">Mobile Money</span>
+                                        <span class="badge bg-info text-dark"><i class="fas fa-mobile-alt me-1"></i>Mobile Money</span>
                                     {% elif paiement.mode_paiement == 'AIRTEL_MONEY' %}
-                                        <span class="badge bg-danger">Airtel Money</span>
+                                        <span class="badge bg-danger"><i class="fas fa-mobile-alt me-1"></i>Airtel Money</span>
                                     {% elif paiement.mode_paiement == 'ESPECES' %}
-                                        <span class="badge bg-secondary">Espèces</span>
+                                        <span class="badge bg-secondary"><i class="fas fa-money-bill-wave me-1"></i>Espèces</span>
                                     {% else %}
-                                        <span class="badge bg-primary">Virement</span>
+                                        <span class="badge bg-primary"><i class="fas fa-university me-1"></i>Virement</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     {% if paiement.statut == 'VALIDE' %}
-                                        <span class="badge-action bg-success text-white">Validé</span>
+                                        <span class="badge-status bg-success bg-opacity-10 text-success"><i class="fas fa-check me-1"></i>Validé</span>
                                     {% else %}
-                                        <span class="badge-action bg-warning text-dark">En attente</span>
+                                        <span class="badge-status bg-warning bg-opacity-10 text-warning"><i class="fas fa-clock me-1"></i>En attente</span>
                                     {% endif %}
                                 </td>
-                                <td><small>{{ paiement.date_paiement|date:"d/m/Y H:i" }}</small></td>
+                                <td class="text-muted"><small>{{ paiement.date_paiement|date:"d/m/Y H:i" }}</small></td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-3">Aucun paiement enregistré</td>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="fas fa-receipt me-2"></i>Aucun paiement enregistré pour le moment.
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -340,6 +410,10 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <script>
+    // Configuration globale pour un look plus propre
+    Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+    Chart.defaults.color = '#6c757d';
+
     // ============================================
     // GRAPHIQUE 1 : Saturation Globale (Donut)
     // ============================================
@@ -351,17 +425,22 @@
             datasets: [{
                 data: [{{ caveaux_disponibles }}, {{ caveaux_occupes }}, {{ caveaux_reserves }}, {{ caveaux_non_exploitables }}],
                 backgroundColor: ['#28a745', '#dc3545', '#ffc107', '#6c757d'],
-                borderWidth: 2,
-                borderColor: '#fff'
+                borderWidth: 0,
+                hoverOffset: 10
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '65%',
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { padding: 15, font: { size: 12 } }
+                    labels: { 
+                        padding: 20, 
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
                 }
             }
         }
@@ -371,6 +450,12 @@
     // GRAPHIQUE 2 : Revenus Mensuels (Ligne)
     // ============================================
     const revenusCtx = document.getElementById('revenusChart').getContext('2d');
+    
+    // Création d'un dégradé pour la ligne
+    const gradient = revenusCtx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, 'rgba(44, 95, 45, 0.2)');
+    gradient.addColorStop(1, 'rgba(44, 95, 45, 0.0)');
+
     new Chart(revenusCtx, {
         type: 'line',
         data: {
@@ -379,10 +464,12 @@
                 label: 'Revenus (FCFA)',
                 data: [{% for r in revenus_mensuels %}{{ r.total }}{% if not forloop.last %}, {% endif %}{% endfor %}],
                 borderColor: '#2c5f2d',
-                backgroundColor: 'rgba(44, 95, 45, 0.1)',
+                backgroundColor: gradient,
                 tension: 0.4,
                 fill: true,
-                pointBackgroundColor: '#2c5f2d',
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#2c5f2d',
+                pointBorderWidth: 2,
                 pointRadius: 5,
                 pointHoverRadius: 7
             }]
@@ -391,16 +478,31 @@
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a3d1f',
+                    padding: 12,
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 13 },
+                    callbacks: {
+                        label: function(context) {
+                            return context.parsed.y.toLocaleString() + ' FCFA';
+                        }
+                    }
+                }
             },
             scales: {
                 y: {
                     beginAtZero: true,
+                    grid: { color: '#f1f3f5' },
                     ticks: {
                         callback: function(value) {
-                            return value.toLocaleString() + ' F';
+                            return value.toLocaleString();
                         }
                     }
+                },
+                x: {
+                    grid: { display: false }
                 }
             }
         }

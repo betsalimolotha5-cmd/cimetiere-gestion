@@ -1,5 +1,6 @@
 """
 Configuration des URLs du projet Gestion Cimetière.
+Conforme CDC : Intégration MFA avec redirection automatique.
 """
 from django.contrib import admin
 from django.urls import path, include, re_path
@@ -9,13 +10,18 @@ from django.views.static import serve
 from django.shortcuts import redirect
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
-# ⚠️ IMPORT CRUCIAL AJOUTÉ ICI ⚠️
 from apps.core import views as core_views
 
 
 def redirect_to_portal(request):
     """Redirige la racine vers le portail client."""
     return redirect('/portal/')
+
+
+def redirect_login_to_mfa(request):
+    """Redirige /accounts/login/ vers /mfa/login/ pour utiliser le MFA."""
+    return redirect('/mfa/login/')
+
 
 handler400 = 'django.views.defaults.bad_request'
 handler403 = 'django.views.defaults.permission_denied'
@@ -30,10 +36,16 @@ urlpatterns = [
     path('init-db/', core_views.init_db, name='init_db'),
     
     path('admin/', admin.site.urls),
+    
+    # ⭐ MFA : Doit être AVANT accounts pour prioriser les vues MFA
+    path('mfa/', include('apps.mfa.urls')),
+    
+    # Accounts : Redirige login vers MFA
+    path('accounts/login/', redirect_login_to_mfa, name='accounts_login_redirect'),
+    path('accounts/', include('apps.accounts.urls')),
+    
     path('portal/', include('apps.portal.urls')),
     path('cimetiere/', include('apps.core.urls')),
-    path('accounts/', include('apps.accounts.urls')),
-    path('mfa/', include('apps.mfa.urls')),
     path('billing/', include('apps.billing.urls')),
     path('rapports/', include('apps.reports.urls')),
     path('api/v1/', include('apps.core.api_urls')),

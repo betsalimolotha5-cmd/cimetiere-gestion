@@ -14,7 +14,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <!-- Leaflet CSS -->
+    <!-- Leaflet CSS (chargé seulement si nécessaire, mais inoffensif ici) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
@@ -133,19 +133,16 @@
         .alert-warning { border-left-color: #ffc107; }
         .alert-info { border-left-color: #17a2b8; }
         
-        /* Footer moderne et 100% générique (SANS infos personnelles) */
+        /* Footer moderne et 100% générique */
         .footer {
             background-color: var(--dark-color);
             color: rgba(255, 255, 255, 0.7);
             padding: 2rem 0;
-            margin-top: auto; /* Pousse le footer en bas */
+            margin-top: auto;
             border-top: 3px solid var(--secondary-color);
         }
         
-        .footer h6 {
-            color: white;
-            letter-spacing: 0.5px;
-        }
+        .footer h6 { color: white; letter-spacing: 0.5px; }
         
         /* Responsive */
         @media (max-width: 768px) {
@@ -162,20 +159,18 @@
             font-weight: 600;
             letter-spacing: 0.5px;
         }
-        .badge-disponible { background-color: #d4edda; color: #155724; }
-        .badge-reserve { background-color: #fff3cd; color: #856404; }
-        .badge-occupe { background-color: #f8d7da; color: #721c24; }
-        .badge-inexploitable { background-color: #e2e3e5; color: #383d41; }
     </style>
     
     {% block extra_css %}{% endblock %}
 </head>
 
 <body>
-    <!-- BARRE DE NAVIGATION -->
+    <!-- ================================================================= -->
+    <!-- BARRE DE NAVIGATION ADAPTATIVE (Visiteur / Client / Admin)        -->
+    <!-- ================================================================= -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="/">
+            <a class="navbar-brand" href="/portal/">
                 <i class="fas fa-monument me-2"></i>
                 Cimetière Digital
             </a>
@@ -185,37 +180,91 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarMain">
+                <!-- LIENS DE GAUCHE : Navigation principale -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <!-- Toujours visible : La carte interactive -->
                     <li class="nav-item">
-                        <a class="nav-link" href="/portal/"><i class="fas fa-home me-1"></i> Accueil</a>
+                        <a class="nav-link" href="/portal/">
+                            <i class="fas fa-map-marked-alt me-1"></i> Carte Interactive
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/cimetiere/carte/"><i class="fas fa-map-marked-alt me-1"></i> Carte</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/cimetiere/concessions/"><i class="fas fa-file-contract me-1"></i> Concessions</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/rapports/"><i class="fas fa-chart-bar me-1"></i> Rapports</a>
-                    </li>
+
+                    <!-- CLIENT UNIQUEMENT -->
+                    {% if user.is_authenticated and not user.is_staff %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/portal/mes-reservations/">
+                                <i class="fas fa-calendar-check me-1"></i> Mes Réservations
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/portal/mes-factures/">
+                                <i class="fas fa-file-invoice-dollar me-1"></i> Mes Factures
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/portal/mes-concessions/">
+                                <i class="fas fa-file-contract me-1"></i> Mes Concessions
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    <!-- ADMINISTRATEUR UNIQUEMENT -->
+                    {% if user.is_staff %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/portal/dashboard/">
+                                <i class="fas fa-tachometer-alt me-1"></i> Dashboard Admin
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/">
+                                <i class="fas fa-cogs me-1"></i> Administration
+                            </a>
+                        </li>
+                    {% endif %}
                 </ul>
                 
-                <ul class="navbar-nav ms-auto">
+                <!-- LIENS DE DROITE : Actions utilisateur -->
+                <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
+                        <!-- Utilisateur connecté (Client ou Admin) -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user-circle fa-lg me-2"></i> 
                                 <span>{{ user.get_full_name|default:user.email }}</span>
+                                {% if user.is_staff %}
+                                    <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">ADMIN</span>
+                                {% endif %}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog me-2 text-muted"></i> Administration</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="/accounts/logout/"><i class="fas fa-sign-out-alt me-2"></i> Déconnexion</a></li>
+                                
+                                {% if user.is_staff %}
+                                    <!-- Menu Admin -->
+                                    <li><a class="dropdown-item" href="/portal/dashboard/"><i class="fas fa-chart-line me-2 text-primary"></i> Tableau de bord</a></li>
+                                    <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog me-2 text-muted"></i> Administration Django</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% else %}
+                                    <!-- Menu Client -->
+                                    <li><a class="dropdown-item" href="/portal/mes-reservations/"><i class="fas fa-calendar me-2 text-primary"></i> Mes réservations</a></li>
+                                    <li><a class="dropdown-item" href="/portal/mes-factures/"><i class="fas fa-file-invoice me-2 text-primary"></i> Mes factures</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                
+                                <li>
+                                    <a class="dropdown-item text-danger" href="/mfa/logout/">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Déconnexion
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                     {% else %}
+                        <!-- Visiteur non connecté -->
                         <li class="nav-item">
-                            <a class="nav-link btn btn-sm btn-light text-success fw-bold ms-2 px-3" href="/accounts/login/">
+                            <a class="nav-link" href="/mfa/register/">
+                                <i class="fas fa-user-plus me-1"></i> Créer un compte
+                            </a>
+                        </li>
+                        <li class="nav-item ms-2">
+                            <a class="nav-link btn btn-sm btn-light text-success fw-bold px-3" href="/mfa/login/">
                                 <i class="fas fa-sign-in-alt me-1"></i> Connexion
                             </a>
                         </li>
@@ -225,15 +274,22 @@
         </div>
     </nav>
 
-    <!-- MESSAGES DJANGO -->
+    <!-- ================================================================= -->
+    <!-- MESSAGES DJANGO (Success, Error, Warning, Info)                   -->
+    <!-- ================================================================= -->
     {% if messages %}
     <div class="container mt-4">
         {% for message in messages %}
             <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show d-flex align-items-center" role="alert">
-                {% if message.tags == 'success' %}<i class="fas fa-check-circle me-2 fs-5"></i>
-                {% elif message.tags == 'error' %}<i class="fas fa-exclamation-triangle me-2 fs-5"></i>
-                {% elif message.tags == 'warning' %}<i class="fas fa-exclamation-circle me-2 fs-5"></i>
-                {% else %}<i class="fas fa-info-circle me-2 fs-5"></i>{% endif %}
+                {% if message.tags == 'success' %}
+                    <i class="fas fa-check-circle me-2 fs-5"></i>
+                {% elif message.tags == 'error' %}
+                    <i class="fas fa-exclamation-triangle me-2 fs-5"></i>
+                {% elif message.tags == 'warning' %}
+                    <i class="fas fa-exclamation-circle me-2 fs-5"></i>
+                {% else %}
+                    <i class="fas fa-info-circle me-2 fs-5"></i>
+                {% endif %}
                 <div>{{ message }}</div>
                 <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
@@ -241,13 +297,17 @@
     </div>
     {% endif %}
 
-    <!-- CONTENU PRINCIPAL -->
+    <!-- ================================================================= -->
+    <!-- CONTENU PRINCIPAL (Injecté par les pages enfants)                 -->
+    <!-- ================================================================= -->
     <main class="container main-content">
         {% block content %}
         {% endblock %}
     </main>
 
-    <!-- FOOTER MODERNE ET GÉNÉRIQUE (AUCUNE INFO PERSONNELLE) -->
+    <!-- ================================================================= -->
+    <!-- FOOTER MODERNE ET GÉNÉRIQUE (AUCUNE INFO PERSONNELLE)             -->
+    <!-- ================================================================= -->
     <footer class="footer">
         <div class="container">
             <div class="row align-items-center">
@@ -271,7 +331,9 @@
         </div>
     </footer>
 
-    <!-- SCRIPTS JS -->
+    <!-- ================================================================= -->
+    <!-- SCRIPTS JS                                                        -->
+    <!-- ================================================================= -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     

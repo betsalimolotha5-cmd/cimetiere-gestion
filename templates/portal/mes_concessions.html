@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mes Concessions - Gestion Cimetière{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    
+    <!-- EN-TÊTE DE LA PAGE -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-color) 100%); color: white; border-radius: 12px;">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="fw-bold mb-1">
+                                <i class="fas fa-file-contract me-2"></i>Mes Concessions
+                            </h2>
+                            <p class="mb-0 opacity-75">
+                                Gérez vos contrats de concession funéraire et suivez leurs échéances.
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <a href="/portal/" class="btn btn-light fw-bold text-success shadow-sm">
+                                <i class="fas fa-map-marked-alt me-2"></i>Retour à la carte
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTRES PAR STATUT -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-body p-3">
+                    <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+                        <button class="btn btn-primary btn-sm filter-btn active" data-filter="all">
+                            <i class="fas fa-list me-1"></i> Toutes
+                            <span class="badge bg-light text-primary ms-1">{{ concessions|length }}</span>
+                        </button>
+                        <button class="btn btn-outline-success btn-sm filter-btn" data-filter="ACTIVE">
+                            <i class="fas fa-check-circle me-1"></i> Actives
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm filter-btn" data-filter="EXPIREE">
+                            <i class="fas fa-calendar-times me-1"></i> Expirées
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="RESILIEE">
+                            <i class="fas fa-ban me-1"></i> Résiliées
+                        </button>
+                        <button class="btn btn-outline-info btn-sm filter-btn" data-filter="RENOUVELEE">
+                            <i class="fas fa-redo me-1"></i> Renouvelées
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LISTE DES CONCESSIONS -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="concessions-table">
+                            <thead style="background-color: var(--light-bg);">
+                                <tr>
+                                    <th class="p-3" style="font-weight: 700; color: var(--dark-color);">
+                                        <i class="fas fa-hashtag me-1"></i> N° Contrat
+                                    </th>
+                                    <th class="p-3" style="font-weight: 700; color: var(--dark-color);">
+                                        <i class="fas fa-map-marker-alt me-1"></i> Caveau
+                                    </th>
+                                    <th class="p-3" style="font-weight: 700; color: var(--dark-color);">
+                                        <i class="fas fa-layer-group me-1"></i> Zone
+                                    </th>
+                                    <th class="p-3" style="font-weight: 700; color: var(--dark-color);">
+                                        <i class="fas fa-tag me-1"></i> Type
+                                    </th>
+                                    <th class="p-3" style="font-weight: 700; color: var(--dark-color);">
+                                        <i class="fas fa-calendar-alt me-1"></i> Date début
+                                    </th>
+                                    <th class="p-3" style="font-weight: 700; color: var(--dark-color);">
+                                        <i class="fas fa-calendar-times me-1"></i> Date fin
+                                    </th>
+                                    <th class="p-3" style="font-weight: 700; color: var(--dark-color);">
+                                        <i class="fas fa-info-circle me-1"></i> Statut
+                                    </th>
+                                    <th class="p-3 text-end" style="font-weight: 700; color: var(--dark-color);">
+                                        <i class="fas fa-cog me-1"></i> Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for concession in concessions %}
+                                <tr class="concession-row" data-status="{{ concession.statut }}">
+                                    <td class="p-3 align-middle">
+                                        <span class="badge bg-light text-dark border fw-bold" style="font-size: 0.95rem;">
+                                            {{ concession.numero_contrat }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3 align-middle">
+                                        <span class="badge bg-primary bg-opacity-10 text-primary fw-bold">
+                                            <i class="fas fa-map-marker-alt me-1"></i>{{ concession.caveau.code }}
+                                        </span>
+                                    </td>
+                                    <td class="p-3 align-middle text-muted">
+                                        {{ concession.caveau.zone.nom|default:"—" }}
+                                    </td>
+                                    <td class="p-3 align-middle">
+                                        {% if concession.type_concession == 'TEMPORAIRE' %}
+                                            <span class="badge bg-info text-dark px-2 py-1" style="font-size: 0.85rem;">
+                                                <i class="fas fa-clock me-1"></i>Temporaire
+                                            </span>
+                                        {% elif concession.type_concession == 'PERPETUELLE' %}
+                                            <span class="badge bg-success px-2 py-1" style="font-size: 0.85rem;">
+                                                <i class="fas fa-infinity me-1"></i>Perpétuelle
+                                            </span>
+                                        {% elif concession.type_concession == 'TRENTENAIRE' %}
+                                            <span class="badge bg-warning text-dark px-2 py-1" style="font-size: 0.85rem;">
+                                                <i class="fas fa-calendar me-1"></i>Trentenaire
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary px-2 py-1" style="font-size: 0.85rem;">
+                                                {{ concession.get_type_concession_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-3 align-middle text-muted">
+                                        <small>
+                                            <i class="fas fa-calendar-day me-1"></i>
+                                            {{ concession.date_debut|date:"d/m/Y" }}
+                                        </small>
+                                    </td>
+                                    <td class="p-3 align-middle text-muted">
+                                        <small>
+                                            <i class="fas fa-calendar-times me-1"></i>
+                                            {{ concession.date_fin|date:"d/m/Y" }}
+                                        </small>
+                                    </td>
+                                    <td class="p-3 align-middle">
+                                        {% if concession.statut == 'ACTIVE' %}
+                                            <span class="badge bg-success px-3 py-2" style="border-radius: 20px;">
+                                                <i class="fas fa-check-circle me-1"></i>Active
+                                            </span>
+                                        {% elif concession.statut == 'EXPIREE' %}
+                                            <span class="badge bg-danger px-3 py-2" style="border-radius: 20px;">
+                                                <i class="fas fa-calendar-times me-1"></i>Expirée
+                                            </span>
+                                        {% elif concession.statut == 'RESILIEE' %}
+                                            <span class="badge bg-secondary px-3 py-2" style="border-radius: 20px;">
+                                                <i class="fas fa-ban me-1"></i>Résiliée
+                                            </span>
+                                        {% elif concession.statut == 'RENOUVELEE' %}
+                                            <span class="badge bg-info text-dark px-3 py-2" style="border-radius: 20px;">
+                                                <i class="fas fa-redo me-1"></i>Renouvelée
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary px-3 py-2" style="border-radius: 20px;">
+                                                {{ concession.get_statut_display }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-3 align-middle text-end">
+                                        <a href="/portal/concession/{{ concession.id }}/" class="btn btn-sm btn-outline-primary" title="Voir les détails">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="fas fa-file-contract fa-3x mb-3 opacity-25"></i>
+                                            <h5 class="fw-bold">Aucune concession pour le moment</h5>
+                                            <p class="mb-3">
+                                                Vous n'avez pas encore de contrat de concession actif.
+                                                <br>Réservez un caveau pour obtenir votre première concession.
+                                            </p>
+                                            <a href="/portal/" class="btn btn-primary">
+                                                <i class="fas fa-map-marked-alt me-2"></i>Aller sur la carte
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LÉGENDE DES STATUTS -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                <div class="card-body p-3">
+                    <h6 class="fw-bold mb-3" style="color: var(--dark-color);">
+                        <i class="fas fa-info-circle me-1"></i> Légende des statuts
+                    </h6>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-success me-2 px-3 py-2" style="border-radius: 20px;">
+                                    <i class="fas fa-check-circle"></i>
+                                </span>
+                                <small class="text-muted">
+                                    <strong>Active</strong> : Concession en cours de validité.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-danger me-2 px-3 py-2" style="border-radius: 20px;">
+                                    <i class="fas fa-calendar-times"></i>
+                                </span>
+                                <small class="text-muted">
+                                    <strong>Expirée</strong> : La date de fin est dépassée. Renouvellement nécessaire.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-secondary me-2 px-3 py-2" style="border-radius: 20px;">
+                                    <i class="fas fa-ban"></i>
+                                </span>
+                                <small class="text-muted">
+                                    <strong>Résiliée</strong> : Contrat annulé par l'administration.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-info text-dark me-2 px-3 py-2" style="border-radius: 20px;">
+                                    <i class="fas fa-redo"></i>
+                                </span>
+                                <small class="text-muted">
+                                    <strong>Renouvelée</strong> : Concession prolongée pour une nouvelle période.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const concessionRows = document.querySelectorAll('.concession-row');
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Retirer la classe active de tous les boutons
+                filterButtons.forEach(btn => {
+                    btn.classList.remove('active', 'btn-primary');
+                    btn.classList.add('btn-outline-primary', 'btn-outline-success', 'btn-outline-danger', 'btn-outline-secondary', 'btn-outline-info');
+                });
+
+                // Ajouter la classe active au bouton cliqué
+                this.classList.remove('btn-outline-primary', 'btn-outline-success', 'btn-outline-danger', 'btn-outline-secondary', 'btn-outline-info');
+                this.classList.add('active', 'btn-primary');
+
+                const filter = this.getAttribute('data-filter');
+
+                // Filtrer les lignes du tableau
+                concessionRows.forEach(row => {
+                    if (filter === 'all' || row.getAttribute('data-status') === filter) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}
