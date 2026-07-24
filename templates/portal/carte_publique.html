@@ -4,139 +4,87 @@
 {% block title %}Carte Interactive du Cimetière{% endblock %}
 
 {% block extra_css %}
-<!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-    /* Carte pleine hauteur */
+    /* Carte */
     #map { 
         width: 100%; 
-        height: calc(100vh - 80px);
-        min-height: 600px;
-        z-index: 1;
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        height: calc(100vh - 80px); 
+        min-height: 600px; 
+        z-index: 1; 
+        border-radius: 12px; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
     }
 
-    /* Légende professionnelle conforme CDC Section 2.3 */
+    /* Thème Violet pour la légende et les contrôles */
     .cdc-legend {
         background: rgba(255, 255, 255, 0.98);
-        padding: 18px 22px;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(142, 68, 173, 0.2);
         font-size: 0.9rem;
-        backdrop-filter: blur(10px);
-        max-width: 240px;
-        border: 1px solid rgba(0,0,0,0.05);
+        border-left: 5px solid #8e44ad; /* Violet */
     }
     
     .cdc-legend h6 {
-        margin: 0 0 12px 0;
+        margin: 0 0 10px 0;
         font-weight: 700;
-        color: #2c5f2d;
-        border-bottom: 3px solid #97bc62;
-        padding-bottom: 8px;
-        font-size: 1.05rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        color: #8e44ad; /* Violet */
+        border-bottom: 2px solid #9b59b6;
+        padding-bottom: 6px;
     }
     
-    .legend-item { 
-        display: flex; 
-        align-items: center; 
-        gap: 12px; 
-        margin: 10px 0; 
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-    
-    .legend-item:hover { transform: translateX(3px); }
-    
-    .legend-color { 
-        width: 22px; 
-        height: 22px; 
-        border-radius: 5px; 
-        border: 2px solid rgba(0,0,0,0.15);
-        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-        flex-shrink: 0;
-    }
+    .legend-item { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+    .legend-color { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-    /* Popup personnalisé moderne */
+    /* Popup thème violet */
     .leaflet-popup-content-wrapper {
-        border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-        padding: 0;
-        overflow: hidden;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(142, 68, 173, 0.2);
+        border-top: 4px solid #8e44ad;
     }
     
-    .leaflet-popup-content {
-        margin: 0;
-        width: 300px !important;
-        font-size: 0.95rem;
-    }
-
-    .popup-header {
-        background: linear-gradient(135deg, #2c5f2d 0%, #1a3d1f 100%);
-        color: white;
-        padding: 15px 20px;
+    .popup-title {
+        color: #8e44ad;
         font-weight: 700;
         font-size: 1.1rem;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
     }
     
-    .popup-body { padding: 18px 20px; background: #fff; }
+    .popup-row { margin: 6px 0; font-size: 0.95rem; }
+    .popup-label { font-weight: 600; color: #555; }
     
-    .popup-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #f0f0f0;
+    .gps-box {
+        background: #f3e5f5; /* Violet très clair */
+        padding: 8px;
+        border-radius: 6px;
+        margin-top: 10px;
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #6a1b9a;
+        text-align: center;
     }
-    
-    .popup-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-    
-    .popup-label { font-weight: 600; color: #555; font-size: 0.9rem; }
-    .popup-value { font-weight: 700; color: #2c5f2d; text-align: right; }
-    
-    .gps-info {
-        background: #f8f9fa;
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 12px;
-        border-left: 4px solid #97bc62;
-    }
-    
-    .gps-label { font-size: 0.8rem; color: #666; margin-bottom: 5px; font-weight: 600; }
-    .gps-coord { font-family: 'Courier New', monospace; font-size: 0.85rem; color: #2c5f2d; font-weight: 700; }
 
     .btn-reserver {
-        background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        background: #8e44ad;
         color: white;
         border: none;
-        padding: 12px;
-        border-radius: 8px;
-        font-weight: 700;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
         width: 100%;
-        margin-top: 15px;
-        cursor: pointer;
-        transition: all 0.3s ease;
+        margin-top: 12px;
         text-decoration: none;
         display: inline-block;
         text-align: center;
-        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+        transition: background 0.3s;
     }
-    
-    .btn-reserver:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(39, 174, 96, 0.4);
-    }
+    .btn-reserver:hover { background: #732d91; color: white; }
 
     @media (max-width: 768px) {
         #map { height: calc(100vh - 60px); border-radius: 0; }
-        .cdc-legend { padding: 12px 15px; font-size: 0.8rem; max-width: 180px; }
-        .legend-color { width: 18px; height: 18px; }
-        .leaflet-popup-content { width: 260px !important; }
     }
 </style>
 {% endblock %}
@@ -148,129 +96,100 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ============================================
-        // 1. CHARGEMENT DES DONNÉES DYNAMIQUES (Périmètre + Caveaux)
-        // ============================================
+        // 1. Initialisation de la carte
+        const map = L.map('map').setView([-4.4419, 15.2663], 16); // Centre par défaut en attendant l'API
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
+
+        // 2. Chargement des données (Caveaux + Périmètre dynamique)
         fetch('/portal/api/carte/')
-            .then(response => {
-                if (!response.ok) throw new Error('Erreur réseau: ' + response.status);
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                // A. Initialisation de la carte avec le centre dynamique (ou défaut)
-                const centreCimetiere = data.centre || [-4.4419, 15.2663];
-                const map = L.map('map', {
-                    zoomControl: true,
-                    scrollWheelZoom: true,
-                    attributionControl: true
-                }).setView(centreCimetiere, 17);
-                
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                    maxZoom: 19,
-                    minZoom: 15
-                }).addTo(map);
+                console.log("Données reçues:", data); // Pour déboguer dans la console du navigateur
 
-                // B. Dessin du périmètre dynamique
-                const perimetreCimetiere = data.perimetre || [];
-                
-                if (perimetreCimetiere.length > 0) {
-                    const cimetierePolygon = L.polygon(perimetreCimetiere, {
-                        color: '#2c5f2d',
-                        weight: 4,
-                        fillColor: '#97bc62',
-                        fillOpacity: 0.2,
-                        dashArray: '12, 6',
-                        lineCap: 'round'
-                    }).addTo(map);
+                // A. Délimitation automatique du cimetière (si présente dans la BD)
+                if (data.perimetre && data.perimetre.length > 0) {
+                    L.polygon(data.perimetre, {
+                        color: '#8e44ad',       // Bordure violette
+                        weight: 3,
+                        fillColor: '#9b59b6',   // Remplissage violet clair
+                        fillOpacity: 0.15,
+                        dashArray: '8, 6'
+                    }).addTo(map).bindPopup("<b>Limites du Cimetière</b><br>Périmètre officiel");
                     
-                    cimetierePolygon.bindPopup(
-                        '<div style="text-align:center; padding:10px;">' +
-                        '<i class="fas fa-map" style="color:#2c5f2d; font-size:1.5rem; margin-bottom:8px;"></i>' +
-                        '<h6 style="margin:0; color:#2c5f2d;">Limites du Cimetière</h6>' +
-                        '<small style="color:#666;">Périmètre officiel (Base de données)</small>' +
-                        '</div>'
-                    );
-
-                    // Ajuster la vue pour englober tout le cimetière
-                    map.fitBounds(perimetreCimetiere, { padding: [40, 40], maxZoom: 18 });
-                } else {
-                    console.warn("⚠️ Aucun périmètre défini dans la base de données. Affichage du centre par défaut.");
+                    // Ajuster la vue pour voir tout le cimetière
+                    map.fitBounds(data.perimetre, { padding: [30, 30] });
+                } else if (data.centre) {
+                    map.setView(data.centre, 17);
                 }
 
-                // C. Légende
+                // B. Légende
                 const legend = L.control({position: 'bottomright'});
                 legend.onAdd = function() {
                     const div = L.DomUtil.create('div', 'cdc-legend');
                     div.innerHTML = `
-                        <h6><i class="fas fa-info-circle me-2"></i>État des Caveaux</h6>
+                        <h6>État des Caveaux</h6>
                         <div class="legend-item"><div class="legend-color" style="background: #27ae60;"></div> Disponible</div>
                         <div class="legend-item"><div class="legend-color" style="background: #f39c12;"></div> Réservé / En attente</div>
-                        <div class="legend-item"><div class="legend-color" style="background: #e74c3c;"></div> Occupé / Validé</div>
+                        <div class="legend-item"><div class="legend-color" style="background: #e74c3c;"></div> Occupé</div>
                         <div class="legend-item"><div class="legend-color" style="background: #95a5a6;"></div> Non exploitable</div>
                     `;
                     return div;
                 };
                 legend.addTo(map);
 
-                // D. Affichage des caveaux
+                // C. Affichage des caveaux
                 if (!data.caveaux || data.caveaux.length === 0) {
-                    console.warn("⚠️ Aucun caveau trouvé dans la base de données.");
+                    console.warn("Aucun caveau trouvé.");
                     return;
                 }
 
-                data.caveaux.forEach(caveau => {
-                    if (caveau.position) {
-                        const marker = L.circleMarker([caveau.position.lat, caveau.position.lng], {
-                            radius: 12,
-                            fillColor: caveau.couleur,
+                data.caveaux.forEach(c => {
+                    if (c.position) {
+                        // Création du marqueur
+                        const marker = L.circleMarker([c.position.lat, c.position.lng], {
+                            radius: 10,
+                            fillColor: c.couleur,
                             color: '#ffffff',
-                            weight: 3,
-                            opacity: 1,
+                            weight: 2,
                             fillOpacity: 0.9
                         }).addTo(map);
-                        
-                        // Création du popup
-                        let popupHtml = `<div class="popup-header"><i class="fas fa-map-marker-alt me-2"></i>Caveau ${caveau.code}</div><div class="popup-body">`;
-                        popupHtml += `<div class="popup-row"><span class="popup-label"><i class="fas fa-layer-group me-1"></i>Zone</span><span class="popup-value">${caveau.zone || 'N/A'}</span></div>`;
-                        popupHtml += `<div class="popup-row"><span class="popup-label"><i class="fas fa-cube me-1"></i>Type</span><span class="popup-value">${caveau.type_caveau || 'N/A'}</span></div>`;
-                        popupHtml += `<div class="popup-row"><span class="popup-label"><i class="fas fa-info-circle me-1"></i>Statut</span><span class="popup-value" style="color: ${caveau.couleur}; font-weight: 800;">${caveau.statut_affiche || caveau.statut}</span></div>`;
-                        popupHtml += `<div class="popup-row"><span class="popup-label"><i class="fas fa-tag me-1"></i>Prix</span><span class="popup-value">${caveau.prix ? caveau.prix.toLocaleString() : '0'} FCFA</span></div>`;
-                        
-                        if (caveau.longitude && caveau.latitude) {
-                            popupHtml += `<div class="gps-info">`;
-                            popupHtml += `<div class="gps-label"><i class="fas fa-location-arrow me-1"></i>Emplacement GPS</div>`;
-                            popupHtml += `<div class="gps-coord">Lat: ${caveau.latitude.toFixed(6)}<br>Lng: ${caveau.longitude.toFixed(6)}</div>`;
-                            popupHtml += `</div>`;
-                        }
-                        
-                        if (caveau.reservable) {
-                            popupHtml += `<a href="/portal/reservation/${caveau.id}/" class="btn-reserver"><i class="fas fa-calendar-check me-2"></i>Réserver ce caveau</a>`;
-                        } else {
-                            popupHtml += `<div style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; text-align: center; color: #666;"><i class="fas fa-lock me-2"></i>Ce caveau n'est pas disponible</div>`;
-                        }
-                        popupHtml += `</div>`;
 
-                        marker.bindPopup(popupHtml, { maxWidth: 320, minWidth: 280, closeButton: true });
+                        // Construction du popup (s'exécute au clic)
+                        let html = `<div class="popup-title"><i class="fas fa-map-marker-alt"></i> Caveau ${c.code}</div>`;
+                        html += `<div class="popup-row"><span class="popup-label">Zone:</span> ${c.zone || 'N/A'}</div>`;
+                        html += `<div class="popup-row"><span class="popup-label">Type:</span> ${c.type_caveau || 'N/A'}</div>`;
+                        html += `<div class="popup-row"><span class="popup-label">Statut:</span> <span style="color:${c.couleur}; font-weight:bold;">${c.statut_affiche}</span></div>`;
+                        html += `<div class="popup-row"><span class="popup-label">Prix:</span> ${c.prix ? c.prix.toLocaleString() : '0'} FCFA</div>`;
                         
-                        marker.on('mouseover', function() {
-                            this.setStyle({ weight: 4, fillOpacity: 1, radius: 14 });
-                            this.openPopup();
-                        });
-                        marker.on('mouseout', function() {
-                            this.setStyle({ weight: 3, fillOpacity: 0.9, radius: 12 });
-                        });
+                        // Ajout des coordonnées GPS si disponibles
+                        if (c.latitude && c.longitude) {
+                            html += `<div class="gps-box">📍 Lat: ${c.latitude.toFixed(6)}<br>📍 Lng: ${c.longitude.toFixed(6)}</div>`;
+                        }
+                        
+                        // Bouton de réservation
+                        if (c.reservable) {
+                            html += `<a href="/portal/reservation/${c.id}/" class="btn-reserver">Réserver ce caveau</a>`;
+                        } else {
+                            html += `<div style="margin-top:10px; color:#999; font-size:0.9rem; text-align:center;"><i class="fas fa-lock"></i> Non disponible</div>`;
+                        }
+
+                        // Liaison du popup au marqueur (c'est ce qui fait que le clic fonctionne)
+                        marker.bindPopup(html);
+                        
+                        // Ouvre le popup au survol pour une meilleure expérience
+                        marker.on('mouseover', function() { this.openPopup(); });
                     }
                 });
             })
             .catch(err => {
-                console.error('❌ Erreur chargement carte:', err);
-                alert("Impossible de charger les données de la carte.");
+                console.error("Erreur chargement carte:", err);
             });
     });
 </script>
