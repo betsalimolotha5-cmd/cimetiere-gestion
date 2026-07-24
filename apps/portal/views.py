@@ -108,7 +108,8 @@ def api_carte_publique(request):
     # ============================================
     # ⭐ Récupération dynamique du périmètre et du centre
     # ============================================
-    centre_data = [-4.4419, 15.2663] # Valeur par défaut de secours [Lat, Lng]
+    # MODIFICATION : Coordonnées par défaut centrées sur Pointe-Noire [Lat, Lng]
+    centre_data = [-4.7692, 11.8644] 
     perimetre_data = []
     
     try:
