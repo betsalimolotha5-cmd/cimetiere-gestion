@@ -1,6 +1,6 @@
 """
-Vues du portail client (Carte publique + Réservations + Factures + Paiements + Dashboard).
-Conforme au CDC : workflow complet de réservation → facturation → paiement + carte dynamique.
+Vues du portail client (Carte publique + Réservations + Factures + Paiements + Dashboards).
+Conforme au CDC : workflow complet de réservation → facturation → paiement + carte dynamique + RBAC.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -52,14 +52,14 @@ def api_carte_publique(request):
     # Récupérer les IDs des caveaux avec demande EN_ATTENTE → ORANGE
     caveaux_en_attente_ids = set(
         DemandeReservation.objects.filter(
-            statut=DemandeReservation.Statut.EN_ATTENTE
+            statut='EN_ATTENTE'
         ).values_list('caveau_id', flat=True)
     )
     
     # Récupérer les IDs des caveaux avec demande VALIDEE → ROUGE
     caveaux_valides_ids = set(
         DemandeReservation.objects.filter(
-            statut=DemandeReservation.Statut.VALIDEE
+            statut='VALIDEE'
         ).values_list('caveau_id', flat=True)
     )
 
@@ -106,7 +106,7 @@ def api_carte_publique(request):
         })
 
     # ============================================
-    # ⭐ NOUVEAU : Récupération dynamique du périmètre et du centre
+    # ⭐ Récupération dynamique du périmètre et du centre
     # ============================================
     centre_data = [-4.4419, 15.2663] # Valeur par défaut de secours [Lat, Lng]
     perimetre_data = []
@@ -121,7 +121,6 @@ def api_carte_publique(request):
             # 2. Périmètre (Format Leaflet: [[Lat, Lng], [Lat, Lng], ...])
             if hasattr(parametres, 'perimetre') and parametres.perimetre:
                 # GeoDjango renvoie (Lng, Lat), on inverse pour Leaflet (Lat, Lng)
-                # .coords[0] prend le premier anneau du polygone
                 perimetre_data = [[coord[1], coord[0]] for coord in parametres.perimetre.coords[0]]
     except Exception as e:
         print(f"⚠️ Impossible de charger le périmètre dynamique depuis la BDD: {e}")
@@ -144,7 +143,7 @@ def reservation_form(request, caveau_id):
 
     if DemandeReservation.objects.filter(
         caveau=caveau,
-        statut=DemandeReservation.Statut.EN_ATTENTE
+        statut='EN_ATTENTE'
     ).exists():
         messages.warning(request, 'Ce caveau est déjà en cours de réservation.')
         return redirect('carte_publique')
@@ -175,7 +174,7 @@ def reservation_form(request, caveau_id):
                 date_deces=date_deces,
                 lien_parente=lien_parente,
                 telephone_contact=telephone,
-                statut=DemandeReservation.Statut.EN_ATTENTE,
+                statut='EN_ATTENTE',
             )
             
             try:
@@ -232,7 +231,7 @@ def payer_facture(request, facture_id):
         messages.info(request, 'Cette facture est déjà entièrement payée.')
         return redirect('facture_detail', facture_id=facture.id)
     
-    if facture.statut == Facture.StatutFacture.ANNULEE:
+    if facture.statut == 'ANNULEE':
         messages.error(request, 'Cette facture a été annulée.')
         return redirect('facture_detail', facture_id=facture.id)
 
@@ -265,7 +264,7 @@ def payer_facture(request, facture_id):
                 mode_paiement=mode_paiement,
                 reference_transaction=reference,
                 numero_telephone=telephone,
-                statut=Paiement.StatutPaiement.EN_ATTENTE,
+                statut='EN_ATTENTE',
             )
             
             try:
@@ -285,6 +284,52 @@ def payer_facture(request, facture_id):
     return render(request, 'portal/payer_facture.html', {'facture': facture})
 
 
+# ==============================================================================
+# ⭐ NOUVEAU : DASHBOARD AGENT DE TERRAIN (RBAC)
+# ==============================================================================
+@login_required
+def dashboard_agent(request):
+    """Tableau de bord simplifié et opérationnel pour les agents de terrain."""
+    
+    # Vérifier que l'utilisateur est dans le groupe "Agents"/"Agent" ou est staff
+    user_groups = request.user.groups.values_list('name', flat=True)
+    is_agent = 'Agents' in user_groups or 'Agent' in user_groups
+    
+    if not request.user.is_staff and not is_agent:
+        messages.error(request, "Accès réservé aux agents de terrain et administrateurs.")
+        return redirect('carte_publique')
+    
+    try:
+        caveaux_disponibles = Caveau.objects.filter(statut='DISPONIBLE').count()
+        total_zones = Zone.objects.filter(est_exploitable=True).count()
+        
+        reservations_en_attente = DemandeReservation.objects.filter(
+            statut='EN_ATTENTE'
+        ).select_related('client', 'caveau', 'caveau__zone').order_by('-date_creation')[:10]
+        
+        total_reservations_attente = DemandeReservation.objects.filter(
+            statut='EN_ATTENTE'
+        ).count()
+    except Exception as e:
+        print(f"[DASHBOARD AGENT] Erreur: {e}")
+        caveaux_disponibles = 0
+        total_zones = 0
+        total_reservations_attente = 0
+        reservations_en_attente = []
+
+    context = {
+        'caveaux_disponibles': caveaux_disponibles,
+        'total_zones': total_zones,
+        'reservations_en_attente': reservations_en_attente,
+        'total_reservations_attente': total_reservations_attente,
+    }
+    
+    return render(request, 'portal/dashboard_agent.html', context)
+
+
+# ==============================================================================
+# DASHBOARD ADMINISTRATEUR
+# ==============================================================================
 @login_required
 def dashboard_admin(request):
     """Dashboard admin optimisé - Cache de 5 minutes. Conforme CDC."""
@@ -297,6 +342,21 @@ def dashboard_admin(request):
     if cached_data:
         return render(request, 'portal/dashboard_admin.html', cached_data)
     
+    # Valeurs par défaut (fallback sécurisé)
+    total_caveaux = caveaux_disponibles = caveaux_reserves = caveaux_occupes = caveaux_non_exploitables = 0
+    taux_occupation = 0
+    total_reservations_attente = 0
+    reservations_en_attente = []
+    revenus_totaux = 0
+    revenus_par_mode = []
+    paiements_recents = []
+    revenus_mensuels = []
+    total_factures = factures_impayees = factures_payees = 0
+    factures_recents = []
+    total_users = admins_count = 0
+    occupation_par_zone = []
+    actions_recentes = []
+
     try:
         # 1. STATISTIQUES TERRAIN
         stats_caveaux = Caveau.objects.aggregate(
@@ -309,28 +369,49 @@ def dashboard_admin(request):
         total_caveaux = stats_caveaux['total'] or 0
         taux_occupation = round((stats_caveaux['occupes'] / total_caveaux * 100), 1) if total_caveaux > 0 else 0
         
-        # 2. RÉSERVATIONS
-        reservations_qs = DemandeReservation.objects.filter(statut=DemandeReservation.Statut.EN_ATTENTE).select_related('client', 'caveau', 'caveau__zone').order_by('-date_creation')
+        # 2. RÉSERVATIONS (Utilisation de chaînes de caractères)
+        reservations_qs = DemandeReservation.objects.filter(statut='EN_ATTENTE').select_related('client', 'caveau', 'caveau__zone').order_by('-date_creation')
+        total_reservations_attente = reservations_qs.count()
+        reservations_en_attente = list(reservations_qs[:10])
         
         # 3. FINANCES
-        revenus_agg = Paiement.objects.filter(statut=Paiement.StatutPaiement.VALIDE).aggregate(total=Sum('montant'))
-        revenus_par_mode = list(Paiement.objects.filter(statut=Paiement.StatutPaiement.VALIDE).values('mode_paiement').annotate(total=Sum('montant'), count=Count('id')).order_by('-total'))
-        paiements_recents = Paiement.objects.select_related('client', 'facture').order_by('-date_paiement')[:10]
+        revenus_agg = Paiement.objects.filter(statut='VALIDE').aggregate(total=Sum('montant'))
+        revenus_totaux = revenus_agg['total'] or 0
+        
+        revenus_par_mode = list(Paiement.objects.filter(statut='VALIDE')
+            .values('mode_paiement')
+            .annotate(total=Sum('montant'), count=Count('id'))
+            .order_by('-total'))
+            
+        paiements_recents = list(Paiement.objects.select_related('client', 'facture').order_by('-date_paiement')[:10])
         
         six_mois_avant = timezone.now() - timedelta(days=180)
-        paiements_mensuels = Paiement.objects.filter(statut=Paiement.StatutPaiement.VALIDE, date_paiement__gte=six_mois_avant).extra(select={'mois': "TO_CHAR(date_paiement, 'YYYY-MM')"}).values('mois').annotate(total=Sum('montant')).order_by('mois')
+        paiements_mensuels = Paiement.objects.filter(statut='VALIDE', date_paiement__gte=six_mois_avant).extra(
+            select={'mois': "TO_CHAR(date_paiement, 'YYYY-MM')"}
+        ).values('mois').annotate(total=Sum('montant')).order_by('mois')
         revenus_mensuels = [{'mois': p['mois'], 'total': float(p['total'])} for p in paiements_mensuels]
         
-        # 4. FACTURES
-        factures_stats = Facture.objects.aggregate(total=Count('id'), impayees=Count('id', filter=Q(statut=Facture.StatutFacture.EN_ATTENTE)), payees=Count('id', filter=Q(statut=Facture.StatutFacture.PAYEE)))
-        factures_recents = Facture.objects.select_related('client', 'concession').order_by('-date_creation')[:10]
+        # 4. FACTURES (Chaînes de caractères)
+        factures_stats = Facture.objects.aggregate(
+            total=Count('id'), 
+            impayees=Count('id', filter=Q(statut='EN_ATTENTE')), 
+            payees=Count('id', filter=Q(statut='PAYEE'))
+        )
+        total_factures = factures_stats['total'] or 0
+        factures_impayees = factures_stats['impayees'] or 0
+        factures_payees = factures_stats['payees'] or 0
+        factures_recents = list(Facture.objects.select_related('client', 'concession').order_by('-date_creation')[:10])
         
         # 5. UTILISATEURS
         total_users = User.objects.filter(is_active=True).count()
         admins_count = User.objects.filter(is_staff=True).count()
         
         # 6. OCCUPATION PAR ZONE
-        occupation_par_zone = list(Zone.objects.annotate(total_caveaux=Count('caveaux'), caveaux_occupes=Count('caveaux', filter=Q(caveaux__statut='OCCUPE'))).values('nom', 'total_caveaux', 'caveaux_occupes')[:10])
+        occupation_par_zone = list(Zone.objects.annotate(
+            total_caveaux=Count('caveaux'), 
+            caveaux_occupes=Count('caveaux', filter=Q(caveaux__statut='OCCUPE'))
+        ).values('nom', 'total_caveaux', 'caveaux_occupes')[:10])
+        
         for zone in occupation_par_zone:
             total = zone['total_caveaux'] or 0
             zone['taux'] = round((zone['caveaux_occupes'] / total * 100), 1) if total > 0 else 0
@@ -338,40 +419,30 @@ def dashboard_admin(request):
             zone['occupes'] = zone['caveaux_occupes'] or 0
             
         # 7. AUDIT
-        actions_recentes = DemandeReservation.objects.filter(statut__in=[DemandeReservation.Statut.VALIDEE, DemandeReservation.Statut.REFUSEE]).select_related('client', 'caveau', 'traite_par').order_by('-date_modification')[:10]
+        actions_recentes = list(DemandeReservation.objects.filter(
+            statut__in=['VALIDEE', 'REFUSEE']
+        ).select_related('client', 'caveau', 'traite_par').order_by('-date_modification')[:10])
         
     except Exception as e:
-        print(f"[DASHBOARD] Erreur générale: {e}")
-        # Fallback minimal en cas d'erreur DB
-        stats_caveaux = {'total': 0, 'disponibles': 0, 'reserves': 0, 'occupes': 0, 'non_exploitables': 0}
-        taux_occupation = 0
-        reservations_qs = []
-        revenus_par_mode = []
-        paiements_recents = []
-        revenus_mensuels = []
-        factures_stats = {'total': 0, 'impayees': 0, 'payees': 0}
-        factures_recents = []
-        total_users = admins_count = 0
-        occupation_par_zone = []
-        actions_recentes = []
+        print(f"[DASHBOARD] Erreur générale (ignorée pour fallback sécurisé) : {e}")
 
     context = {
-        'total_caveaux': stats_caveaux['total'],
-        'caveaux_disponibles': stats_caveaux['disponibles'],
-        'caveaux_reserves': stats_caveaux['reserves'],
-        'caveaux_occupes': stats_caveaux['occupes'],
-        'caveaux_non_exploitables': stats_caveaux['non_exploitables'],
+        'total_caveaux': total_caveaux,
+        'caveaux_disponibles': stats_caveaux['disponibles'] if 'disponibles' in stats_caveaux else 0,
+        'caveaux_reserves': stats_caveaux['reserves'] if 'reserves' in stats_caveaux else 0,
+        'caveaux_occupes': stats_caveaux['occupes'] if 'occupes' in stats_caveaux else 0,
+        'caveaux_non_exploitables': stats_caveaux['non_exploitables'] if 'non_exploitables' in stats_caveaux else 0,
         'total_zones': Zone.objects.count(),
         'taux_occupation': taux_occupation,
-        'reservations_en_attente': reservations_qs[:10],
-        'total_reservations_attente': reservations_qs.count() if hasattr(reservations_qs, 'count') else 0,
-        'revenus_totaux': revenus_agg['total'] or 0,
+        'reservations_en_attente': reservations_en_attente,
+        'total_reservations_attente': total_reservations_attente,
+        'revenus_totaux': revenus_totaux,
         'revenus_par_mode': revenus_par_mode,
         'paiements_recents': paiements_recents,
         'revenus_mensuels': revenus_mensuels,
-        'total_factures': factures_stats['total'],
-        'factures_impayees': factures_stats['impayees'],
-        'factures_payees': factures_stats['payees'],
+        'total_factures': total_factures,
+        'factures_impayees': factures_impayees,
+        'factures_payees': factures_payees,
         'factures_recents': factures_recents,
         'total_users': total_users,
         'admins_count': admins_count,
