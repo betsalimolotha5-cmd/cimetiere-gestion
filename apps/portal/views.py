@@ -46,7 +46,7 @@ def carte_publique(request):
 
 def api_carte_publique(request):
     """
-    API JSON qui renvoie les données de la carte + le périmètre dynamique du cimetière.
+    API JSON qui renvoie les données de la carte + les périmètres dynamiques de TOUS les cimetières.
     Gère le code couleur dynamique selon le CDC.
     """
     # Récupérer les IDs des caveaux avec demande EN_ATTENTE → ORANGE
@@ -106,41 +106,64 @@ def api_carte_publique(request):
         })
 
     # ============================================
-    # ⭐ Récupération dynamique du périmètre et du centre (Anti-Océan Renforcé)
+    # ⭐ Récupération dynamique de TOUS les périmètres des cimetières (Avec Fallback Intelligent)
     # ============================================
     # Valeur par défaut FORCÉE : Pointe-Noire [Lat, Lng]
     centre_data = [-4.7692, 11.8644] 
-    perimetre_data = []
+    perimetres_data = []  # Liste pour supporter MULTIPLES cimetières
+    centre_est_defini = False
     
     try:
-        parametres = ParametreCimetiere.objects.first()
-        if parametres:
-            # 1. Centre : On l'utilise SEULEMENT si les coordonnées sont significatives (> 0.1)
-            # Cela élimine définitivement le point (0,0) de l'océan.
-            if hasattr(parametres, 'coordonnees_centre') and parametres.coordonnees_centre:
-                if abs(parametres.coordonnees_centre.x) > 0.1 and abs(parametres.coordonnees_centre.y) > 0.1:
-                    centre_data = [parametres.coordonnees_centre.y, parametres.coordonnees_centre.x]
-                    print(f"✅ [API CARTE] Centre chargé depuis BDD : {centre_data}")
-                else:
-                    print(f"⚠️ [API CARTE] Centre BDD invalide (proche de 0,0). Force Pointe-Noire : {centre_data}")
+        # On parcourt TOUS les cimetières enregistrés en base
+        for param in ParametreCimetiere.objects.all():
+            # 1. Centre : On utilise le premier centre valide trouvé comme centre principal de la carte
+            if not centre_est_defini and hasattr(param, 'coordonnees_centre') and param.coordonnees_centre:
+                if abs(param.coordonnees_centre.x) > 0.1 and abs(param.coordonnees_centre.y) > 0.1:
+                    centre_data = [param.coordonnees_centre.y, param.coordonnees_centre.x]
+                    centre_est_defini = True
+                    print(f"✅ [API CARTE] Centre principal défini par '{param.nom}' : {centre_data}")
             
-            # 2. Périmètre : On l'utilise SEULEMENT si la longitude du premier point est significative
-            if hasattr(parametres, 'perimetre') and parametres.perimetre:
-                coords = parametres.perimetre.coords[0]
-                if abs(coords[0][0]) > 0.1:
-                    perimetre_data = [[coord[1], coord[0]] for coord in coords]
-                    print(f"✅ [API CARTE] Périmètre chargé depuis BDD : {len(perimetre_data)} points")
-                else:
-                    print("⚠️ [API CARTE] Périmètre BDD invalide (proche de 0,0). Ignoré.")
+            # 2. Périmètre : On essaie d'abord le champ 'perimetre' s'il existe dans le modèle
+            if hasattr(param, 'perimetre') and param.perimetre:
+                coords = param.perimetre.coords[0]
+                if abs(coords[0][0]) > 0.1:  # Vérification anti-océan
+                    polygone_coords = [[coord[1], coord[0]] for coord in coords]
+                    perimetres_data.append({
+                        'nom': param.nom,
+                        'coords': polygone_coords
+                    })
+                    print(f"✅ [API CARTE] Périmètre réel ajouté pour '{param.nom}' : {len(polygone_coords)} points")
+            
+            # 3. FALLBACK INTELLIGENT : Si pas de champ 'perimetre', on génère une zone approximative autour du centre
+            elif hasattr(param, 'coordonnees_centre') and param.coordonnees_centre and abs(param.coordonnees_centre.x) > 0.1:
+                lat = param.coordonnees_centre.y
+                lng = param.coordonnees_centre.x
+                
+                # Approximation : 0.001 degré ≈ 111 mètres. On crée un carré d'environ 220m x 220m autour du centre.
+                offset = 0.001  
+                
+                polygone_coords = [
+                    [lat + offset, lng - offset], # Nord-Ouest
+                    [lat + offset, lng + offset], # Nord-Est
+                    [lat - offset, lng + offset], # Sud-Est
+                    [lat - offset, lng - offset], # Sud-Ouest
+                    [lat + offset, lng - offset]  # Fermeture du polygone
+                ]
+                perimetres_data.append({
+                    'nom': f"{param.nom} (Zone centrale)",
+                    'coords': polygone_coords
+                })
+                print(f"⚠️ [API CARTE] Champ 'perimetre' absent pour '{param.nom}'. Génération d'une délimitation approximative autour du centre.")
+                    
     except Exception as e:
         print(f"❌ [API CARTE] Erreur critique chargement BDD : {e}. Utilisation des valeurs par défaut.")
 
-    print(f"🚀 [API CARTE] Données finales envoyées au frontend -> Centre: {centre_data}, Périmètre: {len(perimetre_data)} points")
+    print(f"🚀 [API CARTE] Données finales -> Centre: {centre_data}, Cimetières délimités: {len(perimetres_data)}")
 
     return JsonResponse({
         'caveaux': caveaux_data,
         'centre': centre_data,
-        'perimetre': perimetre_data
+        'perimetres': perimetres_data
     }, safe=False)
 
 
