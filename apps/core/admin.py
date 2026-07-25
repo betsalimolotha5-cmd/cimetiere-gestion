@@ -1,7 +1,6 @@
 """
 Administration Django pour l'application core (cimetière).
-Conforme au CDC : gestion des zones, caveaux, concessions.
-VERSION SÉCURISÉE : Sans widgets de carte personnalisés pour éviter les erreurs 500.
+CORRECTION DÉFINITIVE : Suppression du champ 'perimetre' qui n'existe pas dans le modèle ParametreCimetiere.
 """
 from django.contrib import admin, messages
 from django import forms
@@ -13,7 +12,7 @@ from .models import (
 
 
 # ==============================================================================
-# ADMIN : CAVEAU (VERSION SÉCURISÉE)
+# ADMIN : CAVEAU
 # ==============================================================================
 @admin.register(Caveau)
 class CaveauAdmin(admin.ModelAdmin):
@@ -53,7 +52,7 @@ class CaveauAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : ZONE (VERSION SÉCURISÉE)
+# ADMIN : ZONE
 # ==============================================================================
 @admin.register(Zone)
 class ZoneAdmin(admin.ModelAdmin):
@@ -129,22 +128,17 @@ class InhumationAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : PARAMÈTRES DU CIMETIÈRE (VERSION SÉCURISÉE - SANS WIDGET CARTE)
+# ADMIN : PARAMÈTRES DU CIMETIÈRE (CORRIGÉ DÉFINITIVEMENT)
 # ==============================================================================
 @admin.register(ParametreCimetiere)
 class ParametreCimetiereAdmin(admin.ModelAdmin):
     list_display = ('nom', 'superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau')
     
-    # ⚠️ IMPORTANT : Aucun formfield_overrides avec OSMWidget pour éviter le crash 500
-    # Les champs GPS utiliseront les widgets Django par défaut (champ texte)
-    
+    # CORRECTION : Nous n'incluons QUE les champs qui existent réellement dans le modèle.
+    # Le champ 'perimetre' a été supprimé car il n'existe pas dans models.py (seul 'coordonnees_centre' existe).
     fieldsets = (
         ('Informations générales', {
             'fields': ('nom', 'adresse', 'coordonnees_centre')
-        }),
-        ('Périmètre du cimetière', {
-            'fields': ('perimetre',),
-            'description': 'Définissez les limites exactes du cimetière (format WKT ou GeoJSON).'
         }),
         ('Dimensions', {
             'fields': ('superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau', 'largeur_allee')
