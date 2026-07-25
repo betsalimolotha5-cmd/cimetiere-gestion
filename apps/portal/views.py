@@ -1,7 +1,9 @@
 """
 Vues du portail client (Carte publique + Réservations + Factures + Paiements + Dashboards).
 Conforme au CDC : workflow complet de réservation → facturation → paiement + carte dynamique + RBAC.
+AJOUT : Calcul dynamique du périmètre basé sur la superficie_totale configurée.
 """
+import math
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -106,7 +108,7 @@ def api_carte_publique(request):
         })
 
     # ============================================
-    # ⭐ Récupération dynamique de TOUS les périmètres des cimetières (Avec Fallback Intelligent)
+    # ⭐ Récupération et CALCUL DYNAMIQUE des périmètres basés sur la superficie
     # ============================================
     # Valeur par défaut FORCÉE : Pointe-Noire [Lat, Lng]
     centre_data = [-4.7692, 11.8644] 
@@ -123,8 +125,8 @@ def api_carte_publique(request):
                     centre_est_defini = True
                     print(f"✅ [API CARTE] Centre principal défini par '{param.nom}' : {centre_data}")
             
-            # 2. Périmètre : On essaie d'abord le champ 'perimetre' s'il existe dans le modèle
-            if hasattr(param, 'perimetre') and param.perimetre:
+            # 2. Périmètre manuel : On utilise le champ 'perimetre' s'il a été dessiné manuellement
+            if hasattr(param, 'perimetre') and param.perimetre and param.perimetre.coords:
                 coords = param.perimetre.coords[0]
                 if abs(coords[0][0]) > 0.1:  # Vérification anti-océan
                     polygone_coords = [[coord[1], coord[0]] for coord in coords]
@@ -132,28 +134,40 @@ def api_carte_publique(request):
                         'nom': param.nom,
                         'coords': polygone_coords
                     })
-                    print(f"✅ [API CARTE] Périmètre réel ajouté pour '{param.nom}' : {len(polygone_coords)} points")
+                    print(f"✅ [API CARTE] Périmètre manuel ajouté pour '{param.nom}' : {len(polygone_coords)} points")
             
-            # 3. FALLBACK INTELLIGENT : Si pas de champ 'perimetre', on génère une zone approximative autour du centre
-            elif hasattr(param, 'coordonnees_centre') and param.coordonnees_centre and abs(param.coordonnees_centre.x) > 0.1:
-                lat = param.coordonnees_centre.y
-                lng = param.coordonnees_centre.x
-                
-                # Approximation : 0.001 degré ≈ 111 mètres. On crée un carré d'environ 220m x 220m autour du centre.
-                offset = 0.001  
-                
-                polygone_coords = [
-                    [lat + offset, lng - offset], # Nord-Ouest
-                    [lat + offset, lng + offset], # Nord-Est
-                    [lat - offset, lng + offset], # Sud-Est
-                    [lat - offset, lng - offset], # Sud-Ouest
-                    [lat + offset, lng - offset]  # Fermeture du polygone
-                ]
-                perimetres_data.append({
-                    'nom': f"{param.nom} (Zone centrale)",
-                    'coords': polygone_coords
-                })
-                print(f"⚠️ [API CARTE] Champ 'perimetre' absent pour '{param.nom}'. Génération d'une délimitation approximative autour du centre.")
+            # 3. CALCUL DYNAMIQUE : Si pas de périmètre dessiné, on le calcule à partir de la superficie et du centre
+            elif hasattr(param, 'coordonnees_centre') and param.coordonnees_centre and hasattr(param, 'superficie_totale') and float(param.superficie_totale) > 0:
+                if abs(param.coordonnees_centre.x) > 0.1:
+                    lat = float(param.coordonnees_centre.y)
+                    lng = float(param.coordonnees_centre.x)
+                    superficie = float(param.superficie_totale)
+                    
+                    # Calcul du côté du carré en mètres (Surface = côté²)
+                    cote_metres = math.sqrt(superficie)
+                    demi_cote = cote_metres / 2.0
+                    
+                    # Conversion mètres -> degrés géographiques
+                    # 1 degré de latitude ≈ 111,111 mètres (partout sur Terre)
+                    offset_lat = demi_cote / 111111.0
+                    
+                    # 1 degré de longitude ≈ 111,111 * cos(latitude) mètres
+                    offset_lng = demi_cote / (111111.0 * math.cos(math.radians(lat)))
+                    
+                    # Construction du polygone (Nord-Ouest, Nord-Est, Sud-Est, Sud-Ouest, fermeture)
+                    polygone_coords = [
+                        [lat + offset_lat, lng - offset_lng], # Nord-Ouest
+                        [lat + offset_lat, lng + offset_lng], # Nord-Est
+                        [lat - offset_lat, lng + offset_lng], # Sud-Est
+                        [lat - offset_lat, lng - offset_lng], # Sud-Ouest
+                        [lat + offset_lat, lng - offset_lng]  # Fermeture du polygone
+                    ]
+                    
+                    perimetres_data.append({
+                        'nom': f"{param.nom} (Délimitation auto: {superficie}m²)",
+                        'coords': polygone_coords
+                    })
+                    print(f"⚠️ [API CARTE] Périmètre calculé dynamiquement pour '{param.nom}' (Superficie: {superficie}m², Côté: {cote_metres:.1f}m)")
                     
     except Exception as e:
         print(f"❌ [API CARTE] Erreur critique chargement BDD : {e}. Utilisation des valeurs par défaut.")
