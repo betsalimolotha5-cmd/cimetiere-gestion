@@ -1,6 +1,6 @@
 """
 Administration Django pour l'application core (cimetière).
-CORRIGÉ : Correction de la faute de frappe CIMETIERE_LNG -> CIMETIERE_CENTRE_LNG
+CORRIGÉ : Ajout de la gestion des documents (procès-verbaux, autorisations, photos, contrats).
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -83,7 +83,7 @@ class ZoneAdmin(admin.ModelAdmin):
         gis_models.PointField: {
             'widget': OSMWidget(attrs={
                 'default_lat': CIMETIERE_CENTRE_LAT,
-                'default_lon': CIMETIERE_CENTRE_LNG,  # <-- CORRIGÉ ICI
+                'default_lon': CIMETIERE_CENTRE_LNG,
                 'default_zoom': CIMETIERE_ZOOM_DEFAULT,
             })
         },
@@ -98,13 +98,33 @@ class ZoneAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : DÉFUNT
+# ADMIN : DÉFUNT (AVEC PHOTO)
 # ==============================================================================
 @admin.register(Defunt)
 class DefuntAdmin(admin.ModelAdmin):
     list_display = ('nom', 'prenom', 'date_deces', 'sexe', 'age_au_deces')
     list_filter = ('sexe', 'date_deces')
     search_fields = ('nom', 'prenom', 'numero_identite')
+    
+    fieldsets = (
+        ('Informations personnelles', {
+            'fields': ('nom', 'prenom', 'date_naissance', 'sexe', 'nationalite')
+        }),
+        ('Décès', {
+            'fields': ('date_deces', 'lieu_deces', 'numero_acte_deces')
+        }),
+        ('Famille', {
+            'fields': ('nom_pere', 'nom_mere')
+        }),
+        ('Documents', {
+            'fields': ('photo', 'numero_identite'),
+            'description': '📸 Photo du défunt et numéro d\'identité'
+        }),
+        ('Notes', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+    )
     
     @admin.display(description='Âge au décès')
     def age_au_deces(self, obj):
@@ -116,7 +136,7 @@ class DefuntAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : CONCESSION
+# ADMIN : CONCESSION (AVEC DOCUMENT DU CONTRAT)
 # ==============================================================================
 @admin.register(Concession)
 class ConcessionAdmin(admin.ModelAdmin):
@@ -124,6 +144,26 @@ class ConcessionAdmin(admin.ModelAdmin):
     list_filter = ('type_concession', 'statut', 'date_debut')
     search_fields = ('numero_contrat', 'concessionnaire__email', 'caveau__code')
     readonly_fields = ('date_signature', 'date_creation', 'date_modification')
+    
+    fieldsets = (
+        ('Informations générales', {
+            'fields': ('numero_contrat', 'concessionnaire', 'caveau', 'defunt', 'type_concession', 'duree_annees')
+        }),
+        ('Dates', {
+            'fields': ('date_debut', 'date_fin', 'date_signature', 'statut')
+        }),
+        ('Finances', {
+            'fields': ('montant_total', 'montant_paye')
+        }),
+        ('Documents', {
+            'fields': ('document_contrat',),
+            'description': '📄 Document officiel du contrat de concession'
+        }),
+        ('Métadonnées', {
+            'fields': ('cree_par', 'notes', 'date_creation', 'date_modification'),
+            'classes': ('collapse',)
+        }),
+    )
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
@@ -188,7 +228,7 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : DEMANDE D'EXHUMATION
+# ADMIN : DEMANDE D'EXHUMATION (AVEC DOCUMENTS)
 # ==============================================================================
 @admin.register(DemandeExhumation)
 class DemandeExhumationAdmin(admin.ModelAdmin):
@@ -198,11 +238,26 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
     readonly_fields = ('date_demande', 'date_validation', 'date_realisation', 'date_modification')
     
     fieldsets = (
-        ('Informations de la demande', {'fields': ('inhumation', 'demandeur', 'statut')}),
-        ('Demandeur', {'fields': ('nom_demandeur', 'lien_parente', 'telephone_demandeur')}),
-        ('Détails', {'fields': ('motif', 'destination')}),
-        ('Traitement', {'fields': ('date_demande', 'date_validation', 'date_realisation', 'valide_par', 'motif_refus')}),
-        ('Notes', {'fields': ('notes',), 'classes': ('collapse',)}),
+        ('Informations de la demande', {
+            'fields': ('inhumation', 'demandeur', 'statut')
+        }),
+        ('Demandeur', {
+            'fields': ('nom_demandeur', 'lien_parente', 'telephone_demandeur')
+        }),
+        ('Détails', {
+            'fields': ('motif', 'destination')
+        }),
+        ('Documents officiels', {
+            'fields': ('autorisation_mairie', 'proces_verbal'),
+            'description': '📄 Téléchargez ici les documents officiels (autorisation de la mairie, procès-verbal d\'exhumation)'
+        }),
+        ('Traitement', {
+            'fields': ('date_demande', 'date_validation', 'date_realisation', 'valide_par', 'motif_refus')
+        }),
+        ('Notes', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
     )
     
     actions = ['valider_demandes', 'refuser_demandes']
