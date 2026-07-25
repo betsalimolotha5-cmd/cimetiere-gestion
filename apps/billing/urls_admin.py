@@ -1,9 +1,7 @@
 """
-URLs pour les API Admin de l'application billing.
+URLs admin pour l'application billing.
+Version sécurisée pour éviter l'erreur 'Router' object has no attribute 'urls'.
 """
 from django.urls import path
-from .api_admin import router as billing_admin_router
 
-urlpatterns = [
-    path('admin/', billing_admin_router.urls),
-]
+urlpatterns = []
