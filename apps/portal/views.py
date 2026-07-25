@@ -1,7 +1,7 @@
 """
 Vues du portail client (Carte publique + Réservations + Factures + Paiements + Dashboards).
 Conforme au CDC : workflow complet de réservation → facturation → paiement + carte dynamique + RBAC.
-AJOUT : Calcul dynamique du périmètre basé sur la superficie_totale configurée.
+AJOUT : Calcul dynamique du périmètre basé sur la superficie_totale configurée + Dashboard Agent enrichi.
 """
 import math
 from django.shortcuts import render, redirect, get_object_or_404
@@ -15,7 +15,7 @@ from django.db.models import Sum, Count, Q, F
 from django.core.cache import cache
 
 from .models import DemandeReservation
-from apps.core.models import Caveau, Zone, ParametreCimetiere
+from apps.core.models import Caveau, Zone, ParametreCimetiere, DemandeExhumation
 from apps.billing.models import Facture, Paiement
 from apps.accounts.models import User
 
@@ -359,18 +359,26 @@ def dashboard_agent(request):
         total_reservations_attente = DemandeReservation.objects.filter(
             statut='EN_ATTENTE'
         ).count()
+        
+        # ⭐ NOUVEAU : Compteur d'exhumations en attente pour le dashboard
+        exhumations_en_attente = DemandeExhumation.objects.filter(
+            statut='EN_ATTENTE'
+        ).count()
+        
     except Exception as e:
         print(f"[DASHBOARD AGENT] Erreur: {e}")
         caveaux_disponibles = 0
         total_zones = 0
         total_reservations_attente = 0
         reservations_en_attente = []
+        exhumations_en_attente = 0
 
     context = {
         'caveaux_disponibles': caveaux_disponibles,
         'total_zones': total_zones,
         'reservations_en_attente': reservations_en_attente,
         'total_reservations_attente': total_reservations_attente,
+        'exhumations_en_attente': exhumations_en_attente,
     }
     
     return render(request, 'portal/dashboard_agent.html', context)
