@@ -14,8 +14,8 @@ from apps.core import views as core_views
 
 
 def redirect_to_portal(request):
-    """Redirige la racine vers le portail client."""
-    return redirect('/portal/')
+    """Redirige la racine vers la page de connexion."""
+    return redirect('/mfa/login/')
 
 
 def redirect_login_to_mfa(request):
@@ -37,7 +37,7 @@ urlpatterns = [
     
     path('admin/', admin.site.urls),
     
-    # ⭐ MFA : Doit être AVANT accounts pour prioriser les vues MFA
+    # ✨ MFA : Doit être AVANT accounts pour prioriser les vues MFA
     path('mfa/', include('apps.mfa.urls')),
     
     # Accounts : Redirige login vers MFA

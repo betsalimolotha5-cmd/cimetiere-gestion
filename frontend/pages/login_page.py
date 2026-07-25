@@ -22,7 +22,7 @@ from flet import (
     padding,
 )
 from frontend.api_client import api_client, APIError
-from frontend.theme import AppColors, AppSpacing, AppComponents, AppTypography
+from frontend.theme import AppColors, AppSpacing, AppTypography
 
 
 class LoginPage:
@@ -150,6 +150,29 @@ class LoginPage:
             ],
         )
     
+    def _get_redirect_route(self, role: str) -> str:
+        """
+        Détermine la route de redirection selon le rôle de l'utilisateur.
+        
+        Args:
+            role: Le rôle de l'utilisateur (ADMIN, FIELD_AGENT, SECRETARY, CLIENT)
+        
+        Returns:
+            str: La route vers laquelle rediriger
+        """
+        # Mapping des rôles vers les routes
+        # Les administrateurs et secrétaires vont sur le dashboard pour voir toutes les stats
+        # Les agents de terrain et clients vont sur la carte pour voir les caveaux
+        role_routes = {
+            'ADMIN': '/dashboard',
+            'FIELD_AGENT': '/carte',
+            'SECRETARY': '/dashboard',
+            'CLIENT': '/carte',
+        }
+        
+        # Retourner la route correspondante ou /dashboard par défaut
+        return role_routes.get(role, '/dashboard')
+    
     def _on_login(self, e):
         """Gère la tentative de connexion."""
         email = self.email_field.value
@@ -188,7 +211,11 @@ class LoginPage:
                 self.app_state.set_user(profile)
                 self.app_state.token = token
                 
-                self.page.route = "/dashboard"
+                # REDIRECTION INTELLIGENTE SELON LE ROLE
+                user_role = profile.get('role', 'CLIENT')
+                redirect_route = self._get_redirect_route(user_role)
+                
+                self.page.route = redirect_route
                 self.page.update()
         
         except APIError as e:
