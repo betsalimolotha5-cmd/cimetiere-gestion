@@ -1,7 +1,9 @@
 """
 Vues pour l'authentification à double facteur (MFA) par email.
-Conforme au CDC : robuste, sans crash (pas d'erreur 500), avec fallback de démo.
-Optimisé pour Render (utilise l'API HTTPS Port 443, non bloqué).
+Conforme au CDC : robuste, sans crash, avec fallback de démo.
+CORRECTION DÉFINITIVE : 
+  1. Gestion blindée du backend d'authentification pour éviter les redirections vers /login
+  2. Ajout du rôle "Secrétaire" dans la logique de redirection
 """
 import requests
 from django.shortcuts import render, redirect
@@ -24,16 +26,14 @@ def send_mfa_email_via_api(user, code):
     """Envoie le code MFA via l'API HTTPS de Brevo (Port 443)."""
     print(f"📧 [MFA] Tentative d'envoi du code {code} à {user.email}")
     
-    # Lecture directe et sécurisée
-    api_key = settings.BREVO_API_KEY
-    from_email = settings.DEFAULT_FROM_EMAIL
+    api_key = getattr(settings, 'BREVO_API_KEY', '')
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
     
     if not api_key or not api_key.startswith('xkeysib-'):
-        print("❌ [MFA] ERREUR : La clé API est invalide ou manquante dans Render.")
+        print("❌ [MFA] ERREUR : La clé API est invalide ou manquante.")
         return False
 
     url = "https://api.brevo.com/v3/smtp/email"
-    
     headers = {
         "accept": "application/json",
         "api-key": api_key,
@@ -56,12 +56,9 @@ def send_mfa_email_via_api(user, code):
     }
     
     try:
-        # Timeout de 15s pour éviter les blocages Render
         response = requests.post(url, json=payload, headers=headers, timeout=15)
-        
         print(f"📬 [MFA] Réponse HTTP Brevo : {response.status_code}")
         
-        # Si Brevo rejette, on affiche la raison exacte (ex: "sender not verified", "sandbox mode")
         if response.status_code not in [200, 201]:
             print(f"❌ [MFA] DÉTAILS DU REJET BREVO : {response.text}")
             return False
@@ -95,27 +92,24 @@ def login_view(request):
         user = authenticate(request, username=user_obj.email, password=password)
         
         if user is not None:
-            # 1. Générer le code MFA
+            # ⭐ CORRECTION BLINDÉE : Récupérer le backend avec une valeur par défaut sécurisée
+            backend = getattr(user, 'backend', 'django.contrib.auth.backends.ModelBackend')
+            
+            request.session['mfa_user_id'] = user.id
+            request.session['mfa_email'] = user.email
+            request.session['mfa_auth_backend'] = backend  # Sauvegarde robuste
+            
             ip_address = get_client_ip(request)
             code_obj = MFACode.generer_code(user, ip_address=ip_address)
             
-            # 2. Stocker en session (y compris le backend d'authentification pour le login final)
-            request.session['mfa_user_id'] = user.id
-            request.session['mfa_email'] = user.email
-            request.session['_auth_user_backend'] = user.backend
-            
-            # 3. Tenter d'envoyer l'email via API HTTPS (Port 443)
             email_sent = send_mfa_email_via_api(user, code_obj.code)
             
-            # 4. GESTION ROBUSTE : Succès OU Fallback pour la démo
             if email_sent:
                 messages.success(request, f'✅ Un code de vérification a été envoyé à {user.email}.')
             else:
-                # ⭐ FALLBACK : Si l'email est bloqué par les filtres spam, on affiche le code à l'écran
                 messages.warning(
                     request, 
-                    f'⚠️ Restriction de l\'hébergeur gratuit : l\'email a été filtré. '
-                    f'Utilisez ce code de secours pour la démo : {code_obj.code}'
+                    f'⚠️ Restriction de l\'hébergeur : l\'email a été filtré. Code de secours : {code_obj.code}'
                 )
             
             return redirect('mfa_verification')
@@ -152,30 +146,32 @@ def verification_view(request):
                 code_obj.utilise = True
                 code_obj.save()
                 
-                # ⭐ CORRECTION CRUCIALE : Restaurer le backend d'authentification
-                backend = request.session.get('_auth_user_backend')
-                if backend:
-                    user.backend = backend
+                # ⭐ CORRECTION BLINDÉE : Restaurer le backend AVANT login() avec fallback
+                auth_backend = request.session.get('mfa_auth_backend', 'django.contrib.auth.backends.ModelBackend')
+                user.backend = auth_backend
                 
                 # Connexion effective de l'utilisateur
                 login(request, user)
                 
                 # Nettoyage de la session MFA
-                for key in ['mfa_user_id', 'mfa_email', '_auth_user_backend']:
+                for key in ['mfa_user_id', 'mfa_email', 'mfa_auth_backend']:
                     if key in request.session:
                         del request.session[key]
                 
                 messages.success(request, f'Bienvenue {user.get_full_name() or user.email} !')
                 
-                # ⭐ REDIRECTION INTELLIGENTE SELON LE RÔLE
+                # ⭐ REDIRECTION INTELLIGENTE SELON LE RÔLE (CORRECTION : Ajout du rôle Secrétaire)
                 if user.is_staff:
                     return redirect('dashboard_admin')
                 
                 # Vérification du rôle Agent
                 user_groups = user.groups.values_list('name', flat=True)
-                is_agent = 'Agents' in user_groups or 'Agent' in user_groups
-                if is_agent:
+                if 'Agents' in user_groups or 'Agent' in user_groups:
                     return redirect('dashboard_agent')
+                
+                # Vérification du rôle Secrétaire
+                if 'Secretaires' in user_groups or 'Secrétaire' in user_groups:
+                    return redirect('dashboard_secretary')  # Ajout du rôle Secrétaire
                 
                 # Par défaut : Client -> Carte publique
                 return redirect('carte_publique')
@@ -202,17 +198,12 @@ def resend_code_view(request):
         ip_address = get_client_ip(request)
         code_obj = MFACode.generer_code(user, ip_address=ip_address)
         
-        # Tenter d'envoyer le nouveau code
         email_sent = send_mfa_email_via_api(user, code_obj.code)
         
         if email_sent:
             messages.success(request, 'Un nouveau code a été envoyé par email.')
         else:
-            # ⭐ FALLBACK pour le renvoi également
-            messages.warning(
-                request, 
-                f'⚠️ Restriction hébergeur. Code de secours : {code_obj.code}'
-            )
+            messages.warning(request, f'⚠️ Restriction hébergeur. Code de secours : {code_obj.code}')
             
     except User.DoesNotExist:
         messages.error(request, 'Erreur. Veuillez vous reconnecter.')
@@ -233,7 +224,6 @@ def register_view(request):
         password = request.POST.get('password', '')
         password_confirm = request.POST.get('password_confirm', '')
         
-        # Validations
         erreurs = []
         if not email:
             erreurs.append("L'email est obligatoire.")
@@ -254,12 +244,9 @@ def register_view(request):
             for e in erreurs:
                 messages.error(request, e)
             return render(request, 'mfa/register.html', {
-                'email': email,
-                'first_name': first_name,
-                'last_name': last_name,
+                'email': email, 'first_name': first_name, 'last_name': last_name,
             })
         
-        # Création du compte
         try:
             user = User.objects.create_user(
                 email=email,
@@ -270,10 +257,7 @@ def register_view(request):
             user.is_active = True
             user.save()
             
-            messages.success(
-                request, 
-                f'✅ Compte créé avec succès ! Vous pouvez maintenant vous connecter avec {email}.'
-            )
+            messages.success(request, f'✅ Compte créé avec succès ! Connectez-vous avec {email}.')
             return redirect('login')
         except Exception as e:
             messages.error(request, f'Erreur lors de la création du compte : {e}')
