@@ -12,6 +12,7 @@ from .notifications_page import NotificationsPage
 from .profile_page import ProfilePage
 from .reports_page import ReportsPage
 from .import_export_page import ImportExportPage
+from .admin_dashboard_page import AdminDashboardPage
 
 __all__ = [
     'LoginPage',
@@ -25,4 +26,5 @@ __all__ = [
     'ProfilePage',
     'ReportsPage',
     'ImportExportPage',
+    'AdminDashboardPage',
 ]

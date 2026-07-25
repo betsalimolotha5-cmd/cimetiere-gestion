@@ -126,7 +126,7 @@ class MFAPage:
                                         self.resend_button,
                                         
                                         Text(
-                                            "💡 Vérifiez vos emails (y compris les spams)",
+                                            "📧 Vérifiez vos emails (y compris les spams)",
                                             size=12,
                                             color=AppColors.TEXT_SECONDARY,
                                             text_align=TextAlign.CENTER,
@@ -157,6 +157,29 @@ class MFAPage:
                 ),
             ],
         )
+    
+    def _get_redirect_route(self, role: str) -> str:
+        """
+        Détermine la route de redirection selon le rôle de l'utilisateur.
+        
+        Args:
+            role: Le rôle de l'utilisateur (ADMIN, FIELD_AGENT, SECRETARY, CLIENT)
+        
+        Returns:
+            str: La route vers laquelle rediriger
+        """
+        # Mapping des rôles vers les routes
+        # Les administrateurs et secrétaires vont sur le dashboard pour voir toutes les stats
+        # Les agents de terrain et clients vont sur la carte pour voir les caveaux
+        role_routes = {
+            'ADMIN': '/dashboard',
+            'FIELD_AGENT': '/carte',
+            'SECRETARY': '/dashboard',
+            'CLIENT': '/carte',
+        }
+        
+        # Retourner la route correspondante ou /dashboard par défaut
+        return role_routes.get(role, '/dashboard')
     
     def _on_verify(self, e):
         """Vérifie le code MFA saisi."""
@@ -203,14 +226,20 @@ class MFAPage:
             if hasattr(self.app_state, 'temp_user_email'):
                 delattr(self.app_state, 'temp_user_email')
             
-            self.page.route = "/dashboard"
-            self.page.update()
-        
+            # REDIRECTION INTELLIGENTE SELON LE ROLE
+            user_role = profile.get('role', 'CLIENT')
+            redirect_route = self._get_redirect_route(user_role)
+            
+            # Utiliser page.go() pour naviguer effectivement
+            self.page.go(redirect_route)
+            
         except APIError as e:
             self.error_text.value = f"Code incorrect : {e.message}"
+            self.verify_button.disabled = False
+            self.loading.visible = False
+            self.page.update()
         except Exception as e:
             self.error_text.value = f"Erreur : {str(e)}"
-        finally:
             self.verify_button.disabled = False
             self.loading.visible = False
             self.page.update()

@@ -1,5 +1,5 @@
 """
-Point d'entrée principal de l'application Flet.
+Point d'entree principal de l'application Flet.
 """
 import flet as ft
 from flet import Page, View, Theme, ThemeMode, Colors
@@ -13,7 +13,8 @@ from frontend.theme import get_app_theme, AppColors
 
 
 class AppState:
-    """État global de l'application."""
+    """
+Etat global de l'application."""
     
     def __init__(self):
         self.user = None
@@ -42,7 +43,7 @@ app_state = AppState()
 def main(page: Page):
     """Fonction principale de l'application Flet."""
     
-    page.title = "Gestion Cimetière"
+    page.title = "Gestion Cimetiere"
     page.theme_mode = ThemeMode.LIGHT
     page.padding = 0
     page.spacing = 0
@@ -51,13 +52,15 @@ def main(page: Page):
     from frontend.pages import (
         LoginPage, MFAPage, DashboardPage, CartePage,
         ReservationsPage, ConcessionsPage, FacturesPage,
-        NotificationsPage, ProfilePage, ReportsPage, ImportExportPage
+        NotificationsPage, ProfilePage, ReportsPage, ImportExportPage,
+        AdminDashboardPage
     )
     
     pages = {
         '/login': LoginPage(page, app_state),
         '/mfa': MFAPage(page, app_state),
         '/dashboard': DashboardPage(page, app_state),
+        '/admin': AdminDashboardPage(page, app_state),
         '/carte': CartePage(page, app_state),
         '/reservations': ReservationsPage(page, app_state),
         '/concessions': ConcessionsPage(page, app_state),

@@ -14,8 +14,8 @@ from apps.core import views as core_views
 
 
 def redirect_to_portal(request):
-    """Redirige la racine vers le portail client."""
-    return redirect('/portal/')
+    """Redirige la racine vers la page de connexion."""
+    return redirect('/mfa/login/')
 
 
 def redirect_login_to_mfa(request):
@@ -37,12 +37,17 @@ urlpatterns = [
     
     path('admin/', admin.site.urls),
     
-    # ⭐ MFA : Doit être AVANT accounts pour prioriser les vues MFA
+    # ✨ MFA : Doit être AVANT accounts pour prioriser les vues MFA
     path('mfa/', include('apps.mfa.urls')),
     
     # Accounts : Redirige login vers MFA
     path('accounts/login/', redirect_login_to_mfa, name='accounts_login_redirect'),
     path('accounts/', include('apps.accounts.urls')),
+    
+    # API Admin (pour le frontend Flet)
+    path('api/v1/accounts/', include('apps.accounts.urls_admin')),
+    path('api/v1/billing/', include('apps.billing.urls_admin')),
+    path('api/v1/portal/', include('apps.portal.urls_admin')),
     
     path('portal/', include('apps.portal.urls')),
     path('cimetiere/', include('apps.core.urls')),

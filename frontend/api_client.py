@@ -352,6 +352,165 @@ class APIClient:
         result = self._make_request('GET', '/notifications/api/compter-non-lues/')
         return result.get('count', 0)
 
+    # === ADMIN API ===
+
+    def list_users(self) -> List[Dict[str, Any]]:
+        """Récupérer la liste des utilisateurs (admin)."""
+        return self._make_request('GET', '/api/v1/accounts/admin/users/')
+
+    def get_user(self, user_id: int) -> Dict[str, Any]:
+        """Récupérer un utilisateur spécifique (admin)."""
+        return self._make_request('GET', f'/api/v1/accounts/admin/users/{user_id}')
+
+    def create_user(self, **kwargs) -> Dict[str, Any]:
+        """Créer un nouvel utilisateur (admin)."""
+        return self._make_request('POST', '/api/v1/accounts/admin/users/', data=kwargs)
+
+    def update_user(self, user_id: int, **kwargs) -> Dict[str, Any]:
+        """Mettre à jour un utilisateur (admin)."""
+        return self._make_request('PUT', f'/api/v1/accounts/admin/users/{user_id}', data=kwargs)
+
+    def delete_user(self, user_id: int) -> Dict[str, Any]:
+        """Supprimer un utilisateur (admin)."""
+        return self._make_request('DELETE', f'/api/v1/accounts/admin/users/{user_id}')
+
+    def activate_user(self, user_id: int) -> Dict[str, Any]:
+        """Activer un utilisateur (admin)."""
+        return self._make_request('POST', f'/api/v1/accounts/admin/users/{user_id}/activate')
+
+    def deactivate_user(self, user_id: int) -> Dict[str, Any]:
+        """Désactiver un utilisateur (admin)."""
+        return self._make_request('POST', f'/api/v1/accounts/admin/users/{user_id}/deactivate')
+
+    def bulk_activate_users(self, user_ids: List[int]) -> Dict[str, Any]:
+        """Activer plusieurs utilisateurs (admin)."""
+        return self._make_request('POST', '/api/v1/accounts/admin/users/bulk-activate', data={'user_ids': user_ids})
+
+    def bulk_deactivate_users(self, user_ids: List[int]) -> Dict[str, Any]:
+        """Désactiver plusieurs utilisateurs (admin)."""
+        return self._make_request('POST', '/api/v1/accounts/admin/users/bulk-deactivate', data={'user_ids': user_ids})
+
+    # Factures
+    def list_factures(self) -> List[Dict[str, Any]]:
+        """Récupérer la liste des factures (admin)."""
+        return self._make_request('GET', '/api/v1/billing/admin/factures/')
+
+    def get_facture(self, facture_id: int) -> Dict[str, Any]:
+        """Récupérer une facture spécifique (admin)."""
+        return self._make_request('GET', f'/api/v1/billing/admin/factures/{facture_id}')
+
+    def create_facture(self, **kwargs) -> Dict[str, Any]:
+        """Créer une nouvelle facture (admin)."""
+        return self._make_request('POST', '/api/v1/billing/admin/factures/', data=kwargs)
+
+    def update_facture(self, facture_id: int, **kwargs) -> Dict[str, Any]:
+        """Mettre à jour une facture (admin)."""
+        return self._make_request('PUT', f'/api/v1/billing/admin/factures/{facture_id}', data=kwargs)
+
+    def valider_paiement_facture(self, facture_id: int) -> Dict[str, Any]:
+        """Valider le paiement d'une facture (admin)."""
+        return self._make_request('POST', f'/api/v1/billing/admin/factures/{facture_id}/valider-paiement')
+
+    def annuler_facture(self, facture_id: int, motif: str = "") -> Dict[str, Any]:
+        """Annuler une facture (admin)."""
+        return self._make_request('POST', f'/api/v1/billing/admin/factures/{facture_id}/annuler', data={'motif': motif})
+
+    # Paiements
+    def list_paiements(self) -> List[Dict[str, Any]]:
+        """Récupérer la liste des paiements (admin)."""
+        return self._make_request('GET', '/api/v1/billing/admin/paiements/')
+
+    def get_paiement(self, paiement_id: int) -> Dict[str, Any]:
+        """Récupérer un paiement spécifique (admin)."""
+        return self._make_request('GET', f'/api/v1/billing/admin/paiements/{paiement_id}')
+
+    def create_paiement(self, **kwargs) -> Dict[str, Any]:
+        """Créer un nouveau paiement (admin)."""
+        return self._make_request('POST', '/api/v1/billing/admin/paiements/', data=kwargs)
+
+    def valider_paiement(self, paiement_id: int) -> Dict[str, Any]:
+        """Valider un paiement (admin)."""
+        return self._make_request('POST', f'/api/v1/billing/admin/paiements/{paiement_id}/valider')
+
+    def refuser_paiement(self, paiement_id: int, motif: str = "") -> Dict[str, Any]:
+        """Refuser un paiement (admin)."""
+        return self._make_request('POST', f'/api/v1/billing/admin/paiements/{paiement_id}/refuser', data={'motif': motif})
+
+    # Réservations
+    def list_reservations(self) -> List[Dict[str, Any]]:
+        """Récupérer la liste des réservations (admin)."""
+        return self._make_request('GET', '/api/v1/portal/admin/reservations/')
+
+    def get_reservation(self, reservation_id: int) -> Dict[str, Any]:
+        """Récupérer une réservation spécifique (admin)."""
+        return self._make_request('GET', f'/api/v1/portal/admin/reservations/{reservation_id}')
+
+    def valider_reservation(self, reservation_id: int) -> Dict[str, Any]:
+        """Valider une réservation (admin)."""
+        return self._make_request('POST', f'/api/v1/portal/admin/reservations/{reservation_id}/valider')
+
+    def refuser_reservation(self, reservation_id: int, motif: str = "") -> Dict[str, Any]:
+        """Refuser une réservation (admin)."""
+        return self._make_request('POST', f'/api/v1/portal/admin/reservations/{reservation_id}/refuser', data={'motif': motif})
+
+    def bulk_valider_reservations(self, reservation_ids: List[int]) -> Dict[str, Any]:
+        """Valider plusieurs réservations (admin)."""
+        return self._make_request('POST', '/api/v1/portal/admin/reservations/bulk-valider', data={'reservation_ids': reservation_ids})
+
+    # Statistiques
+    def get_statistiques_financieres(self) -> Dict[str, Any]:
+        """Récupérer les statistiques financières (admin)."""
+        return self._make_request('GET', '/api/v1/billing/admin/statistiques-financieres/')
+
+    def get_statistiques_cimetiere(self) -> Dict[str, Any]:
+        """Récupérer les statistiques du cimetière (admin)."""
+        return self._make_request('GET', '/api/v1/portal/admin/statistiques-cimetiere/')
+
+    # Caveaux
+    def list_caveaux_admin(self) -> List[Dict[str, Any]]:
+        """Récupérer la liste des caveaux (admin)."""
+        return self._make_request('GET', '/api/v1/portal/admin/caveaux-admin/')
+
+    def get_caveau_admin(self, caveau_id: int) -> Dict[str, Any]:
+        """Récupérer un caveau spécifique (admin)."""
+        return self._make_request('GET', f'/api/v1/portal/admin/caveaux-admin/{caveau_id}')
+
+    def create_caveau(self, **kwargs) -> Dict[str, Any]:
+        """Créer un nouveau caveau (admin)."""
+        return self._make_request('POST', '/api/v1/portal/admin/caveaux-admin/', data=kwargs)
+
+    def update_caveau(self, caveau_id: int, **kwargs) -> Dict[str, Any]:
+        """Mettre à jour un caveau (admin)."""
+        return self._make_request('PUT', f'/api/v1/portal/admin/caveaux-admin/{caveau_id}', data=kwargs)
+
+    # Zones
+    def list_zones_admin(self) -> List[Dict[str, Any]]:
+        """Récupérer la liste des zones (admin)."""
+        return self._make_request('GET', '/api/v1/portal/admin/zones-admin/')
+
+    def create_zone(self, **kwargs) -> Dict[str, Any]:
+        """Créer une nouvelle zone (admin)."""
+        return self._make_request('POST', '/api/v1/portal/admin/zones-admin/', data=kwargs)
+
+    # Défunts
+    def list_defunts_admin(self) -> List[Dict[str, Any]]:
+        """Récupérer la liste des défunts (admin)."""
+        return self._make_request('GET', '/api/v1/portal/admin/defunts-admin/')
+
+    def create_defunt(self, **kwargs) -> Dict[str, Any]:
+        """Créer un nouveau défunt (admin)."""
+        return self._make_request('POST', '/api/v1/portal/admin/defunts-admin/', data=kwargs)
+
+    # Concessions
+    def list_concessions_admin(self) -> List[Dict[str, Any]]:
+        """Récupérer la liste des concessions (admin)."""
+        return self._make_request('GET', '/api/v1/portal/admin/concessions/')
+
+    def get_concession_admin(self, concession_id: int) -> Dict[str, Any]:
+        """Récupérer une concession spécifique (admin)."""
+        return self._make_request('GET', f'/api/v1/portal/admin/concessions/{concession_id}')
+
+
 
 # Instance globale du client API
 api_client = APIClient()
