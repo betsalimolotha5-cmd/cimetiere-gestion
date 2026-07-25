@@ -1,5 +1,6 @@
 """
 Modèles de l'application core.
+AJOUT : Mise à jour automatique du statut du caveau à 'OCCUPE' lors d'une nouvelle inhumation.
 """
 from django.db import models
 from django.contrib.gis.db import models as gis_models
@@ -271,6 +272,27 @@ class Inhumation(models.Model):
     
     def __str__(self):
         return f"{self.defunt} - {self.date_inhumation}"
+
+    def save(self, *args, **kwargs):
+        """
+        Mise à jour automatique du statut du caveau à 'OCCUPE' lors d'une nouvelle inhumation.
+        """
+        # 1. Vérifier si c'est une NOUVELLE inhumation (et non une modification d'une existante)
+        is_new = self.pk is None
+        
+        # 2. Sauvegarder l'inhumation en base de données normalement
+        super().save(*args, **kwargs)
+        
+        # 3. Si c'est une création, on met à jour le statut du caveau associé
+        if is_new and self.concession and self.concession.caveau:
+            caveau = self.concession.caveau
+            
+            # On ne change le statut que s'il est actuellement Disponible ou Réservé
+            if caveau.statut in [Caveau.Statut.DISPONIBLE, Caveau.Statut.RESERVE]:
+                caveau.statut = Caveau.Statut.OCCUPE
+                # update_fields est TRÈS IMPORTANT : cela évite de réenclencher des save() 
+                # ou d'écraser d'autres champs du caveau par erreur.
+                caveau.save(update_fields=['statut', 'date_modification'])
 
 
 class ParametreCimetiere(models.Model):
