@@ -318,9 +318,9 @@ class DashboardPage:
         if role in ['ADMIN']:
             actions.append(
                 ft.ElevatedButton(
-                    "📊 Rapports",
-                    icon=Icons.ANALYTICS,
-                    on_click=lambda _: self._show_message("Rapports", "Fonctionnalité à venir"),
+                    "⚙️ Administration",
+                    icon=Icons.ADMIN_PANEL_SETTINGS,
+                    on_click=lambda _: self.page.go("/admin"),
                     bgcolor=Colors.TEAL,
                     color=Colors.WHITE,
                 )
