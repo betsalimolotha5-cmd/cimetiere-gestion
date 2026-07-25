@@ -100,8 +100,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 1. Initialisation de la carte
-        const map = L.map('map').setView([-4.4419, 15.2663], 16);
+        // 1. Initialisation de la carte (centre par défaut de secours)
+        const map = L.map('map').setView([-4.7692, 11.8644], 15);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap',
@@ -115,25 +115,37 @@
                 return response.json();
             })
             .then(data => {
-                console.log("✅ Données reçues de l'API:", data); // Vérifie la console du navigateur (F12)
+                console.log("✅ Données reçues de l'API:", data);
 
-                // A. Délimitation automatique du cimetière (Depuis la BDD)
-                if (data.perimetre && data.perimetre.length > 0) {
-                    L.polygon(data.perimetre, {
-                        color: '#8e44ad',       // Contour violet
-                        weight: 3,
-                        fillColor: '#9b59b6',   // Remplissage violet clair
-                        fillOpacity: 0.15,
-                        dashArray: '8, 6'
-                    }).addTo(map).bindPopup("<b>Limites du Cimetière</b><br>Périmètre officiel");
+                // ==========================================
+                // A. Délimitation de TOUS les cimetières (Nouvelle logique)
+                // ==========================================
+                const perimetresGroup = L.featureGroup().addTo(map);
+                
+                if (data.perimetres && data.perimetres.length > 0) {
+                    data.perimetres.forEach(cimetiere => {
+                        L.polygon(cimetiere.coords, {
+                            color: '#8e44ad',       // Contour violet
+                            weight: 3,
+                            fillColor: '#9b59b6',   // Remplissage violet clair
+                            fillOpacity: 0.15,
+                            dashArray: '8, 6'
+                        }).bindPopup(`<b>${cimetiere.nom}</b><br>Limites officielles du cimetière`)
+                          .addTo(perimetresGroup);
+                    });
                     
-                    // Ajuste la carte pour montrer tout le périmètre
-                    map.fitBounds(data.perimetre, { padding: [30, 30] });
+                    // Ajuste la carte pour montrer TOUS les périmètres d'un coup
+                    map.fitBounds(perimetresGroup.getBounds(), { padding: [40, 40] });
+                    console.log(`✅ ${data.perimetres.length} périmètre(s) dessiné(s).`);
+                    
                 } else if (data.centre) {
-                    map.setView(data.centre, 17);
+                    // Fallback si aucun périmètre n'est défini
+                    map.setView(data.centre, 16);
                 }
 
+                // ==========================================
                 // B. Légende (Couleurs strictes du CDC)
+                // ==========================================
                 const legend = L.control({position: 'bottomright'});
                 legend.onAdd = function() {
                     const div = L.DomUtil.create('div', 'cdc-legend');
@@ -148,7 +160,9 @@
                 };
                 legend.addTo(map);
 
+                // ==========================================
                 // C. Affichage des caveaux
+                // ==========================================
                 if (!data.caveaux || data.caveaux.length === 0) {
                     console.warn("⚠️ Aucun caveau reçu de l'API.");
                     return;
@@ -174,12 +188,12 @@
                         
                         // Coordonnées GPS
                         if (c.latitude && c.longitude) {
-                            html += `<div class="gps-box">📍 Latitude : ${c.latitude.toFixed(6)}<br>📍 Longitude : ${c.longitude.toFixed(6)}</div>`;
+                            html += `<div class="gps-box">📍 Lat : ${c.latitude.toFixed(6)}<br>📍 Lng : ${c.longitude.toFixed(6)}</div>`;
                         }
                         
                         // Bouton d'action
                         if (c.reservable) {
-                            html += `<a href="/portal/reservation/${c.id}/" class="btn-reserver">Réserver ce caveau</a>`;
+                            html += `<a href="/portal/reservation/${c.id}/" class="btn-reserver"><i class="fas fa-calendar-plus me-1"></i> Réserver ce caveau</a>`;
                         } else {
                             html += `<div style="margin-top:10px; color:#999; font-size:0.9rem; text-align:center;"><i class="fas fa-lock"></i> Non disponible</div>`;
                         }

@@ -14,7 +14,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <!-- Leaflet CSS (chargé seulement si nécessaire, mais inoffensif ici) -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
@@ -37,7 +37,6 @@
             flex-direction: column;
         }
         
-        /* Navbar moderne avec effet glassmorphism */
         .navbar-custom {
             background: rgba(44, 95, 45, 0.95);
             backdrop-filter: blur(10px);
@@ -46,133 +45,62 @@
             padding: 0.8rem 0;
         }
         
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.4rem;
-            letter-spacing: -0.5px;
-            color: white !important;
-        }
+        .navbar-brand { font-weight: 700; font-size: 1.4rem; letter-spacing: -0.5px; color: white !important; }
+        .nav-link { font-weight: 500; transition: all 0.3s ease; border-radius: 6px; padding: 0.5rem 1rem !important; }
+        .nav-link:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--secondary-color) !important; }
         
-        .nav-link {
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border-radius: 6px;
-            padding: 0.5rem 1rem !important;
-        }
+        .main-content { flex: 1; padding: 2rem 0; }
         
-        .nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: var(--secondary-color) !important;
-        }
-        
-        /* Contenu principal */
-        .main-content {
-            flex: 1;
-            padding: 2rem 0;
-        }
-        
-        /* Cartes modernes */
         .card {
-            border: none;
-            border-radius: 12px;
-            box-shadow: var(--card-shadow);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            background: white;
+            border: none; border-radius: 12px; box-shadow: var(--card-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease; background: white;
         }
-        
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
-        }
-        
+        .card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1); }
         .card-header {
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 12px 12px 0 0 !important;
-            font-weight: 600;
-            padding: 1rem 1.5rem;
-            border-bottom: none;
+            background-color: var(--primary-color); color: white; border-radius: 12px 12px 0 0 !important;
+            font-weight: 600; padding: 1rem 1.5rem; border-bottom: none;
         }
         
-        /* Boutons modernes */
         .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            border-radius: 8px;
-            padding: 0.6rem 1.2rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            background-color: var(--primary-color); border-color: var(--primary-color);
+            border-radius: 8px; padding: 0.6rem 1.2rem; font-weight: 600; transition: all 0.3s ease;
         }
-        
         .btn-primary:hover {
-            background-color: var(--primary-hover);
-            border-color: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(44, 95, 45, 0.3);
+            background-color: var(--primary-hover); border-color: var(--primary-hover);
+            transform: translateY(-1px); box-shadow: 0 4px 12px rgba(44, 95, 45, 0.3);
         }
         
-        /* Carte Leaflet */
-        #map {
-            width: 100%;
-            height: 65vh;
-            min-height: 450px;
-            border-radius: 12px;
-            box-shadow: var(--card-shadow);
-            z-index: 1;
-        }
+        #map { width: 100%; height: 65vh; min-height: 450px; border-radius: 12px; box-shadow: var(--card-shadow); z-index: 1; }
         
-        /* Messages d'alerte modernes */
-        .alert {
-            border-radius: 10px;
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border-left: 4px solid transparent;
-        }
+        .alert { border-radius: 10px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 4px solid transparent; }
         .alert-success { border-left-color: #28a745; }
         .alert-danger { border-left-color: #dc3545; }
         .alert-warning { border-left-color: #ffc107; }
         .alert-info { border-left-color: #17a2b8; }
         
-        /* Footer moderne et 100% générique */
         .footer {
-            background-color: var(--dark-color);
-            color: rgba(255, 255, 255, 0.7);
-            padding: 2rem 0;
-            margin-top: auto;
-            border-top: 3px solid var(--secondary-color);
+            background-color: var(--dark-color); color: rgba(255, 255, 255, 0.7);
+            padding: 2rem 0; margin-top: auto; border-top: 3px solid var(--secondary-color);
         }
-        
         .footer h6 { color: white; letter-spacing: 0.5px; }
         
-        /* Responsive */
         @media (max-width: 768px) {
             .navbar-brand { font-size: 1.1rem; }
             #map { height: 50vh; min-height: 300px; }
             .main-content { padding: 1rem 0; }
         }
         
-        /* Badges de statut */
-        .badge-status {
-            padding: 0.4em 0.8em;
-            font-size: 0.8em;
-            border-radius: 20px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
+        .badge-status { padding: 0.4em 0.8em; font-size: 0.8em; border-radius: 20px; font-weight: 600; letter-spacing: 0.5px; }
     </style>
     
     {% block extra_css %}{% endblock %}
 </head>
 
 <body>
-    <!-- ================================================================= -->
-    <!-- BARRE DE NAVIGATION ADAPTATIVE (Visiteur / Client / Admin)        -->
-    <!-- ================================================================= -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
         <div class="container">
             <a class="navbar-brand" href="/portal/">
-                <i class="fas fa-monument me-2"></i>
-                Cimetière Digital
+                <i class="fas fa-monument me-2"></i> Cimetière Digital
             </a>
             
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
@@ -180,70 +108,86 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarMain">
-                <!-- LIENS DE GAUCHE : Navigation principale -->
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <!-- Toujours visible : La carte interactive -->
                     <li class="nav-item">
                         <a class="nav-link" href="/portal/">
                             <i class="fas fa-map-marked-alt me-1"></i> Carte Interactive
                         </a>
                     </li>
 
-                    <!-- CLIENT UNIQUEMENT -->
-                    {% if user.is_authenticated and not user.is_staff %}
+                    <!-- ========================================== -->
+                    <!-- CLIENT (Ni Admin, ni Agent)                -->
+                    <!-- ========================================== -->
+                    {% if user.is_authenticated and not user.is_staff and not 'Agents' in user.groups.all|join:',' and not 'Agent' in user.groups.all|join:',' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/portal/mes-reservations/"><i class="fas fa-calendar-check me-1"></i> Mes Réservations</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/portal/mes-factures/"><i class="fas fa-file-invoice-dollar me-1"></i> Mes Factures</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/portal/mes-concessions/"><i class="fas fa-file-contract me-1"></i> Mes Concessions</a>
+                        </li>
+                    {% endif %}
+
+                    <!-- ========================================== -->
+                    <!-- AGENT DE TERRAIN (Groupe 'Agents' ou 'Agent') -->
+                    <!-- ========================================== -->
+                    {% if 'Agents' in user.groups.all|join:',' or 'Agent' in user.groups.all|join:',' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/portal/dashboard-agent/">
+                                <i class="fas fa-clipboard-check me-1"></i> Opérations Terrain
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <a class="nav-link" href="/portal/mes-reservations/">
-                                <i class="fas fa-calendar-check me-1"></i> Mes Réservations
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/portal/mes-factures/">
-                                <i class="fas fa-file-invoice-dollar me-1"></i> Mes Factures
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/portal/mes-concessions/">
-                                <i class="fas fa-file-contract me-1"></i> Mes Concessions
+                                <i class="fas fa-tasks me-1"></i> Suivi des Demandes
                             </a>
                         </li>
                     {% endif %}
 
-                    <!-- ADMINISTRATEUR UNIQUEMENT -->
+                    <!-- ========================================== -->
+                    <!-- ADMINISTRATEUR                             -->
+                    <!-- ========================================== -->
                     {% if user.is_staff %}
                         <li class="nav-item">
-                            <a class="nav-link" href="/portal/dashboard/">
-                                <i class="fas fa-tachometer-alt me-1"></i> Dashboard Admin
-                            </a>
+                            <a class="nav-link" href="/portal/dashboard/"><i class="fas fa-tachometer-alt me-1"></i> Dashboard Admin</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/admin/">
-                                <i class="fas fa-cogs me-1"></i> Administration
-                            </a>
+                            <a class="nav-link" href="/admin/"><i class="fas fa-cogs me-1"></i> Administration</a>
                         </li>
                     {% endif %}
                 </ul>
                 
-                <!-- LIENS DE DROITE : Actions utilisateur -->
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
-                        <!-- Utilisateur connecté (Client ou Admin) -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user-circle fa-lg me-2"></i> 
                                 <span>{{ user.get_full_name|default:user.email }}</span>
+                                
+                                <!-- Badge de rôle dynamique -->
                                 {% if user.is_staff %}
                                     <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">ADMIN</span>
+                                {% elif 'Agents' in user.groups.all|join:',' or 'Agent' in user.groups.all|join:',' %}
+                                    <span class="badge bg-info text-dark ms-2" style="font-size: 0.7rem;">AGENT</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark ms-2" style="font-size: 0.7rem;">CLIENT</span>
                                 {% endif %}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="userDropdown">
                                 
                                 {% if user.is_staff %}
-                                    <!-- Menu Admin -->
                                     <li><a class="dropdown-item" href="/portal/dashboard/"><i class="fas fa-chart-line me-2 text-primary"></i> Tableau de bord</a></li>
                                     <li><a class="dropdown-item" href="/admin/"><i class="fas fa-cog me-2 text-muted"></i> Administration Django</a></li>
                                     <li><hr class="dropdown-divider"></li>
+                                
+                                {% elif 'Agents' in user.groups.all|join:',' or 'Agent' in user.groups.all|join:',' %}
+                                    <li><a class="dropdown-item" href="/portal/dashboard-agent/"><i class="fas fa-clipboard-check me-2 text-info"></i> Opérations Terrain</a></li>
+                                    <li><a class="dropdown-item" href="/portal/mes-reservations/"><i class="fas fa-tasks me-2 text-primary"></i> Suivi des demandes</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                
                                 {% else %}
-                                    <!-- Menu Client -->
                                     <li><a class="dropdown-item" href="/portal/mes-reservations/"><i class="fas fa-calendar me-2 text-primary"></i> Mes réservations</a></li>
                                     <li><a class="dropdown-item" href="/portal/mes-factures/"><i class="fas fa-file-invoice me-2 text-primary"></i> Mes factures</a></li>
                                     <li><hr class="dropdown-divider"></li>
@@ -257,11 +201,8 @@
                             </ul>
                         </li>
                     {% else %}
-                        <!-- Visiteur non connecté -->
                         <li class="nav-item">
-                            <a class="nav-link" href="/mfa/register/">
-                                <i class="fas fa-user-plus me-1"></i> Créer un compte
-                            </a>
+                            <a class="nav-link" href="/mfa/register/"><i class="fas fa-user-plus me-1"></i> Créer un compte</a>
                         </li>
                         <li class="nav-item ms-2">
                             <a class="nav-link btn btn-sm btn-light text-success fw-bold px-3" href="/mfa/login/">
@@ -274,22 +215,14 @@
         </div>
     </nav>
 
-    <!-- ================================================================= -->
-    <!-- MESSAGES DJANGO (Success, Error, Warning, Info)                   -->
-    <!-- ================================================================= -->
     {% if messages %}
     <div class="container mt-4">
         {% for message in messages %}
             <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show d-flex align-items-center" role="alert">
-                {% if message.tags == 'success' %}
-                    <i class="fas fa-check-circle me-2 fs-5"></i>
-                {% elif message.tags == 'error' %}
-                    <i class="fas fa-exclamation-triangle me-2 fs-5"></i>
-                {% elif message.tags == 'warning' %}
-                    <i class="fas fa-exclamation-circle me-2 fs-5"></i>
-                {% else %}
-                    <i class="fas fa-info-circle me-2 fs-5"></i>
-                {% endif %}
+                {% if message.tags == 'success' %}<i class="fas fa-check-circle me-2 fs-5"></i>
+                {% elif message.tags == 'error' %}<i class="fas fa-exclamation-triangle me-2 fs-5"></i>
+                {% elif message.tags == 'warning' %}<i class="fas fa-exclamation-circle me-2 fs-5"></i>
+                {% else %}<i class="fas fa-info-circle me-2 fs-5"></i>{% endif %}
                 <div>{{ message }}</div>
                 <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
@@ -297,48 +230,29 @@
     </div>
     {% endif %}
 
-    <!-- ================================================================= -->
-    <!-- CONTENU PRINCIPAL (Injecté par les pages enfants)                 -->
-    <!-- ================================================================= -->
     <main class="container main-content">
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
-    <!-- ================================================================= -->
-    <!-- FOOTER MODERNE ET GÉNÉRIQUE (AUCUNE INFO PERSONNELLE)             -->
-    <!-- ================================================================= -->
     <footer class="footer">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
-                    <h6 class="mb-1">
-                        <i class="fas fa-monument me-2"></i>Gestion Cimetière
-                    </h6>
-                    <p class="mb-0 small">
-                        Solution numérique professionnelle de gestion et de cartographie funéraire.
-                    </p>
+                    <h6 class="mb-1"><i class="fas fa-monument me-2"></i>Gestion Cimetière</h6>
+                    <p class="mb-0 small">Solution numérique professionnelle de gestion et de cartographie funéraire.</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
-                    <p class="mb-1 small">
-                        &copy; 2026 Gestion Cimetière. Tous droits réservés.
-                    </p>
-                    <p class="mb-0 small">
-                        <i class="fas fa-shield-alt me-1"></i> Plateforme sécurisée et conforme aux normes de protection des données.
-                    </p>
+                    <p class="mb-1 small">&copy; 2026 Gestion Cimetière. Tous droits réservés.</p>
+                    <p class="mb-0 small"><i class="fas fa-shield-alt me-1"></i> Plateforme sécurisée et conforme aux normes de protection des données.</p>
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- ================================================================= -->
-    <!-- SCRIPTS JS                                                        -->
-    <!-- ================================================================= -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <script>
-        // Fermeture automatique des alertes après 6 secondes
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
                 var alerts = document.querySelectorAll('.alert');

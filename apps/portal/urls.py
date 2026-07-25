@@ -18,4 +18,5 @@ urlpatterns = [
     path('facture/<int:facture_id>/', views.facture_detail, name='facture_detail'),
     path('facture/<int:facture_id>/payer/', views.payer_facture, name='payer_facture'),
     path('dashboard/', views.dashboard_admin, name='dashboard_admin'),
+    path('dashboard-agent/', views.dashboard_agent, name='dashboard_agent'),
 ]
