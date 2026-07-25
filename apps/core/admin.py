@@ -1,14 +1,23 @@
 """
 Administration Django pour l'application core (cimetière).
-CORRECTION DÉFINITIVE : Suppression du champ 'perimetre' qui n'existe pas dans le modèle ParametreCimetiere.
+CORRECTION : Réactivation sécurisée du widget de carte (OSMWidget) pour les champs PointField existants.
 """
 from django.contrib import admin, messages
+from django.contrib.gis.db import models as gis_models
+from django.contrib.gis.forms import OSMWidget
 from django import forms
 from django.utils.html import format_html
 from .models import (
     Zone, Caveau, Defunt, Concession, Inhumation,
     ParametreCimetiere, DemandeExhumation
 )
+
+# ==============================================================================
+# CONFIGURATION PAR DÉFAUT POUR LA CARTE (Pointe-Noire)
+# ==============================================================================
+CIMETIERE_CENTRE_LAT = -4.7692
+CIMETIERE_CENTRE_LNG = 11.8644
+CIMETIERE_ZOOM_DEFAULT = 16
 
 
 # ==============================================================================
@@ -19,6 +28,17 @@ class CaveauAdmin(admin.ModelAdmin):
     list_display = ('code', 'zone', 'statut_badge', 'type_caveau', 'prix_concession', 'position_display')
     list_filter = ('statut', 'type_caveau', 'zone')
     search_fields = ('code', 'zone__nom')
+    
+    # Réactivation sécurisée de la carte uniquement pour les champs PointField
+    formfield_overrides = {
+        gis_models.PointField: {
+            'widget': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            })
+        },
+    }
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
@@ -59,6 +79,17 @@ class ZoneAdmin(admin.ModelAdmin):
     list_display = ('code', 'nom', 'type_zone', 'est_exploitable', 'superficie', 'capacite_theorique')
     list_filter = ('type_zone', 'est_exploitable')
     search_fields = ('code', 'nom')
+    
+    # Réactivation sécurisée de la carte pour le PointField de la Zone
+    formfield_overrides = {
+        gis_models.PointField: {
+            'widget': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            })
+        },
+    }
     
     @admin.display(description='Capacité théorique')
     def capacite_theorique(self, obj):
@@ -128,14 +159,24 @@ class InhumationAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : PARAMÈTRES DU CIMETIÈRE (CORRIGÉ DÉFINITIVEMENT)
+# ADMIN : PARAMÈTRES DU CIMETIÈRE
 # ==============================================================================
 @admin.register(ParametreCimetiere)
 class ParametreCimetiereAdmin(admin.ModelAdmin):
     list_display = ('nom', 'superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau')
     
-    # CORRECTION : Nous n'incluons QUE les champs qui existent réellement dans le modèle.
-    # Le champ 'perimetre' a été supprimé car il n'existe pas dans models.py (seul 'coordonnees_centre' existe).
+    # Réactivation sécurisée de la carte pour le PointField 'coordonnees_centre'
+    formfield_overrides = {
+        gis_models.PointField: {
+            'widget': OSMWidget(attrs={
+                'default_lat': CIMETIERE_CENTRE_LAT,
+                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+            })
+        },
+    }
+    
+    # Note : Le champ 'perimetre' est volontairement absent car il n'existe pas dans models.py
     fieldsets = (
         ('Informations générales', {
             'fields': ('nom', 'adresse', 'coordonnees_centre')
