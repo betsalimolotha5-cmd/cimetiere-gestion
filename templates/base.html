@@ -120,9 +120,9 @@
                     {% endif %}
 
                     <!-- ========================================== -->
-                    <!-- CLIENT (Ni Admin, ni Agent)                -->
+                    <!-- CLIENT (Ni Admin, ni Agent, ni Secrétaire) -->
                     <!-- ========================================== -->
-                    {% if user.is_authenticated and not user.is_staff and not 'Agents' in user.groups.all|join:',' and not 'Agent' in user.groups.all|join:',' %}
+                    {% if user.is_authenticated and not user.is_staff and not 'Agents' in user.groups.all|join:',' and not 'Agent' in user.groups.all|join:',' and not 'Secretaire' in user.groups.all|join:',' and not 'Secrétaire' in user.groups.all|join:',' %}
                         <li class="nav-item">
                             <a class="nav-link" href="/portal/mes-reservations/"><i class="fas fa-calendar-check me-1"></i> Mes Réservations</a>
                         </li>
@@ -143,6 +143,22 @@
                         <li class="nav-item">
                             <a class="nav-link" href="/portal/mes-reservations/">
                                 <i class="fas fa-tasks me-1"></i> Suivi des Demandes
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    <!-- ========================================== -->
+                    <!-- SECRÉTAIRE (Groupe 'Secretaire' ou 'Secrétaire') -->
+                    <!-- ========================================== -->
+                    {% if 'Secretaire' in user.groups.all|join:',' or 'Secrétaire' in user.groups.all|join:',' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/portal/dashboard-secretaire/">
+                                <i class="fas fa-file-invoice me-1"></i> Dashboard Secrétaire
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/admin/core/concession/" target="_blank">
+                                <i class="fas fa-file-contract me-1"></i> Concessions
                             </a>
                         </li>
                     {% endif %}
@@ -172,6 +188,8 @@
                                     <span class="badge bg-warning text-dark ms-2" style="font-size: 0.7rem;">ADMIN</span>
                                 {% elif 'Agents' in user.groups.all|join:',' or 'Agent' in user.groups.all|join:',' %}
                                     <span class="badge bg-info text-dark ms-2" style="font-size: 0.7rem;">AGENT</span>
+                                {% elif 'Secretaire' in user.groups.all|join:',' or 'Secrétaire' in user.groups.all|join:',' %}
+                                    <span class="badge ms-2" style="background-color: #6c3483; color: white; font-size: 0.7rem;">SECRÉTAIRE</span>
                                 {% else %}
                                     <span class="badge bg-light text-dark ms-2" style="font-size: 0.7rem;">CLIENT</span>
                                 {% endif %}
@@ -186,6 +204,12 @@
                                 {% elif 'Agents' in user.groups.all|join:',' or 'Agent' in user.groups.all|join:',' %}
                                     <li><a class="dropdown-item" href="/portal/dashboard-agent/"><i class="fas fa-clipboard-check me-2 text-info"></i> Opérations Terrain</a></li>
                                     <li><a class="dropdown-item" href="/portal/mes-reservations/"><i class="fas fa-tasks me-2 text-primary"></i> Suivi des demandes</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+
+                                {% elif 'Secretaire' in user.groups.all|join:',' or 'Secrétaire' in user.groups.all|join:',' %}
+                                    <li><a class="dropdown-item" href="/portal/dashboard-secretaire/"><i class="fas fa-file-invoice me-2" style="color: #6c3483;"></i> Dashboard Secrétaire</a></li>
+                                    <li><a class="dropdown-item" href="/admin/core/concession/" target="_blank"><i class="fas fa-file-contract me-2 text-muted"></i> Gérer les Concessions</a></li>
+                                    <li><a class="dropdown-item" href="/admin/billing/facture/" target="_blank"><i class="fas fa-money-bill-wave me-2 text-muted"></i> Gérer les Factures</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                 
                                 {% else %}
