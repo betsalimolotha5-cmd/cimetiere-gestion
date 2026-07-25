@@ -1,11 +1,9 @@
 """
 Administration Django pour l'application core (cimetière).
 Conforme au CDC : gestion des zones, caveaux, concessions.
-Configuration optimisée pour Pointe-Noire, République du Congo.
+VERSION SÉCURISÉE : Sans widgets de carte personnalisés pour éviter les erreurs 500.
 """
 from django.contrib import admin, messages
-from django.contrib.gis.db import models as gis_models
-from django.contrib.gis.forms import OSMWidget
 from django import forms
 from django.utils.html import format_html
 from .models import (
@@ -13,16 +11,9 @@ from .models import (
     ParametreCimetiere, DemandeExhumation
 )
 
-# ==============================================================================
-# CONFIGURATION PAR DÉFAUT (Pointe-Noire)
-# ==============================================================================
-CIMETIERE_CENTRE_LAT = -4.7692
-CIMETIERE_CENTRE_LNG = 11.8644
-CIMETIERE_ZOOM_DEFAULT = 17
-
 
 # ==============================================================================
-# ADMIN : CAVEAU (SANS validation stricte du périmètre)
+# ADMIN : CAVEAU (VERSION SÉCURISÉE)
 # ==============================================================================
 @admin.register(Caveau)
 class CaveauAdmin(admin.ModelAdmin):
@@ -30,42 +21,39 @@ class CaveauAdmin(admin.ModelAdmin):
     list_filter = ('statut', 'type_caveau', 'zone')
     search_fields = ('code', 'zone__nom')
     
-    # Configuration du widget de carte pour les champs GPS
-    formfield_overrides = {
-        gis_models.PointField: {
-            'widget': OSMWidget(attrs={
-                'default_lat': CIMETIERE_CENTRE_LAT,
-                'default_lon': CIMETIERE_CENTRE_LNG,
-                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
-            })
-        },
-    }
-    
     @admin.display(description='Statut')
     def statut_badge(self, obj):
-        couleurs = {
-            'DISPONIBLE': '#27ae60',
-            'RESERVE': '#f39c12',
-            'OCCUPE': '#e74c3c',
-            'NON_EXPLOITABLE': '#95a5a6',
-        }
-        couleur = couleurs.get(obj.statut, '#95a5a6')
-        return format_html(
-            '<span style="background: {}; color: white; padding: 4px 12px; '
-            'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
-            couleur,
-            obj.get_statut_display()
-        )
-    
+        try:
+            couleurs = {
+                'DISPONIBLE': '#27ae60',
+                'RESERVE': '#f39c12',
+                'OCCUPE': '#e74c3c',
+                'NON_EXPLOITABLE': '#95a5a6',
+            }
+            couleur = couleurs.get(obj.statut, '#95a5a6')
+            return format_html(
+                '<span style="background: {}; color: white; padding: 4px 12px; '
+                'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
+                couleur,
+                obj.get_statut_display()
+            )
+        except Exception:
+            return obj.statut if obj.statut else '-'
+
     @admin.display(description='Position GPS')
     def position_display(self, obj):
-        if obj.position_gps:
-            return f"{obj.position_gps.y:.6f}, {obj.position_gps.x:.6f}"
-        return '-'
+        try:
+            if hasattr(obj, 'position_gps') and obj.position_gps:
+                return f"{obj.position_gps.y:.6f}, {obj.position_gps.x:.6f}"
+            elif hasattr(obj, 'coordonnees_gps') and obj.coordonnees_gps:
+                return f"{obj.coordonnees_gps.y:.6f}, {obj.coordonnees_gps.x:.6f}"
+            return '-'
+        except Exception:
+            return 'Erreur'
 
 
 # ==============================================================================
-# ADMIN : ZONE
+# ADMIN : ZONE (VERSION SÉCURISÉE)
 # ==============================================================================
 @admin.register(Zone)
 class ZoneAdmin(admin.ModelAdmin):
@@ -73,21 +61,11 @@ class ZoneAdmin(admin.ModelAdmin):
     list_filter = ('type_zone', 'est_exploitable')
     search_fields = ('code', 'nom')
     
-    formfield_overrides = {
-        gis_models.PolygonField: {
-            'widget': OSMWidget(attrs={
-                'default_lat': CIMETIERE_CENTRE_LAT,
-                'default_lon': CIMETIERE_CENTRE_LNG,
-                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
-            })
-        },
-    }
-    
     @admin.display(description='Capacité théorique')
     def capacite_theorique(self, obj):
         try:
             return obj.calculer_capacite_theorique()
-        except:
+        except Exception:
             return '-'
 
 
@@ -105,7 +83,7 @@ class DefuntAdmin(admin.ModelAdmin):
         try:
             age = obj.age_au_deces()
             return f"{age} ans" if age else '-'
-        except:
+        except Exception:
             return '-'
 
 
@@ -121,19 +99,22 @@ class ConcessionAdmin(admin.ModelAdmin):
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
-        couleurs = {
-            'ACTIVE': '#27ae60',
-            'EXPIREE': '#e74c3c',
-            'RESILIEE': '#95a5a6',
-            'RENOUVELEE': '#3498db',
-        }
-        couleur = couleurs.get(obj.statut, '#95a5a6')
-        return format_html(
-            '<span style="background: {}; color: white; padding: 4px 12px; '
-            'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
-            couleur,
-            obj.get_statut_display()
-        )
+        try:
+            couleurs = {
+                'ACTIVE': '#27ae60',
+                'EXPIREE': '#e74c3c',
+                'RESILIEE': '#95a5a6',
+                'RENOUVELEE': '#3498db',
+            }
+            couleur = couleurs.get(obj.statut, '#95a5a6')
+            return format_html(
+                '<span style="background: {}; color: white; padding: 4px 12px; '
+                'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
+                couleur,
+                obj.get_statut_display()
+            )
+        except Exception:
+            return obj.statut if obj.statut else '-'
 
 
 # ==============================================================================
@@ -148,28 +129,14 @@ class InhumationAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : PARAMÈTRES DU CIMETIÈRE
+# ADMIN : PARAMÈTRES DU CIMETIÈRE (VERSION SÉCURISÉE - SANS WIDGET CARTE)
 # ==============================================================================
 @admin.register(ParametreCimetiere)
 class ParametreCimetiereAdmin(admin.ModelAdmin):
     list_display = ('nom', 'superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau')
     
-    formfield_overrides = {
-        gis_models.PointField: {
-            'widget': OSMWidget(attrs={
-                'default_lat': CIMETIERE_CENTRE_LAT,
-                'default_lon': CIMETIERE_CENTRE_LNG,
-                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
-            })
-        },
-        gis_models.PolygonField: {
-            'widget': OSMWidget(attrs={
-                'default_lat': CIMETIERE_CENTRE_LAT,
-                'default_lon': CIMETIERE_CENTRE_LNG,
-                'default_zoom': CIMETIERE_ZOOM_DEFAULT,
-            })
-        },
-    }
+    # ⚠️ IMPORTANT : Aucun formfield_overrides avec OSMWidget pour éviter le crash 500
+    # Les champs GPS utiliseront les widgets Django par défaut (champ texte)
     
     fieldsets = (
         ('Informations générales', {
@@ -177,7 +144,7 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
         }),
         ('Périmètre du cimetière', {
             'fields': ('perimetre',),
-            'description': 'Définissez les limites exactes du cimetière sur la carte.'
+            'description': 'Définissez les limites exactes du cimetière (format WKT ou GeoJSON).'
         }),
         ('Dimensions', {
             'fields': ('superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau', 'largeur_allee')
@@ -207,19 +174,22 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
-        couleurs = {
-            'EN_ATTENTE': '#f39c12',
-            'VALIDEE': '#27ae60',
-            'REFUSEE': '#e74c3c',
-            'REALISEE': '#3498db',
-        }
-        couleur = couleurs.get(obj.statut, '#95a5a6')
-        return format_html(
-            '<span style="background: {}; color: white; padding: 4px 12px; '
-            'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
-            couleur,
-            obj.get_statut_display()
-        )
+        try:
+            couleurs = {
+                'EN_ATTENTE': '#f39c12',
+                'VALIDEE': '#27ae60',
+                'REFUSEE': '#e74c3c',
+                'REALISEE': '#3498db',
+            }
+            couleur = couleurs.get(obj.statut, '#95a5a6')
+            return format_html(
+                '<span style="background: {}; color: white; padding: 4px 12px; '
+                'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
+                couleur,
+                obj.get_statut_display()
+            )
+        except Exception:
+            return obj.statut if obj.statut else '-'
     
     @admin.action(description='✓ Valider les demandes sélectionnées')
     def valider_demandes(self, request, queryset):
