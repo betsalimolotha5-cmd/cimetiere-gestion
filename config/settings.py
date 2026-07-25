@@ -2,7 +2,7 @@
 Django settings for cimetiere_gestion project.
 Conforme au CDC : sécurité, MFA, API REST, PostGIS.
 Optimisé pour Render + Neon (hébergement gratuit).
-AJOUT : Configuration de django-jazzmin pour un admin moderne et personnalisé.
+AJOUT : Configuration de django-jazzmin avec un thème sobre, élégant et doux.
 """
 import os
 import platform
@@ -294,7 +294,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # ==============================================================================
-# ⭐ CONFIGURATION DJANGO-JAZZMIN (Thème Admin Moderne)
+# ⭐ CONFIGURATION DJANGO-JAZZMIN (Thème Admin Sobre et Élégant)
 # ==============================================================================
 JAZZMIN_SETTINGS = {
     "site_title": "Gestion Cimetière Admin",
@@ -309,7 +309,7 @@ JAZZMIN_SETTINGS = {
         {"name": "Voir le Site", "url": "/portal/", "new_window": True},
     ],
     "show_sidebar": True,
-    "navigation_expanded": True,
+    "navigation_expanded": False, # Menu replié par défaut pour plus de sobriété
     "order_with_respect_to": ["accounts", "core", "billing", "portal", "reports"],
     "custom_links": {
         "core": [
@@ -350,29 +350,32 @@ JAZZMIN_UI_TWEAKS = {
     "footer_small_text": False,
     "body_small_text": False,
     "brand_small_text": False,
-    "brand_colour": "navbar-success", # Vert foncé cohérent avec le site
-    "accent": "accent-primary",
-    "navbar": "navbar-dark navbar-success",
-    "no_navbar_border": False,
+    # ⭐ COULEURS ADOUCIES : Vert forêt profond au lieu du vert fluo "success"
+    "brand_colour": "#2c5f2d",  
+    "accent": "accent-secondary", # Accent gris/bleu très doux au lieu de bleu vif
+    "navbar": "navbar-dark",      # Juste sombre, sans la surcouche verte fluorescente
+    "no_navbar_border": True,     # Plus épuré, sans bordure agressive
     "navbar_fixed": True,
     "layout_boxed": False,
     "footer_fixed": False,
     "sidebar_fixed": True,
-    "sidebar": "sidebar-dark-primary",
+    # ⭐ SIDEBAR OLIVE : Un vert olive très foncé, sobre et professionnel
+    "sidebar": "sidebar-dark-olive", 
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,
     "sidebar_nav_child_indent": True,
-    "sidebar_nav_compact_style": False,
+    "sidebar_nav_compact_style": True, # Style plus compact et élégant
     "sidebar_nav_legacy_style": False,
-    "sidebar_nav_flat_style": False,
+    "sidebar_nav_flat_style": True,    # Style plat, sans effets 3D "tape-à-l'œil"
     "theme": "default",
     "dark_mode_theme": "darkly",
+    # ⭐ BOUTONS PLUS DISCRETS (version "outline" pour moins de blocs de couleur)
     "button_classes": {
-        "primary": "btn-success",
-        "secondary": "btn-secondary",
-        "info": "btn-info",
-        "warning": "btn-warning",
-        "danger": "btn-danger",
-        "success": "btn-success"
+        "primary": "btn-outline-success",
+        "secondary": "btn-outline-secondary",
+        "info": "btn-outline-info",
+        "warning": "btn-outline-warning",
+        "danger": "btn-outline-danger",
+        "success": "btn-success" # On garde le plein seulement pour l'action principale de succès
     }
 }
