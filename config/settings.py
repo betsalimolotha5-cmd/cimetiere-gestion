@@ -2,7 +2,7 @@
 Django settings for cimetiere_gestion project.
 Conforme au CDC : sécurité, MFA, API REST, PostGIS.
 Optimisé pour Render + Neon (hébergement gratuit).
-AJOUT : Configuration de django-jazzmin avec un thème sobre, élégant et doux.
+AJOUT : Configuration de django-jazzmin avec contraste élevé et lisibilité maximale.
 """
 import os
 import platform
@@ -294,7 +294,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # ==============================================================================
-# ⭐ CONFIGURATION DJANGO-JAZZMIN (Thème Admin Sobre et Élégant)
+# ⭐ CONFIGURATION DJANGO-JAZZMIN (Lisibilité Maximale & Moderne)
 # ==============================================================================
 JAZZMIN_SETTINGS = {
     "site_title": "Gestion Cimetière Admin",
@@ -309,7 +309,7 @@ JAZZMIN_SETTINGS = {
         {"name": "Voir le Site", "url": "/portal/", "new_window": True},
     ],
     "show_sidebar": True,
-    "navigation_expanded": False, # Menu replié par défaut pour plus de sobriété
+    "navigation_expanded": False,
     "order_with_respect_to": ["accounts", "core", "billing", "portal", "reports"],
     "custom_links": {
         "core": [
@@ -350,32 +350,42 @@ JAZZMIN_UI_TWEAKS = {
     "footer_small_text": False,
     "body_small_text": False,
     "brand_small_text": False,
-    # ⭐ COULEURS ADOUCIES : Vert forêt profond au lieu du vert fluo "success"
+    
+    # ⭐ CORRECTION LISIBILITÉ : Barre du haut blanche avec texte foncé (standard moderne)
+    "navbar": "navbar-white navbar-light", 
+    
+    # ⭐ CORRECTION LISIBILITÉ : Couleur de la marque en vert foncé lisible sur fond blanc
     "brand_colour": "#2c5f2d",  
-    "accent": "accent-secondary", # Accent gris/bleu très doux au lieu de bleu vif
-    "navbar": "navbar-dark",      # Juste sombre, sans la surcouche verte fluorescente
-    "no_navbar_border": True,     # Plus épuré, sans bordure agressive
+    
+    # ⭐ CORRECTION LISIBILITÉ : Accent vert pour les éléments actifs (cases à cocher, liens)
+    "accent": "accent-success", 
+    
+    "no_navbar_border": True,
     "navbar_fixed": True,
     "layout_boxed": False,
     "footer_fixed": False,
     "sidebar_fixed": True,
-    # ⭐ SIDEBAR OLIVE : Un vert olive très foncé, sobre et professionnel
+    
+    # Sidebar reste sombre pour le contraste avec le contenu blanc
     "sidebar": "sidebar-dark-olive", 
+    
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,
     "sidebar_nav_child_indent": True,
-    "sidebar_nav_compact_style": True, # Style plus compact et élégant
+    "sidebar_nav_compact_style": True,
     "sidebar_nav_legacy_style": False,
-    "sidebar_nav_flat_style": True,    # Style plat, sans effets 3D "tape-à-l'œil"
+    "sidebar_nav_flat_style": True,
+    
     "theme": "default",
     "dark_mode_theme": "darkly",
-    # ⭐ BOUTONS PLUS DISCRETS (version "outline" pour moins de blocs de couleur)
+    
+    # ⭐ CORRECTION LISIBILITÉ : Boutons pleins (solides) pour garantir le contraste texte/fond
     "button_classes": {
-        "primary": "btn-outline-success",
-        "secondary": "btn-outline-secondary",
-        "info": "btn-outline-info",
-        "warning": "btn-outline-warning",
-        "danger": "btn-outline-danger",
-        "success": "btn-success" # On garde le plein seulement pour l'action principale de succès
+        "primary": "btn-success",      # Vert plein, texte blanc (parfaitement lisible)
+        "secondary": "btn-secondary",   # Gris plein, texte blanc
+        "info": "btn-primary",          # Bleu plein, texte blanc (mieux que info parfois trop clair)
+        "warning": "btn-warning",       # Jaune, texte noir (contraste natif Bootstrap)
+        "danger": "btn-danger",         # Rouge plein, texte blanc
+        "success": "btn-success"
     }
 }
