@@ -2,7 +2,7 @@
 Django settings for cimetiere_gestion project.
 Conforme au CDC : sécurité, MFA, API REST, PostGIS.
 Optimisé pour Render + Neon (hébergement gratuit).
-AJOUT : Configuration de django-jazzmin avec contraste élevé et lisibilité maximale.
+AJOUT : Thème Admin Violet Sombre avec texte blanc et lisibilité maximale.
 """
 import os
 import platform
@@ -294,7 +294,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 # ==============================================================================
-# ⭐ CONFIGURATION DJANGO-JAZZMIN (Lisibilité Maximale & Moderne)
+# ⭐ CONFIGURATION DJANGO-JAZZMIN (Thème Violet Sombre & Texte Blanc)
 # ==============================================================================
 JAZZMIN_SETTINGS = {
     "site_title": "Gestion Cimetière Admin",
@@ -343,6 +343,64 @@ JAZZMIN_SETTINGS = {
         "auth.user": "collapsible",
         "accounts.user": "collapsible",
     },
+    # ⭐ CSS PERSONNALISÉ POUR FORCER LE THÈME VIOLET SOMBRE
+    "custom_css": """
+        :root {
+            --violet-fonce: #4a235a;
+            --violet-principal: #6c3483;
+            --violet-clair: #9b59b6;
+        }
+        /* Barre du haut violette avec texte blanc */
+        .main-header {
+            background-color: var(--violet-fonce) !important;
+            color: #ffffff !important;
+        }
+        .main-header .nav-link, .main-header .brand-link {
+            color: #ffffff !important;
+        }
+        /* Barre latérale violette */
+        .main-sidebar {
+            background-color: var(--violet-principal) !important;
+        }
+        .nav-sidebar .nav-item > .nav-link {
+            color: #e8daef !important;
+        }
+        .nav-sidebar .nav-item > .nav-link.active {
+            background-color: var(--violet-fonce) !important;
+            color: #ffffff !important;
+            font-weight: bold;
+        }
+        /* Boutons violets avec texte blanc */
+        .btn-primary {
+            background-color: var(--violet-principal) !important;
+            border-color: var(--violet-principal) !important;
+            color: #ffffff !important;
+        }
+        .btn-primary:hover {
+            background-color: var(--violet-fonce) !important;
+            border-color: var(--violet-fonce) !important;
+            color: #ffffff !important;
+        }
+        /* Bordures des cartes en violet */
+        .card-primary.card-outline {
+            border-top: 3px solid var(--violet-principal) !important;
+        }
+        /* Fonds de formulaire blancs pour lisibilité maximale du texte */
+        .content-wrapper {
+            background-color: #f4f6f9 !important;
+        }
+        .card {
+            background-color: #ffffff !important;
+            color: #333333 !important;
+        }
+        /* Liens en violet */
+        a {
+            color: var(--violet-principal) !important;
+        }
+        a:hover {
+            color: var(--violet-fonce) !important;
+        }
+    """,
 }
 
 JAZZMIN_UI_TWEAKS = {
@@ -351,14 +409,14 @@ JAZZMIN_UI_TWEAKS = {
     "body_small_text": False,
     "brand_small_text": False,
     
-    # ⭐ CORRECTION LISIBILITÉ : Barre du haut blanche avec texte foncé (standard moderne)
-    "navbar": "navbar-white navbar-light", 
+    # ⭐ Barre sombre pour supporter le texte blanc
+    "navbar": "navbar-dark", 
     
-    # ⭐ CORRECTION LISIBILITÉ : Couleur de la marque en vert foncé lisible sur fond blanc
-    "brand_colour": "#2c5f2d",  
+    # ⭐ Violet sombre pour le logo/texte de la marque
+    "brand_colour": "#ffffff",  # Blanc pur pour ressortir sur le fond violet foncé
     
-    # ⭐ CORRECTION LISIBILITÉ : Accent vert pour les éléments actifs (cases à cocher, liens)
-    "accent": "accent-success", 
+    # ⭐ Accent violet
+    "accent": "accent-primary", 
     
     "no_navbar_border": True,
     "navbar_fixed": True,
@@ -366,8 +424,8 @@ JAZZMIN_UI_TWEAKS = {
     "footer_fixed": False,
     "sidebar_fixed": True,
     
-    # Sidebar reste sombre pour le contraste avec le contenu blanc
-    "sidebar": "sidebar-dark-olive", 
+    # ⭐ Sidebar sombre pour contraste avec le texte blanc
+    "sidebar": "sidebar-dark-primary", 
     
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,
@@ -379,13 +437,13 @@ JAZZMIN_UI_TWEAKS = {
     "theme": "default",
     "dark_mode_theme": "darkly",
     
-    # ⭐ CORRECTION LISIBILITÉ : Boutons pleins (solides) pour garantir le contraste texte/fond
+    # ⭐ Boutons utilisant le thème primary (qui sera violet grâce au CSS custom)
     "button_classes": {
-        "primary": "btn-success",      # Vert plein, texte blanc (parfaitement lisible)
-        "secondary": "btn-secondary",   # Gris plein, texte blanc
-        "info": "btn-primary",          # Bleu plein, texte blanc (mieux que info parfois trop clair)
-        "warning": "btn-warning",       # Jaune, texte noir (contraste natif Bootstrap)
-        "danger": "btn-danger",         # Rouge plein, texte blanc
+        "primary": "btn-primary",
+        "secondary": "btn-outline-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
         "success": "btn-success"
     }
 }
