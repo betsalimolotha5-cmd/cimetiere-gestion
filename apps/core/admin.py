@@ -1,6 +1,6 @@
 """
 Administration Django pour l'application core (cimetière).
-CORRIGÉ : Ajout de la gestion des documents (procès-verbaux, autorisations, photos, contrats).
+CORRIGÉ : Ajout de dimensions explicites (width/height) pour forcer l'affichage des cartes.
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -35,6 +35,8 @@ class CaveauAdmin(admin.ModelAdmin):
                 'default_lat': CIMETIERE_CENTRE_LAT,
                 'default_lon': CIMETIERE_CENTRE_LNG,
                 'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+                'map_width': '100%',      # ⭐ CORRECTION : Force l'affichage en largeur
+                'map_height': '400px',    # ⭐ CORRECTION : Force une hauteur visible
             })
         },
     }
@@ -85,6 +87,8 @@ class ZoneAdmin(admin.ModelAdmin):
                 'default_lat': CIMETIERE_CENTRE_LAT,
                 'default_lon': CIMETIERE_CENTRE_LNG,
                 'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+                'map_width': '100%',
+                'map_height': '400px',
             })
         },
     }
@@ -98,7 +102,7 @@ class ZoneAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : DÉFUNT (AVEC PHOTO)
+# ADMIN : DÉFUNT
 # ==============================================================================
 @admin.register(Defunt)
 class DefuntAdmin(admin.ModelAdmin):
@@ -136,7 +140,7 @@ class DefuntAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : CONCESSION (AVEC DOCUMENT DU CONTRAT)
+# ADMIN : CONCESSION
 # ==============================================================================
 @admin.register(Concession)
 class ConcessionAdmin(admin.ModelAdmin):
@@ -209,6 +213,8 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
                 'default_lat': CIMETIERE_CENTRE_LAT,
                 'default_lon': CIMETIERE_CENTRE_LNG,
                 'default_zoom': CIMETIERE_ZOOM_DEFAULT,
+                'map_width': '100%',
+                'map_height': '400px',
             })
         },
     }
@@ -223,12 +229,13 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
         }),
     )
     
+    # Injection du script pour dessiner la délimitation automatique
     class Media:
         js = ('admin/js/cimetiere_perimetre.js',)
 
 
 # ==============================================================================
-# ADMIN : DEMANDE D'EXHUMATION (AVEC DOCUMENTS)
+# ADMIN : DEMANDE D'EXHUMATION
 # ==============================================================================
 @admin.register(DemandeExhumation)
 class DemandeExhumationAdmin(admin.ModelAdmin):
