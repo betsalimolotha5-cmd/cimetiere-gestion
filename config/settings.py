@@ -4,12 +4,26 @@ Conforme au CDC : sécurité, MFA, API REST, PostGIS.
 Optimisé pour Render + Neon (hébergement gratuit).
 """
 import os
+import platform
 from pathlib import Path
 from decouple import config
 import dj_database_url
 
 # Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# ==============================================================================
+# CONFIGURATION GDAL (Pour le développement local sous Windows)
+# ==============================================================================
+# Cette configuration est ignorée en production (Render/Linux)
+# if platform.system() == 'Windows':
+    # Indique à Django le chemin exact de la DLL GDAL installée via OSGeo4W
+    # ⚠️ IMPORTANT : Vérifie dans C:\OSGeo4W\bin\ le nom exact de ton fichier (ex: gdal305.dll, gdal309.dll, gdal310.dll)
+    # et modifie le nom ci-dessous si nécessaire.
+    # GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal305.dll'
+    
+    # Optionnel : Si tu as aussi des erreurs sur GEOS, décommente la ligne suivante :
+    # GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
 
 # ==============================================================================
 # SECURITY & DEBUG
@@ -38,7 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.gis',
+    'django.contrib.gis',  # ⭐ Indispensable pour PostGIS et les cartes
     
     # Apps tierces
     'rest_framework',
@@ -123,23 +137,22 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # ⭐ CORRECTION CRUCIALE : Forcer l'utilisation des vues MFA
-# Cela empêche Django de chercher "accounts/login.html" et le redirige vers ton MFA
 LOGIN_URL = '/mfa/login/'
-LOGIN_REDIRECT_URL = '/portal/'  # Redirection par défaut après succès (la vue MFA gère le cas Admin)
+LOGIN_REDIRECT_URL = '/portal/'
 LOGOUT_REDIRECT_URL = '/mfa/login/'
 
 # ==============================================================================
-# CONFIGURATION EMAIL (API HTTPS Brevo - Lecture directe OS)
+# CONFIGURATION EMAIL (API HTTPS Brevo)
 # ==============================================================================
-# Lecture directe depuis l'environnement du serveur Render (méthode qui a fonctionné)
-BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
+# Utilisation de config() pour éviter le message d'erreur en local si le .env est manquant,
+# tout en restant compatible avec les variables d'environnement de Render.
+BREVO_API_KEY = config('BREVO_API_KEY', default=os.environ.get('BREVO_API_KEY', ''))
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=os.environ.get('DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com'))
 
-# Debug au démarrage du serveur
 if BREVO_API_KEY:
     print(f"✅ [SYSTEME] BREVO_API_KEY chargée avec succès. Début: {BREVO_API_KEY[:15]}...")
 else:
-    print("❌ [SYSTEME] ERREUR CRITIQUE : BREVO_API_KEY est VIDE au démarrage du serveur !")
+    print("⚠️ [SYSTEME] BREVO_API_KEY non détectée en local. L'envoi d'email utilisera le mode fallback.")
 
 # ==============================================================================
 # INTERNATIONALIZATION & TIMEZONE

@@ -1,6 +1,7 @@
 """
 Administration Django pour l'application core (cimetière).
-CORRECTION : Réactivation sécurisée du widget de carte (OSMWidget) pour les champs PointField existants.
+SOLUTION SANS GDAL : Injection JavaScript pour dessiner automatiquement la délimitation
+basée sur la superficie_totale et les coordonnees_centre.
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -29,7 +30,6 @@ class CaveauAdmin(admin.ModelAdmin):
     list_filter = ('statut', 'type_caveau', 'zone')
     search_fields = ('code', 'zone__nom')
     
-    # Réactivation sécurisée de la carte uniquement pour les champs PointField
     formfield_overrides = {
         gis_models.PointField: {
             'widget': OSMWidget(attrs={
@@ -80,12 +80,11 @@ class ZoneAdmin(admin.ModelAdmin):
     list_filter = ('type_zone', 'est_exploitable')
     search_fields = ('code', 'nom')
     
-    # Réactivation sécurisée de la carte pour le PointField de la Zone
     formfield_overrides = {
         gis_models.PointField: {
             'widget': OSMWidget(attrs={
                 'default_lat': CIMETIERE_CENTRE_LAT,
-                'default_lon': CIMETIERE_CENTRE_LNG,
+                'default_lon': CIMETIERE_LNG,
                 'default_zoom': CIMETIERE_ZOOM_DEFAULT,
             })
         },
@@ -159,13 +158,13 @@ class InhumationAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : PARAMÈTRES DU CIMETIÈRE
+# ADMIN : PARAMÈTRES DU CIMETIÈRE (SANS GDAL - JavaScript pour délimitation auto)
 # ==============================================================================
 @admin.register(ParametreCimetiere)
 class ParametreCimetiereAdmin(admin.ModelAdmin):
     list_display = ('nom', 'superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau')
     
-    # Réactivation sécurisée de la carte pour le PointField 'coordonnees_centre'
+    # Uniquement PointField (pas de PolygonField pour éviter GDAL)
     formfield_overrides = {
         gis_models.PointField: {
             'widget': OSMWidget(attrs={
@@ -176,15 +175,19 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
         },
     }
     
-    # Note : Le champ 'perimetre' est volontairement absent car il n'existe pas dans models.py
     fieldsets = (
         ('Informations générales', {
             'fields': ('nom', 'adresse', 'coordonnees_centre')
         }),
         ('Dimensions', {
-            'fields': ('superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau', 'largeur_allee')
+            'fields': ('superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau', 'largeur_allee'),
+            'description': '💡 La délimitation du cimetière sera automatiquement calculée et affichée sur la carte ci-dessus en fonction de la superficie totale et du point central.'
         }),
     )
+    
+    # Injection du script JavaScript pour dessiner la délimitation
+    class Media:
+        js = ('admin/js/cimetiere_perimetre.js',)
 
 
 # ==============================================================================
