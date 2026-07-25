@@ -20,22 +20,13 @@ def get_client_ip(request):
     return request.META.get('REMOTE_ADDR')
 
 
-import requests
-import os
-from django.conf import settings
-
-
-import requests
-import os
-from django.conf import settings
-
 def send_mfa_email_via_api(user, code):
     """Envoie le code MFA via l'API HTTPS de Brevo (Port 443)."""
     print(f"📧 [MFA] Tentative d'envoi du code {code} à {user.email}")
     
     # Lecture directe et sécurisée
-    api_key = os.environ.get('BREVO_API_KEY', '')
-    from_email = os.environ.get('DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
+    api_key = settings.BREVO_API_KEY
+    from_email = settings.DEFAULT_FROM_EMAIL
     
     if not api_key or not api_key.startswith('xkeysib-'):
         print("❌ [MFA] ERREUR : La clé API est invalide ou manquante dans Render.")
@@ -84,6 +75,7 @@ def send_mfa_email_via_api(user, code):
     except Exception as e:
         print(f"❌ [MFA] EXCEPTION SYSTÈME : {str(e)}")
         return False
+
 
 def login_view(request):
     """Page de connexion avec identifiants email/password."""
@@ -250,8 +242,9 @@ def register_view(request):
         
         # Création du compte
         try:
+            # CORRECTION CRUCIALE : On utilise email comme identifiant unique
+            # (Suppression de l'argument 'username' qui n'existe pas dans le modèle User)
             user = User.objects.create_user(
-                username=email,  # username = email pour simplifier
                 email=email,
                 password=password,
                 first_name=first_name,
