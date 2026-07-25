@@ -80,7 +80,7 @@ def send_mfa_email_via_api(user, code):
 def login_view(request):
     """Page de connexion avec identifiants email/password."""
     if request.user.is_authenticated:
-        return redirect('dashboard_admin')
+        return redirect('carte_publique')
     
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
@@ -99,9 +99,10 @@ def login_view(request):
             ip_address = get_client_ip(request)
             code_obj = MFACode.generer_code(user, ip_address=ip_address)
             
-            # 2. Stocker en session
+            # 2. Stocker en session (y compris le backend d'authentification pour le login final)
             request.session['mfa_user_id'] = user.id
             request.session['mfa_email'] = user.email
+            request.session['_auth_user_backend'] = user.backend
             
             # 3. Tenter d'envoyer l'email via API HTTPS (Port 443)
             email_sent = send_mfa_email_via_api(user, code_obj.code)
@@ -111,7 +112,6 @@ def login_view(request):
                 messages.success(request, f'✅ Un code de vérification a été envoyé à {user.email}.')
             else:
                 # ⭐ FALLBACK : Si l'email est bloqué par les filtres spam, on affiche le code à l'écran
-                # Cela garantit que la démo fonctionne à 100% sans erreur 500.
                 messages.warning(
                     request, 
                     f'⚠️ Restriction de l\'hébergeur gratuit : l\'email a été filtré. '
@@ -152,15 +152,34 @@ def verification_view(request):
                 code_obj.utilise = True
                 code_obj.save()
                 
+                # ⭐ CORRECTION CRUCIALE : Restaurer le backend d'authentification
+                backend = request.session.get('_auth_user_backend')
+                if backend:
+                    user.backend = backend
+                
+                # Connexion effective de l'utilisateur
                 login(request, user)
                 
-                if 'mfa_user_id' in request.session:
-                    del request.session['mfa_user_id']
-                if 'mfa_email' in request.session:
-                    del request.session['mfa_email']
+                # Nettoyage de la session MFA
+                for key in ['mfa_user_id', 'mfa_email', '_auth_user_backend']:
+                    if key in request.session:
+                        del request.session[key]
                 
                 messages.success(request, f'Bienvenue {user.get_full_name() or user.email} !')
-                return redirect('dashboard_admin')
+                
+                # ⭐ REDIRECTION INTELLIGENTE SELON LE RÔLE
+                if user.is_staff:
+                    return redirect('dashboard_admin')
+                
+                # Vérification du rôle Agent
+                user_groups = user.groups.values_list('name', flat=True)
+                is_agent = 'Agents' in user_groups or 'Agent' in user_groups
+                if is_agent:
+                    return redirect('dashboard_agent')
+                
+                # Par défaut : Client -> Carte publique
+                return redirect('carte_publique')
+                
             else:
                 messages.error(request, 'Code expiré. Veuillez vous reconnecter.')
                 return redirect('login')
@@ -205,7 +224,7 @@ def resend_code_view(request):
 def register_view(request):
     """Page de création de compte utilisateur."""
     if request.user.is_authenticated:
-        return redirect('/admin/')
+        return redirect('carte_publique')
     
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
@@ -242,8 +261,6 @@ def register_view(request):
         
         # Création du compte
         try:
-            # CORRECTION CRUCIALE : On utilise email comme identifiant unique
-            # (Suppression de l'argument 'username' qui n'existe pas dans le modèle User)
             user = User.objects.create_user(
                 email=email,
                 password=password,
