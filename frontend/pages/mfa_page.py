@@ -230,14 +230,16 @@ class MFAPage:
             user_role = profile.get('role', 'CLIENT')
             redirect_route = self._get_redirect_route(user_role)
             
-            self.page.route = redirect_route
-            self.page.update()
-        
+            # Utiliser page.go() pour naviguer effectivement
+            self.page.go(redirect_route)
+            
         except APIError as e:
             self.error_text.value = f"Code incorrect : {e.message}"
+            self.verify_button.disabled = False
+            self.loading.visible = False
+            self.page.update()
         except Exception as e:
             self.error_text.value = f"Erreur : {str(e)}"
-        finally:
             self.verify_button.disabled = False
             self.loading.visible = False
             self.page.update()

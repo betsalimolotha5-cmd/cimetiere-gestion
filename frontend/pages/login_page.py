@@ -199,8 +199,8 @@ class LoginPage:
                 # Stocker les infos temporaires
                 self.app_state.temp_user_id = result.get('user_id')
                 self.app_state.temp_user_email = email
-                self.page.route = "/mfa"
-                self.page.update()
+                # Utiliser page.go() pour naviguer
+                self.page.go("/mfa")
             else:
                 # Connexion réussie sans MFA
                 token = result.get('access_token')
@@ -215,15 +215,16 @@ class LoginPage:
                 user_role = profile.get('role', 'CLIENT')
                 redirect_route = self._get_redirect_route(user_role)
                 
-                self.page.route = redirect_route
-                self.page.update()
+                # Utiliser page.go() pour naviguer effectivement
+                self.page.go(redirect_route)
         
         except APIError as e:
             self.error_text.value = f"Erreur : {e.message}"
+            self.login_button.disabled = False
+            self.loading.visible = False
+            self.page.update()
         except Exception as e:
             self.error_text.value = f"Erreur inattendue : {str(e)}"
-        finally:
-            # Réinitialiser l'état
             self.login_button.disabled = False
             self.loading.visible = False
             self.page.update()
