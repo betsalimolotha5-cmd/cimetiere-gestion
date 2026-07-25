@@ -1,7 +1,7 @@
 """
 Vues du portail client (Carte publique + Réservations + Factures + Paiements + Dashboards).
 Conforme au CDC : workflow complet de réservation → facturation → paiement + carte dynamique + RBAC.
-AJOUT : Calcul dynamique du périmètre basé sur la superficie_totale configurée + Dashboard Agent enrichi.
+AJOUT : Calcul dynamique du périmètre + Dashboards Agent et Secrétaire enrichis.
 """
 import math
 from django.shortcuts import render, redirect, get_object_or_404
@@ -15,7 +15,7 @@ from django.db.models import Sum, Count, Q, F
 from django.core.cache import cache
 
 from .models import DemandeReservation
-from apps.core.models import Caveau, Zone, ParametreCimetiere, DemandeExhumation
+from apps.core.models import Caveau, Zone, ParametreCimetiere, DemandeExhumation, Concession
 from apps.billing.models import Facture, Paiement
 from apps.accounts.models import User
 
@@ -334,7 +334,7 @@ def payer_facture(request, facture_id):
 
 
 # ==============================================================================
-# ⭐ NOUVEAU : DASHBOARD AGENT DE TERRAIN (RBAC)
+# ⭐ DASHBOARD AGENT DE TERRAIN (RBAC)
 # ==============================================================================
 @login_required
 def dashboard_agent(request):
@@ -360,7 +360,7 @@ def dashboard_agent(request):
             statut='EN_ATTENTE'
         ).count()
         
-        # ⭐ NOUVEAU : Compteur d'exhumations en attente pour le dashboard
+        # Compteur d'exhumations en attente pour le dashboard
         exhumations_en_attente = DemandeExhumation.objects.filter(
             statut='EN_ATTENTE'
         ).count()
@@ -382,6 +382,70 @@ def dashboard_agent(request):
     }
     
     return render(request, 'portal/dashboard_agent.html', context)
+
+
+# ==============================================================================
+# ⭐ NOUVEAU : DASHBOARD SECRÉTAIRE (RBAC)
+# ==============================================================================
+@login_required
+def dashboard_secretaire(request):
+    """Tableau de bord administratif et financier pour la secrétaire."""
+    
+    # Vérifier que l'utilisateur est dans le groupe "Secretaire"/"Secrétaire" ou est staff
+    user_groups = request.user.groups.values_list('name', flat=True)
+    is_secretaire = 'Secretaire' in user_groups or 'Secrétaire' in user_groups
+    
+    if not request.user.is_staff and not is_secretaire:
+        messages.error(request, "Accès réservé aux secrétaires et administrateurs.")
+        return redirect('carte_publique')
+    
+    try:
+        # 1. Statistiques financières
+        factures_impayees_qs = Facture.objects.filter(
+            Q(statut='EN_ATTENTE') | Q(statut='PARTIELLEMENT_PAYEE')
+        ).select_related('client', 'concession').order_by('-date_creation')
+        
+        factures_impayees_count = factures_impayees_qs.count()
+        factures_impayees_recentes = list(factures_impayees_qs[:10])
+        
+        # Revenus du mois en cours
+        debut_mois = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        revenus_mois = Paiement.objects.filter(
+            statut='VALIDE',
+            date_paiement__gte=debut_mois
+        ).aggregate(total=Sum('montant'))['total'] or Decimal('0')
+        
+        # 2. Concessions récentes
+        concessions_recentes = list(Concession.objects.select_related(
+            'concessionnaire', 'caveau', 'caveau__zone'
+        ).order_by('-date_creation')[:10])
+        
+        # 3. Réservations en attente
+        reservations_en_attente = list(DemandeReservation.objects.filter(
+            statut='EN_ATTENTE'
+        ).select_related('client', 'caveau', 'caveau__zone').order_by('-date_creation')[:10])
+        
+        total_reservations_attente = DemandeReservation.objects.filter(statut='EN_ATTENTE').count()
+        
+    except Exception as e:
+        print(f"[DASHBOARD SECRETAIRE] Erreur: {e}")
+        factures_impayees_count = 0
+        factures_impayees_recentes = []
+        revenus_mois = Decimal('0')
+        concessions_recentes = []
+        reservations_en_attente = []
+        total_reservations_attente = 0
+
+    context = {
+        'factures_impayees_count': factures_impayees_count,
+        'factures_impayees_recentes': factures_impayees_recentes,
+        'revenus_mois': revenus_mois,
+        'concessions_recentes': concessions_recentes,
+        'reservations_en_attente': reservations_en_attente,
+        'total_reservations_attente': total_reservations_attente,
+    }
+    
+    return render(request, 'portal/dashboard_secretaire.html', context)
 
 
 # ==============================================================================
@@ -426,7 +490,7 @@ def dashboard_admin(request):
         total_caveaux = stats_caveaux['total'] or 0
         taux_occupation = round((stats_caveaux['occupes'] / total_caveaux * 100), 1) if total_caveaux > 0 else 0
         
-        # 2. RÉSERVATIONS (Utilisation de chaînes de caractères)
+        # 2. RÉSERVATIONS
         reservations_qs = DemandeReservation.objects.filter(statut='EN_ATTENTE').select_related('client', 'caveau', 'caveau__zone').order_by('-date_creation')
         total_reservations_attente = reservations_qs.count()
         reservations_en_attente = list(reservations_qs[:10])
@@ -448,7 +512,7 @@ def dashboard_admin(request):
         ).values('mois').annotate(total=Sum('montant')).order_by('mois')
         revenus_mensuels = [{'mois': p['mois'], 'total': float(p['total'])} for p in paiements_mensuels]
         
-        # 4. FACTURES (Chaînes de caractères)
+        # 4. FACTURES
         factures_stats = Facture.objects.aggregate(
             total=Count('id'), 
             impayees=Count('id', filter=Q(statut='EN_ATTENTE')), 
