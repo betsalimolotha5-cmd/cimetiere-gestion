@@ -109,11 +109,14 @@
             
             <div class="collapse navbar-collapse" id="navbarMain">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <!-- LIEN CARTE (Visible par tous les utilisateurs connectés) -->
+                    {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" href="/portal/">
                             <i class="fas fa-map-marked-alt me-1"></i> Carte Interactive
                         </a>
                     </li>
+                    {% endif %}
 
                     <!-- ========================================== -->
                     <!-- CLIENT (Ni Admin, ni Agent)                -->
@@ -125,9 +128,7 @@
                         <li class="nav-item">
                             <a class="nav-link" href="/portal/mes-factures/"><i class="fas fa-file-invoice-dollar me-1"></i> Mes Factures</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/portal/mes-concessions/"><i class="fas fa-file-contract me-1"></i> Mes Concessions</a>
-                        </li>
+                        <!-- ⭐ SUPPRIMÉ : "Mes Concessions" retiré du menu client -->
                     {% endif %}
 
                     <!-- ========================================== -->
@@ -188,6 +189,7 @@
                                     <li><hr class="dropdown-divider"></li>
                                 
                                 {% else %}
+                                    <!-- Menu déroulant Client (propre et sans concession) -->
                                     <li><a class="dropdown-item" href="/portal/mes-reservations/"><i class="fas fa-calendar me-2 text-primary"></i> Mes réservations</a></li>
                                     <li><a class="dropdown-item" href="/portal/mes-factures/"><i class="fas fa-file-invoice me-2 text-primary"></i> Mes factures</a></li>
                                     <li><hr class="dropdown-divider"></li>
