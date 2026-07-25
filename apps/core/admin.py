@@ -1,7 +1,6 @@
 """
 Administration Django pour l'application core (cimetière).
-SOLUTION SANS GDAL : Injection JavaScript pour dessiner automatiquement la délimitation
-basée sur la superficie_totale et les coordonnees_centre.
+CORRIGÉ : Correction de la faute de frappe CIMETIERE_LNG -> CIMETIERE_CENTRE_LNG
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -84,7 +83,7 @@ class ZoneAdmin(admin.ModelAdmin):
         gis_models.PointField: {
             'widget': OSMWidget(attrs={
                 'default_lat': CIMETIERE_CENTRE_LAT,
-                'default_lon': CIMETIERE_LNG,
+                'default_lon': CIMETIERE_CENTRE_LNG,  # <-- CORRIGÉ ICI
                 'default_zoom': CIMETIERE_ZOOM_DEFAULT,
             })
         },
@@ -158,13 +157,12 @@ class InhumationAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : PARAMÈTRES DU CIMETIÈRE (SANS GDAL - JavaScript pour délimitation auto)
+# ADMIN : PARAMÈTRES DU CIMETIÈRE
 # ==============================================================================
 @admin.register(ParametreCimetiere)
 class ParametreCimetiereAdmin(admin.ModelAdmin):
     list_display = ('nom', 'superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau')
     
-    # Uniquement PointField (pas de PolygonField pour éviter GDAL)
     formfield_overrides = {
         gis_models.PointField: {
             'widget': OSMWidget(attrs={
@@ -181,11 +179,10 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
         }),
         ('Dimensions', {
             'fields': ('superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau', 'largeur_allee'),
-            'description': '💡 La délimitation du cimetière sera automatiquement calculée et affichée sur la carte ci-dessus en fonction de la superficie totale et du point central.'
+            'description': '💡 La délimitation du cimetière sera automatiquement calculée et affichée sur la carte en fonction de la superficie totale et du point central.'
         }),
     )
     
-    # Injection du script JavaScript pour dessiner la délimitation
     class Media:
         js = ('admin/js/cimetiere_perimetre.js',)
 
