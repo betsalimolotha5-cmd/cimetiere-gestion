@@ -1,3 +1,3 @@
-"""URLs admin pour l'application portal."""
+"""URLs admin pour l'application reports."""
 from django.urls import path
 urlpatterns = []
