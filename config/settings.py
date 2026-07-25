@@ -2,6 +2,7 @@
 Django settings for cimetiere_gestion project.
 Conforme au CDC : sécurité, MFA, API REST, PostGIS.
 Optimisé pour Render + Neon (hébergement gratuit).
+AJOUT : Configuration de django-jazzmin pour un admin moderne et personnalisé.
 """
 import os
 import platform
@@ -17,13 +18,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ==============================================================================
 # Cette configuration est ignorée en production (Render/Linux)
 # if platform.system() == 'Windows':
-    # Indique à Django le chemin exact de la DLL GDAL installée via OSGeo4W
-    # ⚠️ IMPORTANT : Vérifie dans C:\OSGeo4W\bin\ le nom exact de ton fichier (ex: gdal305.dll, gdal309.dll, gdal310.dll)
-    # et modifie le nom ci-dessous si nécessaire.
-    # GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal305.dll'
-    
-    # Optionnel : Si tu as aussi des erreurs sur GEOS, décommente la ligne suivante :
-    # GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
+#     GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal305.dll'
+#     GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
 
 # ==============================================================================
 # SECURITY & DEBUG
@@ -46,6 +42,7 @@ CSRF_TRUSTED_ORIGINS = [
 # APPLICATION DEFINITION
 # ==============================================================================
 INSTALLED_APPS = [
+    'jazzmin',  # ⭐ DOIT ÊTRE EN PREMIER pour personnaliser l'admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -144,8 +141,6 @@ LOGOUT_REDIRECT_URL = '/mfa/login/'
 # ==============================================================================
 # CONFIGURATION EMAIL (API HTTPS Brevo)
 # ==============================================================================
-# Utilisation de config() pour éviter le message d'erreur en local si le .env est manquant,
-# tout en restant compatible avec les variables d'environnement de Render.
 BREVO_API_KEY = config('BREVO_API_KEY', default=os.environ.get('BREVO_API_KEY', ''))
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=os.environ.get('DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com'))
 
@@ -297,3 +292,87 @@ if not BACKUP_DIR.exists():
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
+# ==============================================================================
+# ⭐ CONFIGURATION DJANGO-JAZZMIN (Thème Admin Moderne)
+# ==============================================================================
+JAZZMIN_SETTINGS = {
+    "site_title": "Gestion Cimetière Admin",
+    "site_header": "Gestion Cimetière",
+    "site_brand": "Cimetière Digital",
+    "welcome_sign": "Bienvenue sur le panneau d'administration",
+    "copyright": "Gestion Cimetière © 2026",
+    "search_model": ["accounts.User", "core.Caveau", "core.Defunt", "billing.Facture"],
+    "user_avatar": None,
+    "topmenu_links": [
+        {"name": "Accueil", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Voir le Site", "url": "/portal/", "new_window": True},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "order_with_respect_to": ["accounts", "core", "billing", "portal", "reports"],
+    "custom_links": {
+        "core": [
+            {
+                "name": "Carte Interactive",
+                "url": "/portal/",
+                "icon": "fas fa-map-marked-alt",
+                "permissions": ["core.view_caveau"],
+            }
+        ]
+    },
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "accounts.user": "fas fa-user-shield",
+        "core.zone": "fas fa-map",
+        "core.caveau": "fas fa-cross",
+        "core.defunt": "fas fa-user-injured",
+        "core.concession": "fas fa-file-contract",
+        "core.inhumation": "fas fa-book-dead",
+        "core.parametrecimetiere": "fas fa-cogs",
+        "core.demandeexhumation": "fas fa-exchange-alt",
+        "billing.facture": "fas fa-file-invoice-dollar",
+        "billing.paiement": "fas fa-money-bill-wave",
+    },
+    "default_icon_parents": "fas fa-folder",
+    "default_icon_children": "fas fa-circle",
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {
+        "auth.user": "collapsible",
+        "accounts.user": "collapsible",
+    },
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-success", # Vert foncé cohérent avec le site
+    "accent": "accent-primary",
+    "navbar": "navbar-dark navbar-success",
+    "no_navbar_border": False,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-dark-primary",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": "darkly",
+    "button_classes": {
+        "primary": "btn-success",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}
