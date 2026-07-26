@@ -1,7 +1,7 @@
 """
 Administration Django pour l'application core (cimetière).
 CORRIGÉ : Ajout de dimensions explicites (width/height) pour forcer l'affichage des cartes.
-AJOUT : Téléchargement PDF du contrat de concession et du PV d'inhumation.
+AJOUT : Téléchargement PDF du contrat de concession, du PV d'inhumation et de l'autorisation d'exhumation.
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -240,7 +240,7 @@ class ConcessionAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : INHUMATION (AVEC PDF DU PV)
+# ADMIN : INHUMATION
 # ==============================================================================
 @admin.register(Inhumation)
 class InhumationAdmin(admin.ModelAdmin):
@@ -249,7 +249,7 @@ class InhumationAdmin(admin.ModelAdmin):
         'concession', 
         'date_inhumation', 
         'profondeur',
-        'telecharger_pv_pdf_link',  # ⭐ NOUVEAU : Bouton PV dans la liste
+        'telecharger_pv_pdf_link',
     )
     list_filter = ('date_inhumation',)
     search_fields = ('defunt__nom', 'defunt__prenom', 'concession__numero_contrat')
@@ -269,9 +269,8 @@ class InhumationAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['telecharger_pv_pdf_action']  # ⭐ NOUVEAU : Action de masse
+    actions = ['telecharger_pv_pdf_action']
     
-    # ⭐ NOUVEAU : Bouton PV dans la liste des inhumations
     @admin.display(description='PV PDF')
     def telecharger_pv_pdf_link(self, obj):
         if obj.pk:
@@ -283,7 +282,6 @@ class InhumationAdmin(admin.ModelAdmin):
             )
         return "-"
     
-    # ⭐ NOUVEAU : Gros bouton PV dans le formulaire de détail
     @admin.display(description='Télécharger le PV')
     def telecharger_pv_pdf_button(self, obj):
         if obj.pk:
@@ -295,7 +293,6 @@ class InhumationAdmin(admin.ModelAdmin):
             )
         return format_html('<p style="color: #999;">Sauvegardez d\'abord l\'inhumation pour pouvoir télécharger le PV.</p>')
     
-    # ⭐ NOUVEAU : Action de masse pour télécharger plusieurs PVs
     @admin.action(description='📄 Télécharger les PV d\'inhumation PDF sélectionnés')
     def telecharger_pv_pdf_action(self, request, queryset):
         if queryset.count() == 1:
@@ -344,14 +341,27 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : DEMANDE D'EXHUMATION
+# ADMIN : DEMANDE D'EXHUMATION (AVEC PDF DE L'AUTORISATION)
 # ==============================================================================
 @admin.register(DemandeExhumation)
 class DemandeExhumationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'nom_demandeur', 'inhumation', 'statut_badge', 'date_demande')
+    list_display = (
+        'id', 
+        'nom_demandeur', 
+        'inhumation', 
+        'statut_badge', 
+        'date_demande',
+        'telecharger_autorisation_pdf_link',  # ⭐ NOUVEAU : Bouton Autorisation dans la liste
+    )
     list_filter = ('statut', 'date_demande')
     search_fields = ('nom_demandeur', 'inhumation__defunt__nom')
-    readonly_fields = ('date_demande', 'date_validation', 'date_realisation', 'date_modification')
+    readonly_fields = (
+        'date_demande', 
+        'date_validation', 
+        'date_realisation', 
+        'date_modification',
+        'telecharger_autorisation_pdf_button'  # ⭐ NOUVEAU
+    )
     
     fieldsets = (
         ('Informations de la demande', {
@@ -363,9 +373,14 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
         ('Détails', {
             'fields': ('motif', 'destination')
         }),
-        ('Documents officiels', {
+        ('Document PDF de l\'autorisation', {
+            'fields': ('telecharger_autorisation_pdf_button',),
+            'description': '💡 Cliquez sur le bouton ci-dessous pour télécharger l\'autorisation d\'exhumation officielle au format PDF'
+        }),
+        ('Documents officiels numérisés', {
             'fields': ('autorisation_mairie', 'proces_verbal'),
-            'description': '📄 Téléchargez ici les documents officiels (autorisation de la mairie, procès-verbal d\'exhumation)'
+            'description': '📎 Téléversez ici les documents officiels scannés (optionnel)',
+            'classes': ('collapse',),
         }),
         ('Traitement', {
             'fields': ('date_demande', 'date_validation', 'date_realisation', 'valide_par', 'motif_refus')
@@ -376,7 +391,7 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['valider_demandes', 'refuser_demandes']
+    actions = ['valider_demandes', 'refuser_demandes', 'telecharger_autorisations_pdf_action']  # ⭐ NOUVEAU
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
@@ -396,6 +411,44 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
             )
         except Exception:
             return obj.statut if obj.statut else '-'
+    
+    # ⭐ NOUVEAU : Bouton Autorisation PDF dans la liste
+    @admin.display(description='Autorisation PDF')
+    def telecharger_autorisation_pdf_link(self, obj):
+        if obj.pk:
+            url = f'/core/demande-exhumation/{obj.id}/autorisation-pdf/'
+            return format_html(
+                '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #2980b9; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
+                '<i class="fas fa-file-pdf"></i> 📄 Autorisation</a>',
+                url
+            )
+        return "-"
+    
+    # ⭐ NOUVEAU : Gros bouton Autorisation PDF dans le formulaire de détail
+    @admin.display(description='Télécharger l\'autorisation')
+    def telecharger_autorisation_pdf_button(self, obj):
+        if obj.pk:
+            url = f'/core/demande-exhumation/{obj.id}/autorisation-pdf/'
+            return format_html(
+                '<a href="{}" target="_blank" class="button" style="padding: 12px 24px; background: #2980b9; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block;">'
+                '<i class="fas fa-download"></i> Télécharger l\'autorisation en PDF</a>',
+                url
+            )
+        return format_html('<p style="color: #999;">Sauvegardez d\'abord la demande pour pouvoir télécharger l\'autorisation.</p>')
+    
+    # ⭐ NOUVEAU : Action de masse pour télécharger plusieurs autorisations
+    @admin.action(description='📄 Télécharger les autorisations d\'exhumation PDF sélectionnées')
+    def telecharger_autorisations_pdf_action(self, request, queryset):
+        if queryset.count() == 1:
+            demande = queryset.first()
+            url = f'/core/demande-exhumation/{demande.id}/autorisation-pdf/'
+            messages.success(request, f'Autorisation PDF prête pour la demande #{demande.id}')
+        else:
+            links = []
+            for demande in queryset:
+                url = f'/core/demande-exhumation/{demande.id}/autorisation-pdf/'
+                links.append(f'<a href="{url}" target="_blank">Demande #{demande.id}</a>')
+            messages.success(request, f'Autorisations PDF prêtes pour : {", ".join(links)}')
     
     @admin.action(description='✓ Valider les demandes sélectionnées')
     def valider_demandes(self, request, queryset):
