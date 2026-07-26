@@ -1,7 +1,7 @@
 """
 Administration Django pour la facturation et les paiements.
 Conforme au CDC : validation paiement → notification client automatique.
-AJOUT : Téléchargement PDF direct via la vue facture_pdf.
+AJOUT : Téléchargement PDF direct pour factures ET reçus de paiement.
 """
 from django.contrib import admin
 from django.utils.html import format_html
@@ -123,13 +123,10 @@ class FactureAdmin(admin.ModelAdmin):
     def telecharger_pdf_action(self, request, queryset):
         """Action de masse pour télécharger les PDFs."""
         if queryset.count() == 1:
-            # Si une seule facture, rediriger directement vers le PDF
             facture = queryset.first()
             url = f'/billing/facture/{facture.id}/pdf/'
             messages.success(request, f'PDF généré pour la facture {facture.numero_facture}.')
-            return format_html('<a href="{}" target="_blank">Télécharger le PDF</a>', url)
         else:
-            # Si plusieurs factures, afficher les liens
             links = []
             for facture in queryset:
                 url = f'/billing/facture/{facture.id}/pdf/'
@@ -148,6 +145,9 @@ class FactureAdmin(admin.ModelAdmin):
         self.message_user(request, f'{updated} facture(s) marquée(s) comme payée(s).')
 
 
+# ==============================================================================
+# ADMIN : PAIEMENT (AVEC PDF DU REÇU)
+# ==============================================================================
 @admin.register(Paiement)
 class PaiementAdmin(admin.ModelAdmin):
     list_display = (
@@ -158,10 +158,11 @@ class PaiementAdmin(admin.ModelAdmin):
         'mode_paiement',
         'statut_display',
         'date_paiement',
+        'telecharger_recu_pdf_link',  # ⭐ NOUVEAU : Bouton reçu PDF dans la liste
     )
     list_filter = ('mode_paiement', 'statut', 'date_paiement')
     search_fields = ('numero_transaction', 'facture__numero_facture', 'client__email')
-    readonly_fields = ('date_paiement', 'date_creation', 'date_modification')
+    readonly_fields = ('date_paiement', 'date_creation', 'date_modification', 'telecharger_recu_pdf_button')
     date_hierarchy = 'date_paiement'
     
     fieldsets = (
@@ -170,6 +171,10 @@ class PaiementAdmin(admin.ModelAdmin):
         }),
         ('Détails de transaction', {
             'fields': ('reference_transaction', 'numero_telephone', 'date_paiement')
+        }),
+        ('Document PDF du reçu', {
+            'fields': ('telecharger_recu_pdf_button',),
+            'description': '💡 Cliquez sur le bouton ci-dessous pour télécharger le reçu officiel au format PDF'
         }),
         ('Validation', {
             'fields': ('date_validation', 'valide_par')
@@ -180,7 +185,7 @@ class PaiementAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['valider_paiements', 'refuser_paiements']
+    actions = ['valider_paiements', 'refuser_paiements', 'telecharger_recus_pdf_action']  # ⭐ NOUVEAU
     
     def montant_display(self, obj):
         montant = float(obj.montant) if obj.montant else 0
@@ -205,6 +210,42 @@ class PaiementAdmin(admin.ModelAdmin):
     statut_display.short_description = 'Statut'
     statut_display.admin_order_field = 'statut'
     
+    # ⭐ NOUVEAU : Bouton reçu PDF dans la liste des paiements
+    @admin.display(description='Reçu PDF')
+    def telecharger_recu_pdf_link(self, obj):
+        url = f'/billing/paiement/{obj.id}/recu-pdf/'
+        return format_html(
+            '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #2c5f2d; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
+            '<i class="fas fa-receipt"></i> 🧾 Reçu</a>',
+            url
+        )
+    
+    # ⭐ NOUVEAU : Gros bouton reçu PDF dans le formulaire de détail
+    @admin.display(description='Télécharger le reçu')
+    def telecharger_recu_pdf_button(self, obj):
+        if obj.pk:  # Seulement si le paiement existe déjà
+            url = f'/billing/paiement/{obj.id}/recu-pdf/'
+            return format_html(
+                '<a href="{}" target="_blank" class="button" style="padding: 12px 24px; background: #2c5f2d; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block;">'
+                '<i class="fas fa-download"></i> Télécharger le reçu en PDF</a>',
+                url
+            )
+        return format_html('<p style="color: #999;">Sauvegardez d\'abord le paiement pour pouvoir télécharger le reçu.</p>')
+    
+    # ⭐ NOUVEAU : Action de masse pour télécharger plusieurs reçus
+    @admin.action(description='🧾 Télécharger les reçus PDF des paiements sélectionnés')
+    def telecharger_recus_pdf_action(self, request, queryset):
+        if queryset.count() == 1:
+            paiement = queryset.first()
+            url = f'/billing/paiement/{paiement.id}/recu-pdf/'
+            messages.success(request, f'Reçu PDF prêt pour : {paiement.numero_transaction}')
+        else:
+            links = []
+            for paiement in queryset:
+                url = f'/billing/paiement/{paiement.id}/recu-pdf/'
+                links.append(f'<a href="{url}" target="_blank">{paiement.numero_transaction}</a>')
+            messages.success(request, f'Reçus PDF prêts pour : {", ".join(links)}')
+    
     @admin.action(description='✓ Valider les paiements sélectionnés (avec notification client)')
     def valider_paiements(self, request, queryset):
         """Valide les paiements et notifie automatiquement les clients."""
@@ -225,7 +266,6 @@ class PaiementAdmin(admin.ModelAdmin):
                         url_lien=f'/portal/facture/{paiement.facture.id}/'
                     )
                 except Exception as e:
-                    # Ne pas bloquer si la notification échoue
                     pass
             except Exception as e:
                 messages.error(request, f'Erreur #{paiement.id}: {str(e)}')
