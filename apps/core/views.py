@@ -1,6 +1,6 @@
 """
 Vues pour l'application core.
-AJOUT : Dashboard admin, PDFs, QR Codes et exports.
+AJOUT : Dashboard admin, PDFs, QR Codes et exports. (CORRIGÉ : f-strings pour Python 3.11)
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -40,10 +40,9 @@ from .models import Zone, Caveau, Concession, Defunt, Inhumation, DemandeExhumat
 
 
 # ==============================================================================
-# INITIALISATION DE LA BASE DE DONNÉES (Pour le déploiement)
+# INITIALISATION DE LA BASE DE DONNÉES
 # ==============================================================================
 def init_db(request):
-    """Page temporaire pour initialiser la base de données en production"""
     result = []
     try:
         result.append("📦 Application des migrations...")
@@ -279,7 +278,8 @@ def attestation_concession_pdf(request, concession_id):
         pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
         nom_client = concession.concessionnaire.get_full_name().replace(' ', '_') if concession.concessionnaire.get_full_name() else 'Client'
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime('%Y%m%d')}.pdf"'
+        # ✅ CORRIGÉ : Guillemets doubles pour le format de date à l'intérieur de la f-string
+        response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime("%Y%m%d")}.pdf"'
         return response
     except Exception as e:
         messages.error(request, f"Erreur : {str(e)}")
@@ -316,7 +316,7 @@ def autorisation_exhumation_pdf(request, demande_id):
         pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
         nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Autorisation_exhumation_{nom_defunt}_{timezone.now().strftime('%Y%m%d')}.pdf"'
+        response['Content-Disposition'] = f'attachment; filename="Autorisation_exhumation_{nom_defunt}_{timezone.now().strftime("%Y%m%d")}.pdf"'
         return response
     except Exception as e:
         messages.error(request, f"Erreur : {str(e)}")
@@ -386,7 +386,7 @@ def rapport_statistique_pdf(request):
         template = get_template('core/pdf/rapport_statistique_pdf.html')
         pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Rapport_Statistique_{date_debut.strftime('%Y%m')}_a_{date_fin.strftime('%Y%m%d')}.pdf"'
+        response['Content-Disposition'] = f'attachment; filename="Rapport_Statistique_{date_debut.strftime("%Y%m")}_a_{date_fin.strftime("%Y%m%d")}.pdf"'
         return response
     except Exception as e:
         messages.error(request, f"Erreur : {str(e)}")
@@ -394,14 +394,12 @@ def rapport_statistique_pdf(request):
 
 
 # ==============================================================================
-# DASHBOARD ADMIN (NOUVEAU)
+# DASHBOARD ADMIN
 # ==============================================================================
 @staff_member_required
 def dashboard_admin(request):
-    """Vue du tableau de bord avec KPIs et données pour graphiques."""
     today = timezone.now().date()
     
-    # 1. KPIs globaux
     total_caveaux = Caveau.objects.count()
     caveaux_occupes = Caveau.objects.filter(statut='OCCUPE').count()
     caveaux_disponibles = Caveau.objects.filter(statut='DISPONIBLE').count()
@@ -410,7 +408,6 @@ def dashboard_admin(request):
     total_concessions = Concession.objects.count()
     concessions_actives = Concession.objects.filter(statut='ACTIVE').count()
     
-    # 2. Données pour les graphiques (6 derniers mois)
     labels = []
     data_inhumations = []
     data_revenus = []
@@ -428,11 +425,9 @@ def dashboard_admin(request):
         
         labels.append(f"{calendar.month_name[month][:3]} {year}")
         
-        # Inhumations du mois
         inhumations = Inhumation.objects.filter(date_inhumation__range=(first_day, end_day)).count()
         data_inhumations.append(inhumations)
         
-        # Revenus du mois
         try:
             from apps.billing.models import Paiement
             revenus = Paiement.objects.filter(
