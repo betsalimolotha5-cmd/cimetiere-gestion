@@ -1,6 +1,6 @@
 """
 URLs pour l'application core.
-AJOUT : Routes pour les téléchargements PDF (contrat de concession, PV d'inhumation et autorisation d'exhumation).
+AJOUT : Routes pour les téléchargements PDF (contrat, PV inhumation, autorisation et PV exhumation).
 """
 from django.urls import path
 from . import views
@@ -30,6 +30,7 @@ urlpatterns = [
     path('concession/<int:concession_id>/contrat-pdf/', views.contrat_concession_pdf, name='contrat_concession_pdf'),
     path('inhumation/<int:inhumation_id>/pv-pdf/', views.pv_inhumation_pdf, name='pv_inhumation_pdf'),
     path('demande-exhumation/<int:demande_id>/autorisation-pdf/', views.autorisation_exhumation_pdf, name='autorisation_exhumation_pdf'),
+    path('demande-exhumation/<int:demande_id>/pv-exhumation-pdf/', views.pv_exhumation_pdf, name='pv_exhumation_pdf'),
     
     # ==================================================================
     # CONFIGURATION
