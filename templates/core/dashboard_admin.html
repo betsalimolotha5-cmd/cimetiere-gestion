@@ -156,7 +156,8 @@
         <!-- EN-TÊTE -->
         <div class="header">
             <h1><i class="fas fa-chart-line"></i> Tableau de Bord Administratif</h1>
-            <a href="/admin/"><i class="fas fa-arrow-left"></i> Retour à l'administration Django</a>
+            <!-- ✅ CORRIGÉ 2 : Renommé et utilisation du tag {% url %} pour éviter les 404 -->
+            <a href="{% url 'admin:index' %}"><i class="fas fa-arrow-left"></i> Administration du site</a>
         </div>
 
         <!-- KPIs -->
@@ -188,7 +189,6 @@
                 <div class="kpi-icon orange"><i class="fas fa-coins"></i></div>
                 <div class="kpi-info">
                     <h3>Revenus (6 mois)</h3>
-                    <!-- ✅ CORRIGÉ : Utilisation de la variable calculée en Python au lieu du filtre inexistant -->
                     <p>{{ total_revenus_6_mois|floatformat:0 }} FCFA</p>
                     <small>Cumul sur la période affichée</small>
                 </div>
@@ -210,7 +210,7 @@
                 <h2><i class="fas fa-chart-bar"></i> Activité et Revenus (6 derniers mois)</h2>
                 <div class="chart-container">
                     <canvas id="activityChart"></canvas>
-                </div> <!-- ✅ CORRIGÉ : Fermeture correcte de la div (était </\n>) -->
+                </div>
             </div>
         </div>
 
@@ -218,17 +218,24 @@
         <div class="chart-card" style="margin-bottom: 30px;">
             <h2><i class="fas fa-bolt"></i> Actions Rapides</h2>
             <div class="actions-grid">
-                <a href="/admin/core/concession/add/" class="action-btn">
+                <!-- ✅ CORRIGÉ 3 : Utilisation des tags {% url %} pour générer les liens dynamiquement et éviter les 404 -->
+                <a href="{% url 'admin:core_concession_add' %}" class="action-btn">
                     <i class="fas fa-plus-circle"></i> Nouvelle Concession
                 </a>
-                <a href="/admin/core/inhumation/add/" class="action-btn">
+                <a href="{% url 'admin:core_inhumation_add' %}" class="action-btn">
                     <i class="fas fa-plus-circle"></i> Nouvelle Inhumation
                 </a>
-                <a href="/core/rapport-statistique-pdf/" class="action-btn secondary" target="_blank">
+                <a href="{% url 'rapport_statistique_pdf' %}" class="action-btn secondary" target="_blank">
                     <i class="fas fa-file-pdf"></i> Rapport Statistique PDF
                 </a>
-                <a href="/admin/core/caveau/" class="action-btn">
+                <a href="{% url 'admin:core_caveau_changelist' %}" class="action-btn">
                     <i class="fas fa-list"></i> Gérer les Caveaux
+                </a>
+                
+                <!-- ✅ CORRIGÉ 1 : Ajout du bouton vers la carte publique -->
+                <!-- Note : Si ton URL pour la carte est différente, remplace '/carte/' par le bon chemin ou {% url 'nom_de_ta_route' %} -->
+                <a href="/carte/" class="action-btn">
+                    <i class="fas fa-map-marked-alt"></i> Voir la Carte Publique
                 </a>
             </div>
         </div>
