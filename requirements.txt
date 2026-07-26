@@ -38,7 +38,7 @@ flet==0.19.0
 flet-core==0.19.0
 flet-runtime==0.19.0
 fonttools==4.63.0
-GDAL @ https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/GDAL-3.9.2-cp311-cp311-win_amd64.whl#sha256=278f397c0f7d2b1ef07b770a3d39a4433b1040f9d86b13d6daaf146b74402de7
+GDAL==3.9.2
 gunicorn==21.2.0
 h11==0.14.0
 html5lib==1.1
@@ -67,7 +67,6 @@ oscrypto==1.3.0
 packaging==23.2
 parso==0.8.7
 pillow==12.3.0
-pipwin==0.5.2
 pluggy==1.6.0
 prompt_toolkit==3.0.52
 psycopg==3.3.4
@@ -121,7 +120,6 @@ tzlocal==5.4.4
 uritemplate==4.2.0
 uritools==6.1.2
 urllib3==2.7.0
-waitress==3.0.2
 watchdog==3.0.0
 wcwidth==0.8.1
 weasyprint==60.2
