@@ -1,7 +1,7 @@
 """
 Administration Django pour l'application core (cimetière).
 CORRIGÉ : Ajout de dimensions explicites (width/height) pour forcer l'affichage des cartes.
-AJOUT : Téléchargement PDF du contrat de concession, du PV d'inhumation, de l'autorisation et du PV d'exhumation.
+AJOUT : Téléchargement PDF du contrat, de l'attestation de concession, du PV d'inhumation, de l'autorisation et du PV d'exhumation.
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -141,7 +141,7 @@ class DefuntAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : CONCESSION
+# ADMIN : CONCESSION (AVEC PDF DU CONTRAT ET DE L'ATTESTATION)
 # ==============================================================================
 @admin.register(Concession)
 class ConcessionAdmin(admin.ModelAdmin):
@@ -154,10 +154,17 @@ class ConcessionAdmin(admin.ModelAdmin):
         'date_debut', 
         'date_fin',
         'telecharger_contrat_pdf_link',
+        'telecharger_attestation_pdf_link',  # ⭐ NOUVEAU : Bouton Attestation dans la liste
     )
     list_filter = ('type_concession', 'statut', 'date_debut')
     search_fields = ('numero_contrat', 'concessionnaire__email', 'caveau__code')
-    readonly_fields = ('date_signature', 'date_creation', 'date_modification', 'telecharger_contrat_pdf_button')
+    readonly_fields = (
+        'date_signature', 
+        'date_creation', 
+        'date_modification', 
+        'telecharger_contrat_pdf_button',
+        'telecharger_attestation_pdf_button'  # ⭐ NOUVEAU
+    )
     
     fieldsets = (
         ('Informations générales', {
@@ -169,9 +176,9 @@ class ConcessionAdmin(admin.ModelAdmin):
         ('Finances', {
             'fields': ('montant_total', 'montant_paye')
         }),
-        ('Document PDF du contrat', {
-            'fields': ('telecharger_contrat_pdf_button',),
-            'description': '💡 Cliquez sur le bouton ci-dessous pour télécharger le contrat officiel au format PDF'
+        ('Documents PDF générés', {
+            'fields': ('telecharger_contrat_pdf_button', 'telecharger_attestation_pdf_button'),
+            'description': '💡 Cliquez sur les boutons ci-dessous pour télécharger les documents officiels au format PDF'
         }),
         ('Documents numérisés', {
             'fields': ('document_contrat',),
@@ -184,7 +191,10 @@ class ConcessionAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['telecharger_contrats_pdf_action']
+    actions = [
+        'telecharger_contrats_pdf_action',
+        'telecharger_attestations_pdf_action'  # ⭐ NOUVEAU
+    ]
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
@@ -219,7 +229,7 @@ class ConcessionAdmin(admin.ModelAdmin):
         if obj.pk:
             url = f'/core/concession/{obj.id}/contrat-pdf/'
             return format_html(
-                '<a href="{}" target="_blank" class="button" style="padding: 12px 24px; background: #6c3483; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block;">'
+                '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #6c3483; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold; display: inline-block;">'
                 '<i class="fas fa-download"></i> Télécharger le contrat en PDF</a>',
                 url
             )
@@ -237,6 +247,44 @@ class ConcessionAdmin(admin.ModelAdmin):
                 url = f'/core/concession/{concession.id}/contrat-pdf/'
                 links.append(f'<a href="{url}" target="_blank">{concession.numero_contrat}</a>')
             messages.success(request, f'Contrats PDF prêts pour : {", ".join(links)}')
+
+    # ⭐ NOUVEAU : Bouton Attestation PDF dans la liste
+    @admin.display(description='Attestation PDF')
+    def telecharger_attestation_pdf_link(self, obj):
+        if obj.pk:
+            url = f'/core/concession/{obj.id}/attestation-pdf/'
+            return format_html(
+                '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #16a085; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
+                '<i class="fas fa-file-pdf"></i> 📄 Attest.</a>',
+                url
+            )
+        return "-"
+    
+    # ⭐ NOUVEAU : Gros bouton Attestation PDF dans le formulaire de détail
+    @admin.display(description='Télécharger l\'attestation')
+    def telecharger_attestation_pdf_button(self, obj):
+        if obj.pk:
+            url = f'/core/concession/{obj.id}/attestation-pdf/'
+            return format_html(
+                '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #16a085; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold; display: inline-block;">'
+                '<i class="fas fa-download"></i> Télécharger l\'attestation en PDF</a>',
+                url
+            )
+        return format_html('<p style="color: #999;">Sauvegardez d\'abord la concession pour pouvoir télécharger l\'attestation.</p>')
+    
+    # ⭐ NOUVEAU : Action de masse pour télécharger plusieurs attestations
+    @admin.action(description='📄 Télécharger les attestations de concession PDF sélectionnées')
+    def telecharger_attestations_pdf_action(self, request, queryset):
+        if queryset.count() == 1:
+            concession = queryset.first()
+            url = f'/core/concession/{concession.id}/attestation-pdf/'
+            messages.success(request, f'Attestation PDF prête pour : {concession.numero_contrat}')
+        else:
+            links = []
+            for concession in queryset:
+                url = f'/core/concession/{concession.id}/attestation-pdf/'
+                links.append(f'<a href="{url}" target="_blank">{concession.numero_contrat}</a>')
+            messages.success(request, f'Attestations PDF prêtes pour : {", ".join(links)}')
 
 
 # ==============================================================================
@@ -287,7 +335,7 @@ class InhumationAdmin(admin.ModelAdmin):
         if obj.pk:
             url = f'/core/inhumation/{obj.id}/pv-pdf/'
             return format_html(
-                '<a href="{}" target="_blank" class="button" style="padding: 12px 24px; background: #e74c3c; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block;">'
+                '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #e74c3c; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold; display: inline-block;">'
                 '<i class="fas fa-download"></i> Télécharger le PV d\'inhumation en PDF</a>',
                 url
             )
@@ -352,7 +400,7 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
         'statut_badge', 
         'date_demande',
         'telecharger_autorisation_pdf_link',
-        'telecharger_pv_pdf_link',  # ⭐ NOUVEAU : Bouton PV dans la liste
+        'telecharger_pv_pdf_link',
     )
     list_filter = ('statut', 'date_demande')
     search_fields = ('nom_demandeur', 'inhumation__defunt__nom')
@@ -362,7 +410,7 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
         'date_realisation', 
         'date_modification',
         'telecharger_autorisation_pdf_button',
-        'telecharger_pv_pdf_button'  # ⭐ NOUVEAU
+        'telecharger_pv_pdf_button'
     )
     
     fieldsets = (
@@ -397,7 +445,7 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
         'valider_demandes', 
         'refuser_demandes', 
         'telecharger_autorisations_pdf_action',
-        'telecharger_pvs_pdf_action'  # ⭐ NOUVEAU
+        'telecharger_pvs_pdf_action'
     ]
     
     @admin.display(description='Statut')
@@ -419,7 +467,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
         except Exception:
             return obj.statut if obj.statut else '-'
     
-    # Bouton Autorisation PDF dans la liste
     @admin.display(description='Autorisation PDF')
     def telecharger_autorisation_pdf_link(self, obj):
         if obj.pk:
@@ -431,7 +478,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
             )
         return "-"
     
-    # Gros bouton Autorisation PDF dans le formulaire de détail
     @admin.display(description='Télécharger l\'autorisation')
     def telecharger_autorisation_pdf_button(self, obj):
         if obj.pk:
@@ -443,7 +489,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
             )
         return format_html('<p style="color: #999;">Sauvegardez d\'abord la demande pour pouvoir télécharger l\'autorisation.</p>')
     
-    # ⭐ NOUVEAU : Bouton PV PDF dans la liste
     @admin.display(description='PV PDF')
     def telecharger_pv_pdf_link(self, obj):
         if obj.pk:
@@ -455,7 +500,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
             )
         return "-"
     
-    # ⭐ NOUVEAU : Gros bouton PV PDF dans le formulaire de détail
     @admin.display(description='Télécharger le PV')
     def telecharger_pv_pdf_button(self, obj):
         if obj.pk:
@@ -467,7 +511,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
             )
         return format_html('<p style="color: #999;">Sauvegardez d\'abord la demande pour pouvoir télécharger le PV.</p>')
     
-    # Action de masse pour télécharger plusieurs autorisations
     @admin.action(description='📄 Télécharger les autorisations d\'exhumation PDF sélectionnées')
     def telecharger_autorisations_pdf_action(self, request, queryset):
         if queryset.count() == 1:
@@ -481,7 +524,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
                 links.append(f'<a href="{url}" target="_blank">Demande #{demande.id}</a>')
             messages.success(request, f'Autorisations PDF prêtes pour : {", ".join(links)}')
 
-    # ⭐ NOUVEAU : Action de masse pour télécharger plusieurs PVs
     @admin.action(description='📄 Télécharger les PV d\'exhumation PDF sélectionnés')
     def telecharger_pvs_pdf_action(self, request, queryset):
         if queryset.count() == 1:
