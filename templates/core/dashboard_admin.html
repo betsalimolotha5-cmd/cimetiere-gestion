@@ -188,7 +188,8 @@
                 <div class="kpi-icon orange"><i class="fas fa-coins"></i></div>
                 <div class="kpi-info">
                     <h3>Revenus (6 mois)</h3>
-                    <p>{{ chart_revenus|sum_list|floatformat:0 }} FCFA</p>
+                    <!-- ✅ CORRIGÉ : Utilisation de la variable calculée en Python au lieu du filtre inexistant -->
+                    <p>{{ total_revenus_6_mois|floatformat:0 }} FCFA</p>
                     <small>Cumul sur la période affichée</small>
                 </div>
             </div>
@@ -209,7 +210,7 @@
                 <h2><i class="fas fa-chart-bar"></i> Activité et Revenus (6 derniers mois)</h2>
                 <div class="chart-container">
                     <canvas id="activityChart"></canvas>
-                </\n>
+                </div> <!-- ✅ CORRIGÉ : Fermeture correcte de la div (était </\n>) -->
             </div>
         </div>
 
@@ -316,4 +317,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
