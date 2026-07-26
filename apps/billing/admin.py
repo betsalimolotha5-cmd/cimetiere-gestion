@@ -1,11 +1,13 @@
 """
 Administration Django pour la facturation et les paiements.
 Conforme au CDC : validation paiement → notification client automatique.
+AJOUT : Téléchargement PDF direct via la vue facture_pdf.
 """
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils import timezone
 from django.contrib import messages
+from django.urls import reverse
 from .models import Facture, Paiement, TransactionFinanciere
 
 
@@ -20,11 +22,11 @@ class FactureAdmin(admin.ModelAdmin):
         'statut_display',
         'date_emission',
         'date_echeance',
-        'pdf_link',
+        'telecharger_pdf_link',
     )
     list_filter = ('statut', 'date_emission', 'date_echeance')
     search_fields = ('numero_facture', 'concession__numero_contrat', 'client__email')
-    readonly_fields = ('date_emission', 'date_creation', 'date_modification', 'cree_par')
+    readonly_fields = ('date_emission', 'date_creation', 'date_modification', 'cree_par', 'telecharger_pdf_button')
     date_hierarchy = 'date_emission'
     
     fieldsets = (
@@ -38,7 +40,8 @@ class FactureAdmin(admin.ModelAdmin):
             'fields': ('date_emission', 'date_echeance', 'date_paiement_complet')
         }),
         ('Document PDF', {
-            'fields': ('fichier_pdf', 'email_envoye', 'date_envoi_email')
+            'fields': ('telecharger_pdf_button',),
+            'description': '💡 Cliquez sur le bouton ci-dessus pour télécharger la facture au format PDF'
         }),
         ('Notes', {
             'fields': ('notes',),
@@ -50,7 +53,7 @@ class FactureAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['generer_pdf', 'marquer_comme_payee']
+    actions = ['telecharger_pdf_action']
     
     def montant_total_display(self, obj):
         montant = float(obj.montant_total) if obj.montant_total else 0
@@ -95,29 +98,43 @@ class FactureAdmin(admin.ModelAdmin):
     statut_display.short_description = 'Statut'
     statut_display.admin_order_field = 'statut'
     
-    def pdf_link(self, obj):
-        """Lien vers le PDF si existant."""
-        if obj.fichier_pdf:
-            return format_html(
-                '<a href="{}" target="_blank">📄 Voir PDF</a>',
-                obj.fichier_pdf.url
-            )
-        return format_html('<span style="color: gray;">—</span>')
-    pdf_link.short_description = 'PDF'
+    def telecharger_pdf_link(self, obj):
+        """Lien de téléchargement PDF dans la liste des factures."""
+        url = f'/billing/facture/{obj.id}/pdf/'
+        return format_html(
+            '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #8e44ad; color: white; text-decoration: none; border-radius: 4px; font-size: 11px;">'
+            '<i class="fas fa-file-pdf"></i> PDF</a>',
+            url
+        )
+    telecharger_pdf_link.short_description = 'Télécharger PDF'
+    telecharger_pdf_link.allow_tags = True
     
-    @admin.action(description='📄 Générer les PDF des factures sélectionnées')
-    def generer_pdf(self, request, queryset):
-        from .pdf_generator import generer_facture_pdf
-        generated = 0
-        for facture in queryset:
-            try:
-                pdf_path = generer_facture_pdf(facture)
-                facture.fichier_pdf = pdf_path
-                facture.save(update_fields=['fichier_pdf'])
-                generated += 1
-            except Exception as e:
-                self.message_user(request, f'Erreur pour {facture.numero_facture}: {str(e)}', level='error')
-        self.message_user(request, f'{generated} PDF généré(s).')
+    def telecharger_pdf_button(self, obj):
+        """Bouton de téléchargement PDF dans le formulaire de détail."""
+        url = f'/billing/facture/{obj.id}/pdf/'
+        return format_html(
+            '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #8e44ad; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block;">'
+            '<i class="fas fa-download"></i> Télécharger la facture en PDF</a>',
+            url
+        )
+    telecharger_pdf_button.short_description = 'Document PDF'
+    
+    @admin.action(description='📄 Télécharger les PDF des factures sélectionnées')
+    def telecharger_pdf_action(self, request, queryset):
+        """Action de masse pour télécharger les PDFs."""
+        if queryset.count() == 1:
+            # Si une seule facture, rediriger directement vers le PDF
+            facture = queryset.first()
+            url = f'/billing/facture/{facture.id}/pdf/'
+            messages.success(request, f'PDF généré pour la facture {facture.numero_facture}.')
+            return format_html('<a href="{}" target="_blank">Télécharger le PDF</a>', url)
+        else:
+            # Si plusieurs factures, afficher les liens
+            links = []
+            for facture in queryset:
+                url = f'/billing/facture/{facture.id}/pdf/'
+                links.append(f'<a href="{url}" target="_blank">{facture.numero_facture}</a>')
+            messages.success(request, f'PDFs prêts pour : {", ".join(links)}')
     
     @admin.action(description='✓ Marquer comme payée')
     def marquer_comme_payee(self, request, queryset):
