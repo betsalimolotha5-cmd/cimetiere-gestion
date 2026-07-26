@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Reçu de Paiement {{ paiement.numero_transaction|default:"N/A" }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333333;
+            line-height: 1.5;
+            font-size: 11pt;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #2c5f2d;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .company-info h1 {
+            color: #2c5f2d;
+            margin: 0;
+            font-size: 20pt;
+            font-weight: bold;
+        }
+        .company-info p {
+            margin: 3px 0;
+            color: #666;
+            font-size: 10pt;
+        }
+        .receipt-info {
+            text-align: right;
+        }
+        .receipt-info h2 {
+            color: #2c5f2d;
+            margin: 0;
+            font-size: 24pt;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .receipt-details {
+            margin-top: 10px;
+            font-size: 11pt;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 10px;
+            color: #2c5f2d;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .info-grid {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-grid td {
+            padding: 6px 0;
+            vertical-align: top;
+        }
+        .label {
+            font-weight: bold;
+            width: 40%;
+            color: #555;
+        }
+        .value {
+            width: 60%;
+            font-weight: 500;
+        }
+        .amount-box {
+            background-color: #f4f6f8;
+            border: 2px solid #2c5f2d;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .amount-box .label {
+            font-size: 12pt;
+            color: #555;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .amount-box .value {
+            font-size: 28pt;
+            font-weight: bold;
+            color: #2c5f2d;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 11pt;
+            color: white;
+        }
+        .status-valide { background-color: #27ae60; }
+        .status-attente { background-color: #f39c12; }
+        .status-refuse { background-color: #e74c3c; }
+        
+        .signature {
+            margin-top: 50px;
+            display: flex;
+            justify-content: flex-end;
+            page-break-inside: avoid;
+        }
+        .signature-box {
+            width: 40%;
+            text-align: center;
+            border: 1px solid #ccc;
+            padding: 15px;
+            min-height: 100px;
+        }
+        .signature-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 11pt;
+            text-transform: uppercase;
+            color: #555;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 9pt;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- EN-TÊTE -->
+    <div class="header">
+        <div class="company-info">
+            <h1>Gestion Cimetière</h1>
+            <p>Service Administratif et Financier</p>
+            <p>Pointe-Noire, République du Congo</p>
+        </div>
+        <div class="receipt-info">
+            <h2>Reçu de Paiement</h2>
+            <div class="receipt-details">
+                <p><strong>N° Transaction :</strong> {{ paiement.numero_transaction|default:"N/A" }}</p>
+                <p><strong>Date :</strong> {{ paiement.date_paiement|date:"d/m/Y à H:i" }}</p>
+                <p>
+                    <strong>Statut :</strong> 
+                    <span class="status-badge 
+                        {% if paiement.statut == 'VALIDE' %}status-valide
+                        {% elif paiement.statut == 'REFUSE' %}status-refuse
+                        {% else %}status-attente{% endif %}">
+                        {{ paiement.get_statut_display }}
+                    </span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- INFORMATIONS DU PAYEUR -->
+    <div class="section">
+        <div class="section-title">Reçu de</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label">Nom du client :</td>
+                <td class="value">{{ paiement.client.get_full_name|default:paiement.client.email }}</td>
+            </tr>
+            {% if paiement.numero_telephone %}
+            <tr>
+                <td class="label">Téléphone :</td>
+                <td class="value">{{ paiement.numero_telephone }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- DÉTAILS DU PAIEMENT -->
+    <div class="section">
+        <div class="section-title">Détails de la transaction</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label">Facture associée :</td>
+                <td class="value">{{ facture.numero_facture }}</td>
+            </tr>
+            <tr>
+                <td class="label">Caveau concerné :</td>
+                <td class="value">
+                    {% if facture.concession and facture.concession.caveau %}
+                        {{ facture.concession.caveau.code }} (Zone: {{ facture.concession.caveau.zone.nom|default:"N/A" }})
+                    {% else %}
+                        Non spécifié
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Mode de paiement :</td>
+                <td class="value">{{ paiement.get_mode_paiement_display }}</td>
+            </tr>
+            <tr>
+                <td class="label">Référence transaction :</td>
+                <td class="value" style="font-family: monospace;">{{ paiement.reference_transaction|default:"—" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- MONTANT -->
+    <div class="amount-box">
+        <span class="label">Montant réglé</span>
+        <span class="value">{{ paiement.montant|floatformat:0 }} FCFA</span>
+    </div>
+
+    <!-- SIGNATURE -->
+    <div class="signature">
+        <div class="signature-box">
+            <h4>Pour l'Administration</h4>
+            <p style="font-size: 9pt; color: #999;">Cachet et signature</p>
+            <br><br>
+        </div>
+    </div>
+
+    <!-- PIED DE PAGE -->
+    <div class="footer">
+        <p>Ce reçu est généré automatiquement par le système de Gestion Cimetière.</p>
+        <p>Conservez ce document comme preuve officielle de votre paiement.</p>
+        <p style="margin-top: 10px;">Document émis le {{ date_generation|date:"d/m/Y à H:i" }}</p>
+    </div>
+
+</body>
+</html> 
