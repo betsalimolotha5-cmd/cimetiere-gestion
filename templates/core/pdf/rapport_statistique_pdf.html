@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport Statistique - {{ date_debut|date:"m/Y" }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333333;
+            line-height: 1.5;
+            font-size: 11pt;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2c5f2d;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 20pt;
+            color: #2c5f2d;
+            text-transform: uppercase;
+        }
+        .header h2 {
+            margin: 5px 0 0 0;
+            font-size: 16pt;
+            font-weight: normal;
+            color: #555;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 10pt;
+            color: #777;
+        }
+        .period-badge {
+            text-align: center;
+            background-color: #f4f6f8;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            font-weight: bold;
+            font-size: 12pt;
+            color: #2c5f2d;
+        }
+        .section-title {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #2c5f2d;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        .kpi-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .kpi-grid td {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+            width: 25%;
+        }
+        .kpi-label {
+            font-size: 9pt;
+            color: #777;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .kpi-value {
+            font-size: 18pt;
+            font-weight: bold;
+            color: #333;
+        }
+        .kpi-value.green { color: #27ae60; }
+        .kpi-value.red { color: #e74c3c; }
+        .kpi-value.blue { color: #2980b9; }
+        .kpi-value.purple { color: #8e44ad; }
+        
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .detail-table th {
+            background-color: #2c5f2d;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 10pt;
+        }
+        .detail-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 11pt;
+        }
+        .detail-table tr:last-child td {
+            border-bottom: 2px solid #2c5f2d;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 9pt;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- EN-TÊTE -->
+    <div class="header">
+        <h1>{{ parametres.nom|default:"Cimetière Municipal" }}</h1>
+        <h2>Rapport Statistique d'Activité</h2>
+        <p>{{ parametres.adresse|default:"Pointe-Noire, République du Congo" }}</p>
+    </div>
+
+    <!-- PÉRIODE -->
+    <div class="period-badge">
+        Période du {{ date_debut|date:"d/m/Y" }} au {{ date_fin|date:"d/m/Y" }}
+    </div>
+
+    <!-- 1. INFRASTRUCTURE & OCCUPATION -->
+    <div class="section-title">I. Infrastructure et Taux d'Occupation</div>
+    <table class="kpi-grid">
+        <tr>
+            <td>
+                <span class="kpi-label">Total Caveaux</span>
+                <span class="kpi-value blue">{{ total_caveaux }}</span>
+            </td>
+            <td>
+                <span class="kpi-label">Caveaux Disponibles</span>
+                <span class="kpi-value green">{{ caveaux_disponibles }}</span>
+            </td>
+            <td>
+                <span class="kpi-label">Caveaux Occupés</span>
+                <span class="kpi-value red">{{ caveaux_occupes }}</span>
+            </td>
+            <td>
+                <span class="kpi-label">Taux d'Occupation</span>
+                <span class="kpi-value purple">{{ taux_occupation }}%</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- 2. CONCESSIONS -->
+    <div class="section-title">II. Gestion des Concessions</div>
+    <table class="kpi-grid" style="width: 50%; margin: 0 auto;">
+        <tr>
+            <td>
+                <span class="kpi-label">Total Concessions</span>
+                <span class="kpi-value blue">{{ total_concessions }}</span>
+            </td>
+            <td>
+                <span class="kpi-label">Concessions Actives</span>
+                <span class="kpi-value green">{{ concessions_actives }}</span>
+            </td>
+        </tr>
+    </table>
+
+    <!-- 3. ACTIVITÉ DE LA PÉRIODE -->
+    <div class="section-title">III. Activité sur la Période</div>
+    <table class="detail-table">
+        <thead>
+            <tr>
+                <th>Indicateur</th>
+                <th style="text-align: right;">Nombre</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Nouvelles inhumations enregistrées</td>
+                <td style="text-align: right;"><strong>{{ inhumations_periode }}</strong></td>
+            </tr>
+            <tr>
+                <td>Exhumations réalisées</td>
+                <td style="text-align: right;"><strong>{{ exhumations_periode }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- 4. INDICATEURS FINANCIERS -->
+    <div class="section-title">IV. Indicateurs Financiers</div>
+    <table class="detail-table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th style="text-align: right;">Montant (FCFA)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Revenus encaissés (Paiements validés)</td>
+                <td style="text-align: right; color: #27ae60; font-size: 14pt;"><strong>{{ revenus_periode|floatformat:0 }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- PIED DE PAGE -->
+    <div class="footer">
+        <p>Rapport généré automatiquement par le système de Gestion Cimetière.</p>
+        <p>Date de génération : {{ date_generation|date:"d/m/Y à H:i" }}</p>
+        <p style="margin-top: 10px; font-weight: bold;">Document confidentiel réservé à l'administration.</p>
+    </div>
+
+</body>
+</html> 
