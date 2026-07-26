@@ -2,7 +2,7 @@
 # Dockerfile pour l'application de gestion de cimetière
 # ============================================
 
-# Image de base officielle Python 3.11 (stable & légère, basée sur Debian Bookworm)
+# Image de base officielle Python 3.11 (stable & légère, basée sur Debian)
 FROM python:3.11-slim
 
 # Variables d'environnement pour optimiser Python
@@ -16,7 +16,7 @@ WORKDIR /app
 # - build-essential: compilation des paquets Python
 # - libpq-dev: client PostgreSQL (pour psycopg)
 # - gdal-bin & libgdal-dev: support PostGIS (géolocalisation)
-# - libcairo2, libpango, libgdk-pixbuf, libglib2.0, libffi-dev: WeasyPrint (génération PDF)
+# - libcairo2, libpango, libgdk-pixbuf-xlib, libglib2.0, libffi-dev: WeasyPrint (génération PDF)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-xlib-2.0-0 \
     libffi-dev \
     libglib2.0-0 \
     shared-mime-info \
