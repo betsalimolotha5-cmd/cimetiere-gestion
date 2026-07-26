@@ -1,7 +1,7 @@
 """
 Administration Django pour l'application core (cimetière).
 CORRIGÉ : Ajout de dimensions explicites (width/height) pour forcer l'affichage des cartes.
-AJOUT : Téléchargement PDF du contrat, de l'attestation de concession, du PV d'inhumation, de l'autorisation et du PV d'exhumation.
+AJOUT : Téléchargement PDF du contrat, de l'attestation de concession, du PV d'inhumation, de l'autorisation, du PV d'exhumation et QR Codes des caveaux.
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -22,13 +22,22 @@ CIMETIERE_ZOOM_DEFAULT = 16
 
 
 # ==============================================================================
-# ADMIN : CAVEAU
+# ADMIN : CAVEAU (AVEC QR CODES)
 # ==============================================================================
 @admin.register(Caveau)
 class CaveauAdmin(admin.ModelAdmin):
-    list_display = ('code', 'zone', 'statut_badge', 'type_caveau', 'prix_concession', 'position_display')
+    list_display = (
+        'code', 
+        'zone', 
+        'statut_badge', 
+        'type_caveau', 
+        'prix_concession', 
+        'position_display',
+        'qr_code_link',  # ⭐ NOUVEAU : Bouton QR Code dans la liste
+    )
     list_filter = ('statut', 'type_caveau', 'zone')
     search_fields = ('code', 'zone__nom')
+    readonly_fields = ('qr_code_button', 'qr_code_image')  # ⭐ NOUVEAU
     
     formfield_overrides = {
         gis_models.PointField: {
@@ -41,6 +50,29 @@ class CaveauAdmin(admin.ModelAdmin):
             })
         },
     }
+    
+    fieldsets = (
+        ('Informations générales', {
+            'fields': ('code', 'zone', 'statut', 'type_caveau', 'rangee', 'numero_place')
+        }),
+        ('Dimensions et Prix', {
+            'fields': ('longueur', 'largeur', 'profondeur', 'prix_concession', 'prix_perpetuite')
+        }),
+        ('Localisation', {
+            'fields': ('position_gps',),
+            'description': '📍 Position GPS exacte du caveau sur la carte'
+        }),
+        ('QR Code du Caveau', {
+            'fields': ('qr_code_button', 'qr_code_image'),
+            'description': '📱 Scannez ce QR code avec un smartphone pour afficher instantanément les informations du caveau (pratique pour les agents de terrain)'
+        }),
+        ('Notes', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['telecharger_qr_codes_action']  # ⭐ NOUVEAU
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
@@ -71,6 +103,64 @@ class CaveauAdmin(admin.ModelAdmin):
             return '-'
         except Exception:
             return 'Erreur'
+    
+    # ⭐ NOUVEAU : Bouton QR Code dans la liste des caveaux
+    @admin.display(description='QR Code')
+    def qr_code_link(self, obj):
+        if obj.pk:
+            url = f'/core/caveau/{obj.id}/qr-code/'
+            return format_html(
+                '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #00838f; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
+                '<i class="fas fa-qrcode"></i> 📱 QR</a>',
+                url
+            )
+        return "-"
+    
+    # ⭐ NOUVEAU : Gros bouton QR Code dans le formulaire de détail
+    @admin.display(description='QR Code du Caveau')
+    def qr_code_button(self, obj):
+        if obj.pk:
+            url_image = f'/core/caveau/{obj.id}/qr-code/'
+            url_info = f'/core/caveau/{obj.id}/qr-info/'
+            return format_html(
+                '<div style="display: flex; gap: 10px; flex-wrap: wrap;">'
+                '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #00838f; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold;">'
+                '<i class="fas fa-qrcode"></i> 🖼️ Voir l\'image QR</a>'
+                '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #006064; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold;">'
+                '<i class="fas fa-mobile-alt"></i> 📱 Tester la page mobile</a>'
+                '</div>',
+                url_image, url_info
+            )
+        return format_html('<p style="color: #999;">Sauvegardez d\'abord le caveau pour pouvoir générer le QR code.</p>')
+    
+    # ⭐ NOUVEAU : Aperçu du QR Code directement dans le formulaire
+    @admin.display(description='Aperçu')
+    def qr_code_image(self, obj):
+        if obj.pk:
+            url = f'/core/caveau/{obj.id}/qr-code/'
+            return format_html(
+                '<div style="text-align: center; padding: 20px; background: white; border: 2px dashed #00838f; border-radius: 8px;">'
+                '<img src="{}" alt="QR Code {}" style="max-width: 200px; height: auto;" />'
+                '<p style="margin-top: 10px; font-size: 12px; color: #666;">Caveau : <strong>{}</strong></p>'
+                '<p style="font-size: 11px; color: #999;">Clic droit → "Enregistrer l\'image" pour l\'imprimer</p>'
+                '</div>',
+                url, obj.code, obj.code
+            )
+        return format_html('<p style="color: #999;">Aucun aperçu disponible.</p>')
+    
+    # ⭐ NOUVEAU : Action de masse pour ouvrir plusieurs QR codes
+    @admin.action(description='📱 Générer les QR Codes des caveaux sélectionnés')
+    def telecharger_qr_codes_action(self, request, queryset):
+        if queryset.count() == 1:
+            caveau = queryset.first()
+            url = f'/core/caveau/{caveau.id}/qr-code/'
+            messages.success(request, f'QR Code généré pour le caveau : {caveau.code}')
+        else:
+            links = []
+            for caveau in queryset:
+                url = f'/core/caveau/{caveau.id}/qr-code/'
+                links.append(f'<a href="{url}" target="_blank">{caveau.code}</a>')
+            messages.success(request, f'QR Codes générés pour : {", ".join(links)}')
 
 
 # ==============================================================================
@@ -154,7 +244,7 @@ class ConcessionAdmin(admin.ModelAdmin):
         'date_debut', 
         'date_fin',
         'telecharger_contrat_pdf_link',
-        'telecharger_attestation_pdf_link',  # ⭐ NOUVEAU : Bouton Attestation dans la liste
+        'telecharger_attestation_pdf_link',
     )
     list_filter = ('type_concession', 'statut', 'date_debut')
     search_fields = ('numero_contrat', 'concessionnaire__email', 'caveau__code')
@@ -163,7 +253,7 @@ class ConcessionAdmin(admin.ModelAdmin):
         'date_creation', 
         'date_modification', 
         'telecharger_contrat_pdf_button',
-        'telecharger_attestation_pdf_button'  # ⭐ NOUVEAU
+        'telecharger_attestation_pdf_button'
     )
     
     fieldsets = (
@@ -193,7 +283,7 @@ class ConcessionAdmin(admin.ModelAdmin):
     
     actions = [
         'telecharger_contrats_pdf_action',
-        'telecharger_attestations_pdf_action'  # ⭐ NOUVEAU
+        'telecharger_attestations_pdf_action'
     ]
     
     @admin.display(description='Statut')
@@ -248,7 +338,6 @@ class ConcessionAdmin(admin.ModelAdmin):
                 links.append(f'<a href="{url}" target="_blank">{concession.numero_contrat}</a>')
             messages.success(request, f'Contrats PDF prêts pour : {", ".join(links)}')
 
-    # ⭐ NOUVEAU : Bouton Attestation PDF dans la liste
     @admin.display(description='Attestation PDF')
     def telecharger_attestation_pdf_link(self, obj):
         if obj.pk:
@@ -260,7 +349,6 @@ class ConcessionAdmin(admin.ModelAdmin):
             )
         return "-"
     
-    # ⭐ NOUVEAU : Gros bouton Attestation PDF dans le formulaire de détail
     @admin.display(description='Télécharger l\'attestation')
     def telecharger_attestation_pdf_button(self, obj):
         if obj.pk:
@@ -272,7 +360,6 @@ class ConcessionAdmin(admin.ModelAdmin):
             )
         return format_html('<p style="color: #999;">Sauvegardez d\'abord la concession pour pouvoir télécharger l\'attestation.</p>')
     
-    # ⭐ NOUVEAU : Action de masse pour télécharger plusieurs attestations
     @admin.action(description='📄 Télécharger les attestations de concession PDF sélectionnées')
     def telecharger_attestations_pdf_action(self, request, queryset):
         if queryset.count() == 1:
