@@ -1,6 +1,6 @@
 """
 Vues pour l'application core.
-AJOUT : Génération de PDF pour le contrat de concession, le PV d'inhumation, l'autorisation et le PV d'exhumation.
+AJOUT : Génération de PDF pour le contrat, l'attestation de concession, le PV d'inhumation, l'autorisation et le PV d'exhumation.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -375,6 +375,48 @@ def contrat_concession_pdf(request, concession_id):
         pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
         
         filename = f"contrat_{concession.numero_contrat}.pdf"
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        return redirect('admin:core_concession_change', concession_id)
+
+
+@login_required
+def attestation_concession_pdf(request, concession_id):
+    """Génère et télécharge l'attestation de concession au format PDF."""
+    if not WEASYPRINT_AVAILABLE:
+        messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
+        return redirect('admin:core_concession_changelist')
+    
+    # Sécurité : Admin/Staff OU le client propriétaire de la concession
+    if request.user.is_staff:
+        concession = get_object_or_404(Concession, id=concession_id)
+    else:
+        concession = get_object_or_404(Concession, id=concession_id, concessionnaire=request.user)
+    
+    parametres = ParametreCimetiere.objects.first()
+    
+    context = {
+        'concession': concession,
+        'parametres': parametres,
+        'date_generation': timezone.now(),
+        'site_name': 'Gestion Cimetière',
+    }
+    
+    try:
+        template = get_template('core/pdf/attestation_concession_pdf.html')
+        html_content = template.render(context)
+        
+        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
+        
+        nom_client = concession.concessionnaire.get_full_name().replace(' ', '_') if concession.concessionnaire.get_full_name() else 'Client'
+        date_str = timezone.now().strftime('%Y%m%d')
+        filename = f"Attestation_concession_{nom_client}_{date_str}.pdf"
+        
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
