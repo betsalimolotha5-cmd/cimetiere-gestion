@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Procès-Verbal d'Inhumation - {{ inhumation.defunt.nom|default:"Défunt" }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Times New Roman', 'Georgia', serif;
+            color: #000000;
+            line-height: 1.6;
+            font-size: 12pt;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px double #000;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18pt;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header h2 {
+            margin: 10px 0 0 0;
+            font-size: 16pt;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 11pt;
+            color: #333;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 13pt;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #000;
+            padding-bottom: 3px;
+        }
+        .info-grid {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-grid td {
+            padding: 6px 0;
+            vertical-align: top;
+        }
+        .label {
+            font-weight: bold;
+            width: 40%;
+        }
+        .value {
+            width: 60%;
+        }
+        .official-statement {
+            text-align: justify;
+            margin: 30px 0;
+            font-style: italic;
+        }
+        .signatures {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            page-break-inside: avoid;
+        }
+        .signature-box {
+            width: 45%;
+            text-align: center;
+            border: 1px solid #000;
+            padding: 15px;
+            min-height: 120px;
+        }
+        .signature-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 11pt;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- EN-TÊTE OFFICIEL -->
+    <div class="header">
+        <h1>{{ parametres.nom|default:"Cimetière Municipal" }}</h1>
+        <p>{{ parametres.adresse|default:"Pointe-Noire, République du Congo" }}</p>
+        <h2>PROCÈS-VERBAL D'INHUMATION</h2>
+    </div>
+
+    <!-- DÉCLARATION OFFICIELLE -->
+    <div class="official-statement">
+        <p>L'an deux mille {{ date_generation|date:"Y" }}, le {{ date_generation|date:"d" }} jour du mois de {{ date_generation|date:"F" }},</p>
+        <p>Nous, soussigné(e) <strong>{{ inhumation.enregistre_par.get_full_name|default:inhumation.enregistre_par.email|default:"l'Agent assermenté" }}</strong>, agissant en qualité d'agent officiel du cimetière, certifions avoir procédé à l'inhumation du défunt désigné ci-après, en présence des témoins et de la famille, conformément à la réglementation en vigueur.</p>
+    </div>
+
+    <!-- ARTICLE 1 : LE DÉFUNT -->
+    <div class="section">
+        <div class="section-title">I. Informations sur le Défunt</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label">Nom et Prénoms :</td>
+                <td class="value"><strong>{{ inhumation.defunt.nom|upper }} {{ inhumation.defunt.prenom }}</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Date et lieu de naissance :</td>
+                <td class="value">
+                    {{ inhumation.defunt.date_naissance|date:"d/m/Y"|default:"Non renseigné" }} 
+                    à {{ inhumation.defunt.lieu_deces|default:"Non renseigné" }}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Date et lieu de décès :</td>
+                <td class="value">
+                    {{ inhumation.defunt.date_deces|date:"d/m/Y" }} 
+                    à {{ inhumation.defunt.lieu_deces|default:"Non renseigné" }}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">N° Acte de décès :</td>
+                <td class="value">{{ inhumation.defunt.numero_acte_deces|default:"Non renseigné" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ARTICLE 2 : LIEU D'INHUMATION -->
+    <div class="section">
+        <div class="section-title">II. Lieu et Conditions d'Inhumation</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label">Date et heure de l'inhumation :</td>
+                <td class="value"><strong>{{ inhumation.date_inhumation|date:"d/m/Y à H:i" }}</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Code du Caveau / Emplacement :</td>
+                <td class="value">
+                    <strong>{{ inhumation.concession.caveau.code|default:"Non spécifié" }}</strong>
+                    {% if inhumation.concession.caveau.zone %}
+                        (Zone : {{ inhumation.concession.caveau.zone.nom }})
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="label">Profondeur de la fosse :</td>
+                <td class="value">{{ inhumation.profondeur }} mètre(s)</td>
+            </tr>
+            <tr>
+                <td class="label">Numéro de place dans le caveau :</td>
+                <td class="value">{{ inhumation.numero_place_dans_caveau|default:"Non spécifié" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ARTICLE 3 : CONCESSIONNAIRE -->
+    <div class="section">
+        <div class="section-title">III. Concessionnaire Responsable</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label">Nom du concessionnaire :</td>
+                <td class="value">{{ inhumation.concession.concessionnaire.get_full_name|default:inhumation.concession.concessionnaire.email }}</td>
+            </tr>
+            <tr>
+                <td class="label">N° de contrat de concession :</td>
+                <td class="value">{{ inhumation.concession.numero_contrat }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- OBSERVATIONS -->
+    {% if inhumation.notes %}
+    <div class="section">
+        <div class="section-title">IV. Observations Particulières</div>
+        <p style="text-align: justify;">{{ inhumation.notes }}</p>
+    </div>
+    {% endif %}
+
+    <!-- SIGNATURES -->
+    <div class="signatures">
+        <div class="signature-box">
+            <h4>Le Représentant de la Famille</h4>
+            <p style="font-size: 9pt; color: #666;">(Lu et approuvé)</p>
+            <br><br>
+            <p>Signature</p>
+        </div>
+        <div class="signature-box">
+            <h4>L'Agent du Cimetière</h4>
+            <p style="font-size: 9pt; color: #666;">{{ inhumation.enregistre_par.get_full_name|default:"Agent assermenté" }}</p>
+            <br><br>
+            <p>Signature et Cachet</p>
+        </div>
+    </div>
+
+    <!-- PIED DE PAGE -->
+    <div class="footer">
+        <p>Document officiel généré automatiquement le {{ date_generation|date:"d/m/Y à H:i" }}.<br>
+        Ce procès-verbal est établi en deux exemplaires originaux, remis à la famille et conservé aux archives du cimetière.</p>
+    </div>
+
+</body>
+</html> 
