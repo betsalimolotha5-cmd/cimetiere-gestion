@@ -6,6 +6,7 @@ asgiref==3.11.1
 asn1crypto==1.5.1
 asttokens==3.0.1
 attrs==26.1.0
+beautifulsoup4==4.15.0
 binaryornot==0.6.0
 brotli==1.2.0
 certifi==2026.6.17
@@ -27,9 +28,9 @@ django-anymail==10.2
 django-cors-headers==4.3.1
 django-debug-toolbar==4.2.0
 django-filter==25.2
-django-jazzmin==3.0.1
 django-ninja==1.1.0
 djangorestframework==3.17.1
+docopt==0.6.2
 drf-spectacular==0.29.0
 et_xmlfile==2.0.0
 executing==2.2.1
@@ -37,6 +38,7 @@ flet==0.19.0
 flet-core==0.19.0
 flet-runtime==0.19.0
 fonttools==4.63.0
+GDAL @ https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/GDAL-3.9.2-cp311-cp311-win_amd64.whl#sha256=278f397c0f7d2b1ef07b770a3d39a4433b1040f9d86b13d6daaf146b74402de7
 gunicorn==21.2.0
 h11==0.14.0
 html5lib==1.1
@@ -48,6 +50,7 @@ iniconfig==2.3.0
 ipython==8.20.0
 jedi==0.20.0
 Jinja2==3.1.6
+Js2Py==0.74
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 kiwisolver==1.5.0
@@ -64,6 +67,7 @@ oscrypto==1.3.0
 packaging==23.2
 parso==0.8.7
 pillow==12.3.0
+pipwin==0.5.2
 pluggy==1.6.0
 prompt_toolkit==3.0.52
 psycopg==3.3.4
@@ -76,11 +80,14 @@ pydyf==0.12.1
 Pygments==2.20.0
 pyHanko==0.35.2
 pyhanko-certvalidator==0.31.1
+pyjsparser==2.7.1
 pyotp==2.9.0
 pyparsing==3.3.2
 pypdf==6.14.2
 pyphen==0.17.2
 pypng==0.20220715.0
+PyPrind==2.11.3
+pySmartDL==1.3.4
 pytest==7.4.4
 pytest-cov==4.1.0
 pytest-django==4.7.0
@@ -99,6 +106,7 @@ rich==15.0.0
 rpds-py==2026.6.3
 six==1.17.0
 sniffio==1.3.1
+soupsieve==2.9.1
 sqlparse==0.4.4
 stack-data==0.6.3
 structlog==23.2.0
