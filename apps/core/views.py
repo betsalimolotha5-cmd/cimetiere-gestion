@@ -1,6 +1,6 @@
 """
 Vues pour l'application core.
-AJOUT : Génération de PDF pour le contrat de concession.
+AJOUT : Génération de PDF pour le contrat de concession et le PV d'inhumation.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -383,6 +383,49 @@ def contrat_concession_pdf(request, concession_id):
     except Exception as e:
         messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
         return redirect('admin:core_concession_change', concession_id)
+
+
+@login_required
+def pv_inhumation_pdf(request, inhumation_id):
+    """Génère et télécharge le procès-verbal d'inhumation au format PDF."""
+    if not WEASYPRINT_AVAILABLE:
+        messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
+        return redirect('admin:core_inhumation_changelist')
+    
+    # Sécurité : Réservé au personnel autorisé (Admin/Staff/Agent)
+    if not request.user.is_staff:
+        messages.error(request, "Accès réservé au personnel autorisé.")
+        return redirect('admin:core_inhumation_changelist')
+    
+    inhumation = get_object_or_404(Inhumation, id=inhumation_id)
+    parametres = ParametreCimetiere.objects.first()
+    
+    context = {
+        'inhumation': inhumation,
+        'parametres': parametres,
+        'date_generation': timezone.now(),
+        'site_name': 'Gestion Cimetière',
+    }
+    
+    try:
+        template = get_template('core/pdf/pv_inhumation_pdf.html')
+        html_content = template.render(context)
+        
+        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
+        
+        # Nom de fichier dynamique : PV_Inhumation_NomDefunt_Date.pdf
+        nom_defunt = inhumation.defunt.nom.replace(' ', '_') if inhumation.defunt else 'Defunt'
+        date_str = inhumation.date_inhumation.strftime('%Y%m%d') if inhumation.date_inhumation else timezone.now().strftime('%Y%m%d')
+        filename = f"PV_inhumation_{nom_defunt}_{date_str}.pdf"
+        
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        return redirect('admin:core_inhumation_change', inhumation_id)
 
 
 # ==============================================================================
