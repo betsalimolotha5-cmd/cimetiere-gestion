@@ -1,6 +1,6 @@
 """
 Vues pour l'application core.
-AJOUT : Génération de PDF pour le contrat de concession, le PV d'inhumation et l'autorisation d'exhumation.
+AJOUT : Génération de PDF pour le contrat de concession, le PV d'inhumation, l'autorisation et le PV d'exhumation.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -460,6 +460,49 @@ def autorisation_exhumation_pdf(request, demande_id):
         nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
         date_str = timezone.now().strftime('%Y%m%d')
         filename = f"Autorisation_exhumation_{nom_defunt}_{date_str}.pdf"
+        
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        return redirect('admin:core_demandeexhumation_change', demande_id)
+
+
+@login_required
+def pv_exhumation_pdf(request, demande_id):
+    """Génère et télécharge le procès-verbal d'exhumation au format PDF."""
+    if not WEASYPRINT_AVAILABLE:
+        messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
+        return redirect('admin:core_demandeexhumation_changelist')
+    
+    # Sécurité : Réservé au personnel autorisé (Admin/Staff)
+    if not request.user.is_staff:
+        messages.error(request, "Accès réservé au personnel autorisé.")
+        return redirect('admin:core_demandeexhumation_changelist')
+    
+    demande = get_object_or_404(DemandeExhumation, id=demande_id)
+    parametres = ParametreCimetiere.objects.first()
+    
+    context = {
+        'demande': demande,
+        'parametres': parametres,
+        'date_generation': timezone.now(),
+        'site_name': 'Gestion Cimetière',
+    }
+    
+    try:
+        template = get_template('core/pdf/pv_exhumation_pdf.html')
+        html_content = template.render(context)
+        
+        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
+        
+        # Nom de fichier dynamique : PV_Exhumation_NomDefunt_Date.pdf
+        nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
+        date_str = demande.date_realisation.strftime('%Y%m%d') if demande.date_realisation else timezone.now().strftime('%Y%m%d')
+        filename = f"PV_exhumation_{nom_defunt}_{date_str}.pdf"
         
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
