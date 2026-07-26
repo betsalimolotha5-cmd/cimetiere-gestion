@@ -1,6 +1,7 @@
 """
 Administration Django pour l'application core (cimetière).
 CORRIGÉ : Ajout de dimensions explicites (width/height) pour forcer l'affichage des cartes.
+AJOUT : Téléchargement PDF du contrat de concession depuis l'admin.
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -140,14 +141,23 @@ class DefuntAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : CONCESSION
+# ADMIN : CONCESSION (AVEC PDF DU CONTRAT)
 # ==============================================================================
 @admin.register(Concession)
 class ConcessionAdmin(admin.ModelAdmin):
-    list_display = ('numero_contrat', 'concessionnaire', 'caveau', 'type_concession', 'statut_badge', 'date_debut', 'date_fin')
+    list_display = (
+        'numero_contrat', 
+        'concessionnaire', 
+        'caveau', 
+        'type_concession', 
+        'statut_badge', 
+        'date_debut', 
+        'date_fin',
+        'telecharger_contrat_pdf_link',  # ⭐ NOUVEAU : Bouton PDF dans la liste
+    )
     list_filter = ('type_concession', 'statut', 'date_debut')
     search_fields = ('numero_contrat', 'concessionnaire__email', 'caveau__code')
-    readonly_fields = ('date_signature', 'date_creation', 'date_modification')
+    readonly_fields = ('date_signature', 'date_creation', 'date_modification', 'telecharger_contrat_pdf_button')
     
     fieldsets = (
         ('Informations générales', {
@@ -159,15 +169,22 @@ class ConcessionAdmin(admin.ModelAdmin):
         ('Finances', {
             'fields': ('montant_total', 'montant_paye')
         }),
-        ('Documents', {
+        ('Document PDF du contrat', {
+            'fields': ('telecharger_contrat_pdf_button',),
+            'description': '💡 Cliquez sur le bouton ci-dessous pour télécharger le contrat officiel au format PDF'
+        }),
+        ('Documents numérisés', {
             'fields': ('document_contrat',),
-            'description': '📄 Document officiel du contrat de concession'
+            'description': '📎 Téléversez ici une copie scannée du contrat signé (optionnel)',
+            'classes': ('collapse',),
         }),
         ('Métadonnées', {
             'fields': ('cree_par', 'notes', 'date_creation', 'date_modification'),
             'classes': ('collapse',)
         }),
     )
+    
+    actions = ['telecharger_contrats_pdf_action']  # ⭐ NOUVEAU : Action de masse
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
@@ -187,6 +204,42 @@ class ConcessionAdmin(admin.ModelAdmin):
             )
         except Exception:
             return obj.statut if obj.statut else '-'
+    
+    # ⭐ NOUVEAU : Bouton PDF dans la liste des concessions
+    @admin.display(description='Contrat PDF')
+    def telecharger_contrat_pdf_link(self, obj):
+        url = f'/core/concession/{obj.id}/contrat-pdf/'
+        return format_html(
+            '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #6c3483; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
+            '<i class="fas fa-file-pdf"></i> 📄 Contrat</a>',
+            url
+        )
+    
+    # ⭐ NOUVEAU : Gros bouton PDF dans le formulaire de détail
+    @admin.display(description='Télécharger le contrat')
+    def telecharger_contrat_pdf_button(self, obj):
+        if obj.pk:  # Seulement si la concession existe déjà (pas en création)
+            url = f'/core/concession/{obj.id}/contrat-pdf/'
+            return format_html(
+                '<a href="{}" target="_blank" class="button" style="padding: 12px 24px; background: #6c3483; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block;">'
+                '<i class="fas fa-download"></i> Télécharger le contrat en PDF</a>',
+                url
+            )
+        return format_html('<p style="color: #999;">Sauvegardez d\'abord la concession pour pouvoir télécharger le PDF.</p>')
+    
+    # ⭐ NOUVEAU : Action de masse pour télécharger plusieurs contrats
+    @admin.action(description='📄 Télécharger les contrats PDF sélectionnés')
+    def telecharger_contrats_pdf_action(self, request, queryset):
+        if queryset.count() == 1:
+            concession = queryset.first()
+            url = f'/core/concession/{concession.id}/contrat-pdf/'
+            messages.success(request, f'Contrat PDF prêt pour : {concession.numero_contrat}')
+        else:
+            links = []
+            for concession in queryset:
+                url = f'/core/concession/{concession.id}/contrat-pdf/'
+                links.append(f'<a href="{url}" target="_blank">{concession.numero_contrat}</a>')
+            messages.success(request, f'Contrats PDF prêts pour : {", ".join(links)}')
 
 
 # ==============================================================================
