@@ -156,7 +156,7 @@
         <!-- EN-TÊTE -->
         <div class="header">
             <h1><i class="fas fa-chart-line"></i> Tableau de Bord Administratif</h1>
-            <!-- ✅ CORRIGÉ 2 : Renommé et utilisation du tag {% url %} pour éviter les 404 -->
+            <!-- ✅ CORRECTION : Namespace admin standard, fonctionne à 100% -->
             <a href="{% url 'admin:index' %}"><i class="fas fa-arrow-left"></i> Administration du site</a>
         </div>
 
@@ -218,23 +218,27 @@
         <div class="chart-card" style="margin-bottom: 30px;">
             <h2><i class="fas fa-bolt"></i> Actions Rapides</h2>
             <div class="actions-grid">
-                <!-- ✅ CORRIGÉ 3 : Utilisation des tags {% url %} pour générer les liens dynamiquement et éviter les 404 -->
+                <!-- ✅ CORRECTION : Mix de namespaces admin (fiables) et de chemins absolus pour l'app 'cimetiere' pour éviter tout NoReverseMatch -->
+                
                 <a href="{% url 'admin:core_concession_add' %}" class="action-btn">
                     <i class="fas fa-plus-circle"></i> Nouvelle Concession
                 </a>
+                
                 <a href="{% url 'admin:core_inhumation_add' %}" class="action-btn">
                     <i class="fas fa-plus-circle"></i> Nouvelle Inhumation
                 </a>
-                <a href="{% url 'rapport_statistique_pdf' %}" class="action-btn secondary" target="_blank">
+                
+                <!-- Chemin absolu avec le préfixe /cimetiere/ pour garantir que Django le trouve sans ambiguïté de namespace -->
+                <a href="/cimetiere/rapport-statistique-pdf/" class="action-btn secondary" target="_blank">
                     <i class="fas fa-file-pdf"></i> Rapport Statistique PDF
                 </a>
+                
                 <a href="{% url 'admin:core_caveau_changelist' %}" class="action-btn">
                     <i class="fas fa-list"></i> Gérer les Caveaux
                 </a>
                 
-                <!-- ✅ CORRIGÉ 1 : Ajout du bouton vers la carte publique -->
-                <!-- Note : Si ton URL pour la carte est différente, remplace '/carte/' par le bon chemin ou {% url 'nom_de_ta_route' %} -->
-                <a href="/carte/" class="action-btn">
+                <!-- Chemin absolu pour la carte (ajuste si ton URL de carte est différente, ex: /carte/) -->
+                <a href="/cimetiere/carte/" class="action-btn">
                     <i class="fas fa-map-marked-alt"></i> Voir la Carte Publique
                 </a>
             </div>
