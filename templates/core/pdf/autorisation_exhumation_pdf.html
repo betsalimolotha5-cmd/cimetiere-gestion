@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Autorisation d'Exhumation - {{ demande.inhumation.defunt.nom|default:"Défunt" }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Times New Roman', 'Georgia', serif;
+            color: #000000;
+            line-height: 1.6;
+            font-size: 12pt;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px double #000;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18pt;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header h2 {
+            margin: 10px 0 0 0;
+            font-size: 16pt;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 11pt;
+            color: #333;
+        }
+        .ref-number {
+            text-align: right;
+            font-weight: bold;
+            margin-bottom: 30px;
+            font-size: 12pt;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 13pt;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #000;
+            padding-bottom: 3px;
+        }
+        .info-grid {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-grid td {
+            padding: 6px 0;
+            vertical-align: top;
+        }
+        .label {
+            font-weight: bold;
+            width: 40%;
+        }
+        .value {
+            width: 60%;
+        }
+        .official-statement {
+            text-align: justify;
+            margin: 30px 0;
+            font-weight: bold;
+        }
+        .signatures {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            page-break-inside: avoid;
+        }
+        .signature-box {
+            width: 45%;
+            text-align: center;
+            border: 1px solid #000;
+            padding: 15px;
+            min-height: 120px;
+        }
+        .signature-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 11pt;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            font-size: 9pt;
+            color: #666;
+        }
+        .stamp-area {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 10pt;
+            color: #555;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- EN-TÊTE OFFICIEL -->
+    <div class="header">
+        <h1>{{ parametres.nom|default:"Cimetière Municipal" }}</h1>
+        <p>{{ parametres.adresse|default:"Pointe-Noire, République du Congo" }}</p>
+        <h2>AUTORISATION D'EXHUMATION</h2>
+    </div>
+
+    <div class="ref-number">
+        Référence Dossier : DEM-EXH-{{ demande.id|stringformat:"04d" }}
+    </div>
+
+    <!-- DÉCLARATION OFFICIELLE -->
+    <div class="official-statement">
+        <p>Le Directeur du {{ parametres.nom|default:"Cimetière" }},</p>
+        <p>Vu la demande d'exhumation enregistrée sous la référence ci-dessus ;</p>
+        <p>Vu les pièces justificatives fournies (autorisation de la mairie, procès-verbal, etc.) ;</p>
+        <p>Autorise par la présente l'exhumation du défunt désigné ci-après, conformément à la réglementation en vigueur.</p>
+    </div>
+
+    <!-- ARTICLE 1 : LE DÉFUNT -->
+    <div class="section">
+        <div class="section-title">I. Informations sur le Défunt</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label">Nom et Prénoms :</td>
+                <td class="value"><strong>{{ demande.inhumation.defunt.nom|upper }} {{ demande.inhumation.defunt.prenom }}</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Date de décès :</td>
+                <td class="value">{{ demande.inhumation.defunt.date_deces|date:"d/m/Y" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Lieu d'inhumation actuel :</td>
+                <td class="value">
+                    Caveau N° <strong>{{ demande.inhumation.concession.caveau.code|default:"Non spécifié" }}</strong>
+                    {% if demande.inhumation.concession.caveau.zone %}
+                        (Zone : {{ demande.inhumation.concession.caveau.zone.nom }})
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ARTICLE 2 : LE DEMANDEUR -->
+    <div class="section">
+        <div class="section-title">II. Informations sur le Demandeur</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label">Nom complet :</td>
+                <td class="value"><strong>{{ demande.nom_demandeur }}</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Lien de parenté :</td>
+                <td class="value">{{ demande.lien_parente }}</td>
+            </tr>
+            <tr>
+                <td class="label">Téléphone :</td>
+                <td class="value">{{ demande.telephone_demandeur }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ARTICLE 3 : MOTIF ET DESTINATION -->
+    <div class="section">
+        <div class="section-title">III. Motif et Destination</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label">Motif de l'exhumation :</td>
+                <td class="value">{{ demande.motif }}</td>
+            </tr>
+            <tr>
+                <td class="label">Destination des restes :</td>
+                <td class="value">{{ demande.get_destination_display }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- VALIDATION -->
+    <div class="section">
+        <div class="section-title">IV. Validation Administrative</div>
+        <table class="info-grid">
+            <tr>
+                <td class="label">Date de la demande :</td>
+                <td class="value">{{ demande.date_demande|date:"d/m/Y" }}</td>
+            </tr>
+            <tr>
+                <td class="label">Date de validation :</td>
+                <td class="value"><strong>{{ demande.date_validation|date:"d/m/Y" }}</strong></td>
+            </tr>
+            <tr>
+                <td class="label">Validé par :</td>
+                <td class="value">{{ demande.valide_par.get_full_name|default:demande.valide_par.email }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="stamp-area">
+        <p>Cette autorisation est valable pour une durée de trois (3) mois à compter de sa date de signature.<br>
+        Elle doit être présentée aux agents du cimetière avant le début des opérations.</p>
+    </div>
+
+    <!-- SIGNATURES -->
+    <div class="signatures">
+        <div class="signature-box">
+            <h4>Le Demandeur</h4>
+            <p style="font-size: 9pt; color: #666;">(Lu et approuvé)</p>
+            <br><br>
+            <p>Signature</p>
+        </div>
+        <div class="signature-box">
+            <h4>Le Directeur du Cimetière</h4>
+            <p style="font-size: 9pt; color: #666;">(Ou son représentant)</p>
+            <br><br>
+            <p>Signature et Cachet officiel</p>
+        </div>
+    </div>
+
+    <!-- PIED DE PAGE -->
+    <div class="footer">
+        <p>Document officiel généré automatiquement le {{ date_generation|date:"d/m/Y à H:i" }}.<br>
+        Toute falsification de ce document est passible de poursuites judiciaires.</p>
+    </div>
+
+</body>
+</html> 
