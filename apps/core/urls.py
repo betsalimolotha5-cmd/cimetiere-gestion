@@ -1,6 +1,6 @@
 """
 URLs pour l'application core.
-AJOUT : Routes pour les téléchargements PDF (contrat, attestation, PV inhumation, autorisation, PV exhumation et rapport statistique).
+AJOUT : Routes pour les téléchargements PDF, le rapport statistique et les QR Codes des caveaux.
 """
 from django.urls import path
 from . import views
@@ -33,6 +33,12 @@ urlpatterns = [
     path('demande-exhumation/<int:demande_id>/autorisation-pdf/', views.autorisation_exhumation_pdf, name='autorisation_exhumation_pdf'),
     path('demande-exhumation/<int:demande_id>/pv-exhumation-pdf/', views.pv_exhumation_pdf, name='pv_exhumation_pdf'),
     path('rapport-statistique-pdf/', views.rapport_statistique_pdf, name='rapport_statistique_pdf'),
+    
+    # ==================================================================
+    # QR CODES CAVEAUX
+    # ==================================================================
+    path('caveau/<int:caveau_id>/qr-code/', views.qr_code_caveau, name='qr_code_caveau'),
+    path('caveau/<int:caveau_id>/qr-info/', views.qr_info_caveau, name='qr_info_caveau'),
     
     # ==================================================================
     # CONFIGURATION
