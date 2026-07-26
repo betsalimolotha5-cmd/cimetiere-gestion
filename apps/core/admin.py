@@ -1,7 +1,7 @@
 """
 Administration Django pour l'application core (cimetière).
 CORRIGÉ : Ajout de dimensions explicites (width/height) pour forcer l'affichage des cartes.
-AJOUT : Téléchargement PDF du contrat de concession depuis l'admin.
+AJOUT : Téléchargement PDF du contrat de concession et du PV d'inhumation.
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -36,8 +36,8 @@ class CaveauAdmin(admin.ModelAdmin):
                 'default_lat': CIMETIERE_CENTRE_LAT,
                 'default_lon': CIMETIERE_CENTRE_LNG,
                 'default_zoom': CIMETIERE_ZOOM_DEFAULT,
-                'map_width': '100%',      # ⭐ CORRECTION : Force l'affichage en largeur
-                'map_height': '400px',    # ⭐ CORRECTION : Force une hauteur visible
+                'map_width': '100%',
+                'map_height': '400px',
             })
         },
     }
@@ -141,7 +141,7 @@ class DefuntAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : CONCESSION (AVEC PDF DU CONTRAT)
+# ADMIN : CONCESSION
 # ==============================================================================
 @admin.register(Concession)
 class ConcessionAdmin(admin.ModelAdmin):
@@ -153,7 +153,7 @@ class ConcessionAdmin(admin.ModelAdmin):
         'statut_badge', 
         'date_debut', 
         'date_fin',
-        'telecharger_contrat_pdf_link',  # ⭐ NOUVEAU : Bouton PDF dans la liste
+        'telecharger_contrat_pdf_link',
     )
     list_filter = ('type_concession', 'statut', 'date_debut')
     search_fields = ('numero_contrat', 'concessionnaire__email', 'caveau__code')
@@ -184,7 +184,7 @@ class ConcessionAdmin(admin.ModelAdmin):
         }),
     )
     
-    actions = ['telecharger_contrats_pdf_action']  # ⭐ NOUVEAU : Action de masse
+    actions = ['telecharger_contrats_pdf_action']
     
     @admin.display(description='Statut')
     def statut_badge(self, obj):
@@ -205,7 +205,6 @@ class ConcessionAdmin(admin.ModelAdmin):
         except Exception:
             return obj.statut if obj.statut else '-'
     
-    # ⭐ NOUVEAU : Bouton PDF dans la liste des concessions
     @admin.display(description='Contrat PDF')
     def telecharger_contrat_pdf_link(self, obj):
         url = f'/core/concession/{obj.id}/contrat-pdf/'
@@ -215,10 +214,9 @@ class ConcessionAdmin(admin.ModelAdmin):
             url
         )
     
-    # ⭐ NOUVEAU : Gros bouton PDF dans le formulaire de détail
     @admin.display(description='Télécharger le contrat')
     def telecharger_contrat_pdf_button(self, obj):
-        if obj.pk:  # Seulement si la concession existe déjà (pas en création)
+        if obj.pk:
             url = f'/core/concession/{obj.id}/contrat-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 12px 24px; background: #6c3483; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block;">'
@@ -227,7 +225,6 @@ class ConcessionAdmin(admin.ModelAdmin):
             )
         return format_html('<p style="color: #999;">Sauvegardez d\'abord la concession pour pouvoir télécharger le PDF.</p>')
     
-    # ⭐ NOUVEAU : Action de masse pour télécharger plusieurs contrats
     @admin.action(description='📄 Télécharger les contrats PDF sélectionnés')
     def telecharger_contrats_pdf_action(self, request, queryset):
         if queryset.count() == 1:
@@ -243,14 +240,74 @@ class ConcessionAdmin(admin.ModelAdmin):
 
 
 # ==============================================================================
-# ADMIN : INHUMATION
+# ADMIN : INHUMATION (AVEC PDF DU PV)
 # ==============================================================================
 @admin.register(Inhumation)
 class InhumationAdmin(admin.ModelAdmin):
-    list_display = ('defunt', 'concession', 'date_inhumation', 'profondeur')
+    list_display = (
+        'defunt', 
+        'concession', 
+        'date_inhumation', 
+        'profondeur',
+        'telecharger_pv_pdf_link',  # ⭐ NOUVEAU : Bouton PV dans la liste
+    )
     list_filter = ('date_inhumation',)
     search_fields = ('defunt__nom', 'defunt__prenom', 'concession__numero_contrat')
-    readonly_fields = ('date_enregistrement',)
+    readonly_fields = ('date_enregistrement', 'telecharger_pv_pdf_button')
+    
+    fieldsets = (
+        ('Informations générales', {
+            'fields': ('defunt', 'concession', 'date_inhumation', 'profondeur', 'numero_place_dans_caveau')
+        }),
+        ('Document PDF du PV', {
+            'fields': ('telecharger_pv_pdf_button',),
+            'description': '💡 Cliquez sur le bouton ci-dessous pour télécharger le PV d\'inhumation officiel au format PDF'
+        }),
+        ('Métadonnées', {
+            'fields': ('enregistre_par', 'notes', 'date_enregistrement'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['telecharger_pv_pdf_action']  # ⭐ NOUVEAU : Action de masse
+    
+    # ⭐ NOUVEAU : Bouton PV dans la liste des inhumations
+    @admin.display(description='PV PDF')
+    def telecharger_pv_pdf_link(self, obj):
+        if obj.pk:
+            url = f'/core/inhumation/{obj.id}/pv-pdf/'
+            return format_html(
+                '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #e74c3c; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
+                '<i class="fas fa-file-pdf"></i> 📄 PV</a>',
+                url
+            )
+        return "-"
+    
+    # ⭐ NOUVEAU : Gros bouton PV dans le formulaire de détail
+    @admin.display(description='Télécharger le PV')
+    def telecharger_pv_pdf_button(self, obj):
+        if obj.pk:
+            url = f'/core/inhumation/{obj.id}/pv-pdf/'
+            return format_html(
+                '<a href="{}" target="_blank" class="button" style="padding: 12px 24px; background: #e74c3c; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block;">'
+                '<i class="fas fa-download"></i> Télécharger le PV d\'inhumation en PDF</a>',
+                url
+            )
+        return format_html('<p style="color: #999;">Sauvegardez d\'abord l\'inhumation pour pouvoir télécharger le PV.</p>')
+    
+    # ⭐ NOUVEAU : Action de masse pour télécharger plusieurs PVs
+    @admin.action(description='📄 Télécharger les PV d\'inhumation PDF sélectionnés')
+    def telecharger_pv_pdf_action(self, request, queryset):
+        if queryset.count() == 1:
+            inhumation = queryset.first()
+            url = f'/core/inhumation/{inhumation.id}/pv-pdf/'
+            messages.success(request, f'PV PDF prêt pour : {inhumation.defunt}')
+        else:
+            links = []
+            for inh in queryset:
+                url = f'/core/inhumation/{inh.id}/pv-pdf/'
+                links.append(f'<a href="{url}" target="_blank">{inh.defunt}</a>')
+            messages.success(request, f'PVs PDF prêts pour : {", ".join(links)}')
 
 
 # ==============================================================================
@@ -282,7 +339,6 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
         }),
     )
     
-    # Injection du script pour dessiner la délimitation automatique
     class Media:
         js = ('admin/js/cimetiere_perimetre.js',)
 
