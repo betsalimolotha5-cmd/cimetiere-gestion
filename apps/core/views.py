@@ -1,6 +1,6 @@
 """
 Vues pour l'application core.
-AJOUT : Génération de PDF pour le contrat, l'attestation, le PV d'inhumation, l'autorisation, le PV d'exhumation et le rapport statistique.
+AJOUT : Génération de PDF pour le contrat, l'attestation, le PV d'inhumation, l'autorisation, le PV d'exhumation, le rapport statistique et les QR Codes des caveaux.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.contrib import messages
 import csv
 import os
+import io
 import calendar
 from datetime import datetime
 from django.core.management import call_command
@@ -28,6 +29,12 @@ try:
     WEASYPRINT_AVAILABLE = True
 except ImportError:
     WEASYPRINT_AVAILABLE = False
+
+try:
+    import qrcode
+    QR_AVAILABLE = True
+except ImportError:
+    QR_AVAILABLE = False
 
 from .models import Zone, Caveau, Concession, Defunt, Inhumation, DemandeExhumation, ParametreCimetiere
 
@@ -547,6 +554,63 @@ def rapport_statistique_pdf(request):
     except Exception as e:
         messages.error(request, f"Erreur lors de la génération du rapport : {str(e)}")
         return redirect('admin:index')
+
+
+# ==============================================================================
+# QR CODES CAVEAUX
+# ==============================================================================
+@staff_member_required
+def qr_code_caveau(request, caveau_id):
+    """Génère et retourne l'image QR Code pour un caveau spécifique."""
+    if not QR_AVAILABLE:
+        messages.error(request, "La bibliothèque qrcode n'est pas installée.")
+        return redirect('admin:core_caveau_changelist')
+    
+    caveau = get_object_or_404(Caveau, id=caveau_id)
+    
+    # URL encodée dans le QR Code (pointe vers la vue d'info publique/sécurisée)
+    qr_url = request.build_absolute_uri(f'/core/caveau/{caveau.id}/qr-info/')
+    
+    # Génération du QR Code
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(qr_url)
+    qr.make(fit=True)
+    
+    # Création de l'image
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Conversion en réponse HTTP (PNG)
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    
+    response = HttpResponse(buffer, content_type="image/png")
+    response['Content-Disposition'] = f'inline; filename="qr_caveau_{caveau.code}.png"'
+    return response
+
+
+def qr_info_caveau(request, caveau_id):
+    """Affiche les informations du caveau scanné via QR Code."""
+    caveau = get_object_or_404(Caveau, id=caveau_id)
+    is_staff = request.user.is_staff
+    
+    concession = None
+    defunt = None
+    
+    # Si le caveau est occupé ou réservé, on récupère les infos associées
+    if caveau.statut in ['OCCUPE', 'RESERVE']:
+        concession = Concession.objects.filter(caveau=caveau).order_by('-date_debut').first()
+        if concession and hasattr(concession, 'defunt') and concession.defunt:
+            defunt = concession.defunt
+            
+    context = {
+        'caveau': caveau,
+        'concession': concession,
+        'defunt': defunt,
+        'is_staff': is_staff,
+        'parametres': ParametreCimetiere.objects.first()
+    }
+    return render(request, 'core/qr_info_caveau.html', context)
 
 
 # ==============================================================================
