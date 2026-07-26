@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Info Caveau {{ caveau.code }}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            line-height: 1.5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #2c5f2d;
+        }
+        .header h1 {
+            font-size: 18px;
+            color: #2c5f2d;
+            text-transform: uppercase;
+        }
+        .header p {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c5f2d;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+        .label {
+            color: #666;
+            font-weight: 500;
+        }
+        .value {
+            font-weight: bold;
+            text-align: right;
+            color: #111;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+        .status-disponible { background-color: #27ae60; }
+        .status-reserve { background-color: #f39c12; }
+        .status-occupe { background-color: #e74c3c; }
+        .status-non-exploitable { background-color: #95a5a6; }
+
+        .staff-only {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .staff-only .card-title {
+            color: #856404;
+            border-bottom-color: #ffeaa7;
+        }
+        .admin-link {
+            display: block;
+            text-align: center;
+            background-color: #2c5f2d;
+            color: white;
+            text-decoration: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-top: 20px;
+            font-size: 15px;
+        }
+        .admin-link:hover {
+            background-color: #1e4220;
+        }
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- EN-TÊTE -->
+        <div class="header">
+            <h1>{{ parametres.nom|default:"Cimetière Municipal" }}</h1>
+            <p>Fiche d'identification du caveau</p>
+        </div>
+
+        <!-- INFORMATIONS DU CAVEAU -->
+        <div class="card">
+            <div class="card-title">Emplacement</div>
+            <div class="info-row">
+                <span class="label">Code :</span>
+                <span class="value" style="font-size: 18px;">{{ caveau.code }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Zone :</span>
+                <span class="value">{{ caveau.zone.nom|default:"Non spécifiée" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Type :</span>
+                <span class="value">{{ caveau.get_type_caveau_display }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Statut :</span>
+                <span class="value">
+                    <span class="status-badge 
+                        {% if caveau.statut == 'DISPONIBLE' %}status-disponible
+                        {% elif caveau.statut == 'RESERVE' %}status-reserve
+                        {% elif caveau.statut == 'OCCUPE' %}status-occupe
+                        {% else %}status-non-exploitable{% endif %}">
+                        {{ caveau.get_statut_display }}
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        <!-- INFORMATIONS DU DÉFUNT (Si occupé) -->
+        {% if defunt %}
+        <div class="card">
+            <div class="card-title">Défunt inhumé</div>
+            <div class="info-row">
+                <span class="label">Nom complet :</span>
+                <span class="value">{{ defunt.nom|upper }} {{ defunt.prenom }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Date de décès :</span>
+                <span class="value">{{ defunt.date_deces|date:"d/m/Y" }}</span>
+            </div>
+            {% if caveau.statut == 'OCCUPE' and inhumation %}
+            <div class="info-row">
+                <span class="label">Date d'inhumation :</span>
+                <span class="value">{{ inhumation.date_inhumation|date:"d/m/Y" }}</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- INFORMATIONS DE LA CONCESSION -->
+        {% if concession %}
+        <div class="card">
+            <div class="card-title">Concession</div>
+            <div class="info-row">
+                <span class="label">N° Contrat :</span>
+                <span class="value">{{ concession.numero_contrat }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Concessionnaire :</span>
+                <span class="value">{{ concession.concessionnaire.get_full_name|default:concession.concessionnaire.email }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Type :</span>
+                <span class="value">{{ concession.get_type_concession_display }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Fin de validité :</span>
+                <span class="value">{{ concession.date_fin|date:"d/m/Y"|default:"Perpétuelle" }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- SECTION RÉSERVÉE AU PERSONNEL (Agent de terrain / Admin) -->
+        {% if is_staff %}
+        <div class="staff-only">
+            <div class="card-title">🔒 Informations Personnel (Staff)</div>
+            <div class="info-row">
+                <span class="label">ID Base de données :</span>
+                <span class="value">#{{ caveau.id }}</span>
+            </div>
+            {% if caveau.position_gps or caveau.coordonnees_gps %}
+            <div class="info-row">
+                <span class="label">Coordonnées GPS :</span>
+                <span class="value" style="font-family: monospace; font-size: 12px;">
+                    {% if caveau.position_gps %}{{ caveau.position_gps.y|floatformat:6 }}, {{ caveau.position_gps.x|floatformat:6 }}{% else %}{{ caveau.coordonnees_gps.y|floatformat:6 }}, {{ caveau.coordonnees_gps.x|floatformat:6 }}{% endif %}
+                </span>
+            </div>
+            {% endif %}
+            {% if caveau.notes %}
+            <div style="margin-top: 10px; font-size: 13px; color: #856404;">
+                <strong>Notes internes :</strong><br>
+                {{ caveau.notes }}
+            </div>
+            {% endif %}
+            
+            <a href="/admin/core/caveau/{{ caveau.id }}/change/" class="admin-link">
+                ✏️ Modifier ce caveau dans l'admin
+            </a>
+        </div>
+        {% else %}
+        <div class="card" style="text-align: center; color: #666; font-size: 13px;">
+            <p>Connectez-vous en tant que personnel pour voir les détails internes et les coordonnées GPS.</p>
+        </div>
+        {% endif %}
+
+        <!-- PIED DE PAGE -->
+        <div class="footer">
+            <p>Document généré par le système de Gestion Cimetière</p>
+            <p>En cas d'erreur, contactez l'administration.</p>
+        </div>
+    </div>
+
+</body>
+</html> 
