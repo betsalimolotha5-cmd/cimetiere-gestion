@@ -1,6 +1,6 @@
 """
 Vues pour la gestion des paiements et la génération de documents PDF.
-AJOUT : Vue de téléchargement de facture au format PDF (WeasyPrint).
+AJOUT : Vue de téléchargement de facture ET de reçu de paiement au format PDF (WeasyPrint).
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -129,7 +129,7 @@ def paiement_form(request, facture_id):
 
 
 # ==============================================================================
-# ⭐ NOUVEAU : GÉNÉRATION DE FACTURE PDF
+# ⭐ GÉNÉRATION DE FACTURE PDF
 # ==============================================================================
 @login_required
 def facture_pdf(request, facture_id):
@@ -137,21 +137,17 @@ def facture_pdf(request, facture_id):
     Génère et télécharge la facture au format PDF.
     Accessible au client propriétaire ET aux administrateurs (secrétaires).
     """
-    # 1. Vérifier que WeasyPrint est disponible
     if not WEASYPRINT_AVAILABLE:
         messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
         return redirect('facture_detail', facture_id=facture_id)
     
-    # 2. Récupérer la facture (propriétaire OU staff)
     if request.user.is_staff:
         facture = get_object_or_404(Facture, id=facture_id)
     else:
         facture = get_object_or_404(Facture, id=facture_id, client=request.user)
     
-    # 3. Récupérer les paiements associés
     paiements = facture.paiements.filter(statut='VALIDE').order_by('date_paiement')
     
-    # 4. Préparer le contexte pour le template HTML du PDF
     context = {
         'facture': facture,
         'paiements': paiements,
@@ -161,15 +157,62 @@ def facture_pdf(request, facture_id):
     }
     
     try:
-        # 5. Charger le template HTML de la facture
         template = get_template('billing/pdf/facture_pdf.html')
         html_content = template.render(context)
         
-        # 6. Générer le PDF avec WeasyPrint
         pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf()
         
-        # 7. Retourner le PDF en téléchargement
         filename = f"facture_{facture.numero_facture}.pdf"
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        return redirect('facture_detail', facture_id=facture.id)
+
+
+# ==============================================================================
+# ⭐ NOUVEAU : GÉNÉRATION DE REÇU DE PAIEMENT PDF
+# ==============================================================================
+@login_required
+def recu_paiement_pdf(request, paiement_id):
+    """
+    Génère et télécharge le reçu officiel d'un paiement au format PDF.
+    Accessible au client propriétaire du paiement ET aux administrateurs.
+    """
+    if not WEASYPRINT_AVAILABLE:
+        messages.error(request, "Le système de génération PDF n'est pas disponible.")
+        paiement = get_object_or_404(Paiement, id=paiement_id)
+        return redirect('facture_detail', facture_id=paiement.facture.id)
+    
+    # Sécurité : Admin/Staff OU le client propriétaire du paiement
+    if request.user.is_staff:
+        paiement = get_object_or_404(Paiement, id=paiement_id)
+    else:
+        paiement = get_object_or_404(Paiement, id=paiement_id, client=request.user)
+    
+    facture = paiement.facture
+    
+    context = {
+        'paiement': paiement,
+        'facture': facture,
+        'date_generation': timezone.now(),
+        'site_name': 'Gestion Cimetière',
+    }
+    
+    try:
+        template = get_template('billing/pdf/recu_paiement_pdf.html')
+        html_content = template.render(context)
+        
+        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
+        
+        # Nom de fichier dynamique : recu_NUMERO_TRANSAC_DATE.pdf
+        date_str = paiement.date_paiement.strftime('%Y%m%d') if paiement.date_paiement else timezone.now().strftime('%Y%m%d')
+        ref = paiement.numero_transaction or 'PAIEMENT'
+        filename = f"recu_{ref}_{date_str}.pdf"
+        
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
