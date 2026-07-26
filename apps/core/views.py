@@ -1,17 +1,18 @@
 """
 Vues pour l'application core.
-AJOUT : Génération de PDF pour le contrat, l'attestation de concession, le PV d'inhumation, l'autorisation et le PV d'exhumation.
+AJOUT : Génération de PDF pour le contrat, l'attestation, le PV d'inhumation, l'autorisation, le PV d'exhumation et le rapport statistique.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.db.models import Q
+from django.db.models import Q, Sum, Count
 from django.template.loader import get_template
 from django.utils import timezone
 from django.contrib import messages
 import csv
 import os
+import calendar
 from datetime import datetime
 from django.core.management import call_command
 
@@ -352,34 +353,20 @@ def contrat_concession_pdf(request, concession_id):
         messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
         return redirect('admin:core_concession_changelist')
     
-    # Sécurité : Admin/Staff OU le client propriétaire de la concession
     if request.user.is_staff:
         concession = get_object_or_404(Concession, id=concession_id)
     else:
         concession = get_object_or_404(Concession, id=concession_id, concessionnaire=request.user)
     
-    # Récupérer les paramètres du cimetière pour l'en-tête/pied de page officiel
     parametres = ParametreCimetiere.objects.first()
-    
-    context = {
-        'concession': concession,
-        'parametres': parametres,
-        'date_generation': timezone.now(),
-        'site_name': 'Gestion Cimetière',
-    }
+    context = {'concession': concession, 'parametres': parametres, 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
     
     try:
         template = get_template('core/pdf/contrat_concession_pdf.html')
-        html_content = template.render(context)
-        
-        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
-        
-        filename = f"contrat_{concession.numero_contrat}.pdf"
+        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
+        response['Content-Disposition'] = f'attachment; filename="contrat_{concession.numero_contrat}.pdf"'
         return response
-        
     except Exception as e:
         messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
         return redirect('admin:core_concession_change', concession_id)
@@ -389,171 +376,177 @@ def contrat_concession_pdf(request, concession_id):
 def attestation_concession_pdf(request, concession_id):
     """Génère et télécharge l'attestation de concession au format PDF."""
     if not WEASYPRINT_AVAILABLE:
-        messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
+        messages.error(request, "Le système de génération PDF n'est pas disponible.")
         return redirect('admin:core_concession_changelist')
     
-    # Sécurité : Admin/Staff OU le client propriétaire de la concession
     if request.user.is_staff:
         concession = get_object_or_404(Concession, id=concession_id)
     else:
         concession = get_object_or_404(Concession, id=concession_id, concessionnaire=request.user)
     
     parametres = ParametreCimetiere.objects.first()
-    
-    context = {
-        'concession': concession,
-        'parametres': parametres,
-        'date_generation': timezone.now(),
-        'site_name': 'Gestion Cimetière',
-    }
+    context = {'concession': concession, 'parametres': parametres, 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
     
     try:
         template = get_template('core/pdf/attestation_concession_pdf.html')
-        html_content = template.render(context)
-        
-        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
-        
+        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
         nom_client = concession.concessionnaire.get_full_name().replace(' ', '_') if concession.concessionnaire.get_full_name() else 'Client'
-        date_str = timezone.now().strftime('%Y%m%d')
-        filename = f"Attestation_concession_{nom_client}_{date_str}.pdf"
-        
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
+        response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime("%Y%m%d")}.pdf"'
         return response
-        
     except Exception as e:
-        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        messages.error(request, f"Erreur : {str(e)}")
         return redirect('admin:core_concession_change', concession_id)
 
 
 @login_required
 def pv_inhumation_pdf(request, inhumation_id):
-    """Génère et télécharge le procès-verbal d'inhumation au format PDF."""
-    if not WEASYPRINT_AVAILABLE:
-        messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
-        return redirect('admin:core_inhumation_changelist')
-    
-    # Sécurité : Réservé au personnel autorisé (Admin/Staff/Agent)
-    if not request.user.is_staff:
-        messages.error(request, "Accès réservé au personnel autorisé.")
+    """Génère et télécharge le PV d'inhumation au format PDF."""
+    if not WEASYPRINT_AVAILABLE or not request.user.is_staff:
+        messages.error(request, "Accès réservé ou système PDF indisponible.")
         return redirect('admin:core_inhumation_changelist')
     
     inhumation = get_object_or_404(Inhumation, id=inhumation_id)
     parametres = ParametreCimetiere.objects.first()
-    
-    context = {
-        'inhumation': inhumation,
-        'parametres': parametres,
-        'date_generation': timezone.now(),
-        'site_name': 'Gestion Cimetière',
-    }
+    context = {'inhumation': inhumation, 'parametres': parametres, 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
     
     try:
         template = get_template('core/pdf/pv_inhumation_pdf.html')
-        html_content = template.render(context)
-        
-        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
-        
-        # Nom de fichier dynamique : PV_Inhumation_NomDefunt_Date.pdf
+        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
         nom_defunt = inhumation.defunt.nom.replace(' ', '_') if inhumation.defunt else 'Defunt'
         date_str = inhumation.date_inhumation.strftime('%Y%m%d') if inhumation.date_inhumation else timezone.now().strftime('%Y%m%d')
-        filename = f"PV_inhumation_{nom_defunt}_{date_str}.pdf"
-        
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
+        response['Content-Disposition'] = f'attachment; filename="PV_inhumation_{nom_defunt}_{date_str}.pdf"'
         return response
-        
     except Exception as e:
-        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        messages.error(request, f"Erreur : {str(e)}")
         return redirect('admin:core_inhumation_change', inhumation_id)
 
 
 @login_required
 def autorisation_exhumation_pdf(request, demande_id):
     """Génère et télécharge l'autorisation d'exhumation au format PDF."""
-    if not WEASYPRINT_AVAILABLE:
-        messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
-        return redirect('admin:core_demandeexhumation_changelist')
-    
-    # Sécurité : Réservé au personnel autorisé (Admin/Staff)
-    if not request.user.is_staff:
-        messages.error(request, "Accès réservé au personnel autorisé.")
+    if not WEASYPRINT_AVAILABLE or not request.user.is_staff:
+        messages.error(request, "Accès réservé ou système PDF indisponible.")
         return redirect('admin:core_demandeexhumation_changelist')
     
     demande = get_object_or_404(DemandeExhumation, id=demande_id)
     parametres = ParametreCimetiere.objects.first()
-    
-    context = {
-        'demande': demande,
-        'parametres': parametres,
-        'date_generation': timezone.now(),
-        'site_name': 'Gestion Cimetière',
-    }
+    context = {'demande': demande, 'parametres': parametres, 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
     
     try:
         template = get_template('core/pdf/autorisation_exhumation_pdf.html')
-        html_content = template.render(context)
-        
-        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
-        
-        # Nom de fichier dynamique : Autorisation_Exhumation_NomDefunt_Date.pdf
+        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
         nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
-        date_str = timezone.now().strftime('%Y%m%d')
-        filename = f"Autorisation_exhumation_{nom_defunt}_{date_str}.pdf"
-        
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
+        response['Content-Disposition'] = f'attachment; filename="Autorisation_exhumation_{nom_defunt}_{timezone.now().strftime("%Y%m%d")}.pdf"'
         return response
-        
     except Exception as e:
-        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        messages.error(request, f"Erreur : {str(e)}")
         return redirect('admin:core_demandeexhumation_change', demande_id)
 
 
 @login_required
 def pv_exhumation_pdf(request, demande_id):
-    """Génère et télécharge le procès-verbal d'exhumation au format PDF."""
-    if not WEASYPRINT_AVAILABLE:
-        messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
-        return redirect('admin:core_demandeexhumation_changelist')
-    
-    # Sécurité : Réservé au personnel autorisé (Admin/Staff)
-    if not request.user.is_staff:
-        messages.error(request, "Accès réservé au personnel autorisé.")
+    """Génère et télécharge le PV d'exhumation au format PDF."""
+    if not WEASYPRINT_AVAILABLE or not request.user.is_staff:
+        messages.error(request, "Accès réservé ou système PDF indisponible.")
         return redirect('admin:core_demandeexhumation_changelist')
     
     demande = get_object_or_404(DemandeExhumation, id=demande_id)
     parametres = ParametreCimetiere.objects.first()
-    
-    context = {
-        'demande': demande,
-        'parametres': parametres,
-        'date_generation': timezone.now(),
-        'site_name': 'Gestion Cimetière',
-    }
+    context = {'demande': demande, 'parametres': parametres, 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
     
     try:
         template = get_template('core/pdf/pv_exhumation_pdf.html')
-        html_content = template.render(context)
-        
-        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
-        
-        # Nom de fichier dynamique : PV_Exhumation_NomDefunt_Date.pdf
+        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
         nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
         date_str = demande.date_realisation.strftime('%Y%m%d') if demande.date_realisation else timezone.now().strftime('%Y%m%d')
-        filename = f"PV_exhumation_{nom_defunt}_{date_str}.pdf"
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="PV_exhumation_{nom_defunt}_{date_str}.pdf"'
+        return response
+    except Exception as e:
+        messages.error(request, f"Erreur : {str(e)}")
+        return redirect('admin:core_demandeexhumation_change', demande_id)
+
+
+@staff_member_required
+def rapport_statistique_pdf(request):
+    """Génère et télécharge le rapport statistique global du cimetière."""
+    if not WEASYPRINT_AVAILABLE:
+        messages.error(request, "Le système de génération PDF n'est pas disponible.")
+        return redirect('admin:index')
+    
+    # 1. Gestion des dates (par défaut : mois en cours)
+    debut_str = request.GET.get('debut')
+    fin_str = request.GET.get('fin')
+    
+    if debut_str and fin_str:
+        try:
+            date_debut = datetime.strptime(debut_str, '%Y-%m-%d').date()
+            date_fin = datetime.strptime(fin_str, '%Y-%m-%d').date()
+        except ValueError:
+            messages.error(request, "Format de date invalide. Utilisez AAAA-MM-JJ.")
+            return redirect('admin:index')
+    else:
+        today = timezone.now().date()
+        date_debut = today.replace(day=1)
+        _, last_day = calendar.monthrange(today.year, today.month)
+        date_fin = today.replace(day=last_day)
+    
+    # 2. Agrégation des données
+    total_caveaux = Caveau.objects.count()
+    caveaux_disponibles = Caveau.objects.filter(statut='DISPONIBLE').count()
+    caveaux_occupes = Caveau.objects.filter(statut='OCCUPE').count()
+    taux_occupation = round((caveaux_occupes / total_caveaux * 100), 1) if total_caveaux > 0 else 0
+    
+    total_concessions = Concession.objects.count()
+    concessions_actives = Concession.objects.filter(statut='ACTIVE').count()
+    
+    inhumations_periode = Inhumation.objects.filter(date_inhumation__range=(date_debut, date_fin)).count()
+    exhumations_periode = DemandeExhumation.objects.filter(date_realisation__range=(date_debut, date_fin)).count()
+    
+    # Revenus (Import dynamique pour éviter les problèmes de circularité)
+    try:
+        from apps.billing.models import Paiement
+        revenus = Paiement.objects.filter(
+            statut='VALIDE', 
+            date_paiement__range=(date_debut, date_fin)
+        ).aggregate(total=Sum('montant'))['total'] or 0
+    except Exception:
+        revenus = 0  # Fallback si l'app billing n'est pas encore totalement liée
+    
+    parametres = ParametreCimetiere.objects.first()
+    
+    context = {
+        'date_debut': date_debut,
+        'date_fin': date_fin,
+        'total_caveaux': total_caveaux,
+        'caveaux_disponibles': caveaux_disponibles,
+        'caveaux_occupes': caveaux_occupes,
+        'taux_occupation': taux_occupation,
+        'total_concessions': total_concessions,
+        'concessions_actives': concessions_actives,
+        'inhumations_periode': inhumations_periode,
+        'exhumations_periode': exhumations_periode,
+        'revenus_periode': revenus,
+        'parametres': parametres,
+        'date_generation': timezone.now(),
+    }
+    
+    try:
+        template = get_template('core/pdf/rapport_statistique_pdf.html')
+        html_content = template.render(context)
+        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
         
+        filename = f"Rapport_Statistique_{date_debut.strftime('%Y%m')}_a_{date_fin.strftime('%Y%m%d')}.pdf"
         response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
         return response
         
     except Exception as e:
-        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
-        return redirect('admin:core_demandeexhumation_change', demande_id)
+        messages.error(request, f"Erreur lors de la génération du rapport : {str(e)}")
+        return redirect('admin:index')
 
 
 # ==============================================================================
