@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Facture {{ facture.numero_facture }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333333;
+            line-height: 1.6;
+            font-size: 12pt;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #2c5f2d;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .company-info h1 {
+            color: #2c5f2d;
+            margin: 0;
+            font-size: 24pt;
+            font-weight: bold;
+        }
+        .company-info p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 10pt;
+        }
+        .invoice-info {
+            text-align: right;
+        }
+        .invoice-info h2 {
+            color: #2c5f2d;
+            margin: 0;
+            font-size: 20pt;
+            text-transform: uppercase;
+        }
+        .invoice-details {
+            margin-top: 10px;
+            font-size: 11pt;
+        }
+        .client-section {
+            margin-bottom: 30px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .client-section h3 {
+            margin-top: 0;
+            color: #2c5f2d;
+            font-size: 12pt;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th {
+            background-color: #2c5f2d;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 11pt;
+        }
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 11pt;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .totals-section {
+            width: 50%;
+            margin-left: auto;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .total-row.final {
+            border-top: 3px solid #2c5f2d;
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 14pt;
+            color: #2c5f2d;
+            margin-top: 10px;
+            padding-top: 10px;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            font-size: 9pt;
+            color: #777;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 10pt;
+            color: white;
+        }
+        .status-payee { background-color: #27ae60; }
+        .status-attente { background-color: #f39c12; }
+        .status-annulee { background-color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="company-info">
+            <h1>Gestion Cimetière</h1>
+            <p>Service Administratif et Funéraire</p>
+            <p>Pointe-Noire, République du Congo</p>
+            <p>Email: contact@cimetiere-digital.cg</p>
+        </div>
+        <div class="invoice-info">
+            <h2>Facture</h2>
+            <div class="invoice-details">
+                <p><strong>N° :</strong> {{ facture.numero_facture }}</p>
+                <p><strong>Date d'émission :</strong> {{ facture.date_creation|date:"d/m/Y" }}</p>
+                <p>
+                    <strong>Statut :</strong> 
+                    <span class="status-badge 
+                        {% if facture.statut == 'PAYEE' %}status-payee
+                        {% elif facture.statut == 'ANNULEE' %}status-annulee
+                        {% else %}status-attente{% endif %}">
+                        {{ facture.get_statut_display }}
+                    </span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="client-section">
+        <h3>Facturé à :</h3>
+        <p style="margin: 5px 0; font-size: 12pt; font-weight: bold;">
+            {{ facture.client.get_full_name|default:facture.client.email }}
+        </p>
+        <p style="margin: 5px 0;">
+            {% if facture.concession and facture.concession.caveau %}
+                Caveau : <strong>{{ facture.concession.caveau.code }}</strong> 
+                (Zone : {{ facture.concession.caveau.zone.nom|default:"Non définie" }})
+            {% endif %}
+        </p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th class="text-right">Montant Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <strong>Concession funéraire</strong><br>
+                    <span style="font-size: 10pt; color: #666;">
+                        {% if facture.concession %}
+                            Type : {{ facture.concession.get_type_concession_display }} 
+                            {% if facture.concession.duree_annees %}({{ facture.concession.duree_annees }} ans){% endif %}
+                        {% else %}
+                            Service cimetière
+                        {% endif %}
+                    </span>
+                </td>
+                <td class="text-right">{{ facture.montant|floatformat:0 }} FCFA</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="totals-section">
+        <div class="total-row">
+            <span>Montant Total :</span>
+            <span>{{ facture.montant|floatformat:0 }} FCFA</span>
+        </div>
+        <div class="total-row">
+            <span>Montant Déjà Payé :</span>
+            <span style="color: #27ae60;">- {{ facture.montant_paye|floatformat:0 }} FCFA</span>
+        </div>
+        <div class="total-row final">
+            <span>Reste à Payer :</span>
+            <span>{{ facture.montant_restant|floatformat:0 }} FCFA</span>
+        </div>
+    </div>
+
+    {% if paiements %}
+    <div style="margin-top: 40px;">
+        <h3 style="color: #2c5f2d; font-size: 12pt; border-bottom: 1px solid #ddd; padding-bottom: 5px;">Historique des paiements validés</h3>
+        <table style="margin-top: 15px;">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Mode de paiement</th>
+                    <th>Référence</th>
+                    <th class="text-right">Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for paiement in paiements %}
+                <tr>
+                    <td>{{ paiement.date_paiement|date:"d/m/Y" }}</td>
+                    <td>{{ paiement.get_mode_paiement_display }}</td>
+                    <td>{{ paiement.reference_transaction|default:"—" }}</td>
+                    <td class="text-right">{{ paiement.montant|floatformat:0 }} FCFA</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Ce document est généré automatiquement par le système de Gestion Cimetière.</p>
+        <p>Pour toute question concernant cette facture, veuillez contacter le service administratif.</p>
+        <p style="margin-top: 10px; font-weight: bold;">Merci de votre confiance.</p>
+    </div>
+
+</body>
+</html> 
