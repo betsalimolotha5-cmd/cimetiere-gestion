@@ -16,11 +16,19 @@ WORKDIR /app
 # - build-essential: compilation des paquets Python
 # - libpq-dev: client PostgreSQL (pour psycopg)
 # - gdal-bin & libgdal-dev: support PostGIS (géolocalisation)
+# - libcairo2, libpango, libgdk-pixbuf, libglib2.0, libffi-dev: WeasyPrint (génération PDF)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     gdal-bin \
     libgdal-dev \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    libglib2.0-0 \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 # Copie du fichier requirements.txt
