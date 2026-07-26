@@ -1,12 +1,23 @@
 """
-Vues pour la gestion des paiements.
+Vues pour la gestion des paiements et la génération de documents PDF.
+AJOUT : Vue de téléchargement de facture au format PDF (WeasyPrint).
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import get_template
+from django.conf import settings
 from decimal import Decimal
+
+# ⭐ NOUVEAU : Import de WeasyPrint pour la génération PDF
+try:
+    from weasyprint import HTML, CSS
+    WEASYPRINT_AVAILABLE = True
+except ImportError:
+    WEASYPRINT_AVAILABLE = False
+
 from .models import Facture, Paiement, TransactionFinanciere
 
 
@@ -115,3 +126,55 @@ def paiement_form(request, facture_id):
         'facture': facture,
     }
     return render(request, 'billing/paiement_form.html', context)
+
+
+# ==============================================================================
+# ⭐ NOUVEAU : GÉNÉRATION DE FACTURE PDF
+# ==============================================================================
+@login_required
+def facture_pdf(request, facture_id):
+    """
+    Génère et télécharge la facture au format PDF.
+    Accessible au client propriétaire ET aux administrateurs (secrétaires).
+    """
+    # 1. Vérifier que WeasyPrint est disponible
+    if not WEASYPRINT_AVAILABLE:
+        messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
+        return redirect('facture_detail', facture_id=facture_id)
+    
+    # 2. Récupérer la facture (propriétaire OU staff)
+    if request.user.is_staff:
+        facture = get_object_or_404(Facture, id=facture_id)
+    else:
+        facture = get_object_or_404(Facture, id=facture_id, client=request.user)
+    
+    # 3. Récupérer les paiements associés
+    paiements = facture.paiements.filter(statut='VALIDE').order_by('date_paiement')
+    
+    # 4. Préparer le contexte pour le template HTML du PDF
+    context = {
+        'facture': facture,
+        'paiements': paiements,
+        'date_generation': timezone.now(),
+        'site_name': 'Gestion Cimetière',
+        'site_url': request.build_absolute_uri('/'),
+    }
+    
+    try:
+        # 5. Charger le template HTML de la facture
+        template = get_template('billing/pdf/facture_pdf.html')
+        html_content = template.render(context)
+        
+        # 6. Générer le PDF avec WeasyPrint
+        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf()
+        
+        # 7. Retourner le PDF en téléchargement
+        filename = f"facture_{facture.numero_facture}.pdf"
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        return redirect('facture_detail', facture_id=facture.id)
