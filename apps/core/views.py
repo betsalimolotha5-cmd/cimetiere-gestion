@@ -438,6 +438,9 @@ def dashboard_admin(request):
         except Exception:
             data_revenus.append(0.0)
     
+    # ✅ CORRIGÉ : Calcul de la somme des revenus directement en Python
+    total_revenus_6_mois = sum(data_revenus)
+    
     context = {
         'total_caveaux': total_caveaux,
         'caveaux_occupes': caveaux_occupes,
@@ -448,6 +451,7 @@ def dashboard_admin(request):
         'chart_labels': labels,
         'chart_inhumations': data_inhumations,
         'chart_revenus': data_revenus,
+        'total_revenus_6_mois': total_revenus_6_mois,  # ✅ NOUVEAU : passé au template
     }
     return render(request, 'core/dashboard_admin.html', context)
 
