@@ -1,11 +1,16 @@
 """
 URLs pour l'application core.
-AJOUT : Routes pour les téléchargements PDF, le rapport statistique et les QR Codes des caveaux.
+AJOUT : Routes pour le Dashboard, les téléchargements PDF, le rapport statistique et les QR Codes des caveaux.
 """
 from django.urls import path
 from . import views
 
 urlpatterns = [
+    # ==================================================================
+    # DASHBOARD & VUES PRINCIPALES
+    # ==================================================================
+    path('dashboard/', views.dashboard_admin, name='dashboard_admin'),
+    
     # ==================================================================
     # EXPORTS CSV
     # ==================================================================
