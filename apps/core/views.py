@@ -1,10 +1,15 @@
 """
 Vues pour l'application core.
+AJOUT : Génération de PDF pour le contrat de concession.
 """
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.db.models import Q
+from django.template.loader import get_template
+from django.utils import timezone
+from django.contrib import messages
 import csv
 import os
 from datetime import datetime
@@ -17,7 +22,13 @@ try:
 except ImportError:
     EXCEL_AVAILABLE = False
 
-from .models import Zone, Caveau, Concession, Defunt, Inhumation, DemandeExhumation
+try:
+    from weasyprint import HTML
+    WEASYPRINT_AVAILABLE = True
+except ImportError:
+    WEASYPRINT_AVAILABLE = False
+
+from .models import Zone, Caveau, Concession, Defunt, Inhumation, DemandeExhumation, ParametreCimetiere
 
 
 # ==============================================================================
@@ -332,13 +343,54 @@ def export_excel_exhumations(request):
 
 
 # ==============================================================================
+# EXPORTS PDF
+# ==============================================================================
+@login_required
+def contrat_concession_pdf(request, concession_id):
+    """Génère et télécharge le contrat de concession au format PDF."""
+    if not WEASYPRINT_AVAILABLE:
+        messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
+        return redirect('admin:core_concession_changelist')
+    
+    # Sécurité : Admin/Staff OU le client propriétaire de la concession
+    if request.user.is_staff:
+        concession = get_object_or_404(Concession, id=concession_id)
+    else:
+        concession = get_object_or_404(Concession, id=concession_id, concessionnaire=request.user)
+    
+    # Récupérer les paramètres du cimetière pour l'en-tête/pied de page officiel
+    parametres = ParametreCimetiere.objects.first()
+    
+    context = {
+        'concession': concession,
+        'parametres': parametres,
+        'date_generation': timezone.now(),
+        'site_name': 'Gestion Cimetière',
+    }
+    
+    try:
+        template = get_template('core/pdf/contrat_concession_pdf.html')
+        html_content = template.render(context)
+        
+        pdf_file = HTML(string=html_content, base_url=request.build_absolute_uri('/')).write_pdf()
+        
+        filename = f"contrat_{concession.numero_contrat}.pdf"
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f"Erreur lors de la génération du PDF : {str(e)}")
+        return redirect('admin:core_concession_change', concession_id)
+
+
+# ==============================================================================
 # CONFIGURATION
 # ==============================================================================
 @staff_member_required
 def configurer_cimetiere(request):
     """Vue pour configurer les paramètres du cimetière."""
-    from django.contrib import messages
-    from .models import ParametreCimetiere
     from .forms import ParametreCimetiereForm
     
     parametres = ParametreCimetiere.objects.first()
