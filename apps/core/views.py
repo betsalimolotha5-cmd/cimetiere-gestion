@@ -1,6 +1,6 @@
 """
 Vues pour l'application core.
-AJOUT : Dashboard admin, PDFs, QR Codes et exports. (CORRIGÉ : URLs des QR codes avec le bon préfixe /cimetiere/)
+MODIFIÉ : Suppression des try/except silencieux sur les PDF pour exposer la vraie erreur dans les logs Render.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -239,7 +239,7 @@ def export_excel_exhumations(request):
 
 
 # ==============================================================================
-# EXPORTS PDF
+# EXPORTS PDF (SANS TRY/EXCEPT POUR EXPOSER LA VRAIE ERREUR DANS LES LOGS)
 # ==============================================================================
 @login_required
 def contrat_concession_pdf(request, concession_id):
@@ -252,15 +252,11 @@ def contrat_concession_pdf(request, concession_id):
         concession = get_object_or_404(Concession, id=concession_id, concessionnaire=request.user)
     
     context = {'concession': concession, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
-    try:
-        template = get_template('core/pdf/contrat_concession_pdf.html')
-        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
-        response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="contrat_{concession.numero_contrat}.pdf"'
-        return response
-    except Exception as e:
-        messages.error(request, f"Erreur : {str(e)}")
-        return redirect('admin:core_concession_change', concession_id)
+    template = get_template('core/pdf/contrat_concession_pdf.html')
+    pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="contrat_{concession.numero_contrat}.pdf"'
+    return response
 
 @login_required
 def attestation_concession_pdf(request, concession_id):
@@ -273,16 +269,12 @@ def attestation_concession_pdf(request, concession_id):
         concession = get_object_or_404(Concession, id=concession_id, concessionnaire=request.user)
     
     context = {'concession': concession, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
-    try:
-        template = get_template('core/pdf/attestation_concession_pdf.html')
-        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
-        nom_client = concession.concessionnaire.get_full_name().replace(' ', '_') if concession.concessionnaire.get_full_name() else 'Client'
-        response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime("%Y%m%d")}.pdf"'
-        return response
-    except Exception as e:
-        messages.error(request, f"Erreur : {str(e)}")
-        return redirect('admin:core_concession_change', concession_id)
+    template = get_template('core/pdf/attestation_concession_pdf.html')
+    pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
+    nom_client = concession.concessionnaire.get_full_name().replace(' ', '_') if concession.concessionnaire.get_full_name() else 'Client'
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime("%Y%m%d")}.pdf"'
+    return response
 
 @login_required
 def pv_inhumation_pdf(request, inhumation_id):
@@ -291,17 +283,13 @@ def pv_inhumation_pdf(request, inhumation_id):
         return redirect('admin:core_inhumation_changelist')
     inhumation = get_object_or_404(Inhumation, id=inhumation_id)
     context = {'inhumation': inhumation, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
-    try:
-        template = get_template('core/pdf/pv_inhumation_pdf.html')
-        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
-        nom_defunt = inhumation.defunt.nom.replace(' ', '_') if inhumation.defunt else 'Defunt'
-        date_str = inhumation.date_inhumation.strftime('%Y%m%d') if inhumation.date_inhumation else timezone.now().strftime('%Y%m%d')
-        response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="PV_inhumation_{nom_defunt}_{date_str}.pdf"'
-        return response
-    except Exception as e:
-        messages.error(request, f"Erreur : {str(e)}")
-        return redirect('admin:core_inhumation_change', inhumation_id)
+    template = get_template('core/pdf/pv_inhumation_pdf.html')
+    pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
+    nom_defunt = inhumation.defunt.nom.replace(' ', '_') if inhumation.defunt else 'Defunt'
+    date_str = inhumation.date_inhumation.strftime('%Y%m%d') if inhumation.date_inhumation else timezone.now().strftime('%Y%m%d')
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PV_inhumation_{nom_defunt}_{date_str}.pdf"'
+    return response
 
 @login_required
 def autorisation_exhumation_pdf(request, demande_id):
@@ -310,16 +298,12 @@ def autorisation_exhumation_pdf(request, demande_id):
         return redirect('admin:core_demandeexhumation_changelist')
     demande = get_object_or_404(DemandeExhumation, id=demande_id)
     context = {'demande': demande, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
-    try:
-        template = get_template('core/pdf/autorisation_exhumation_pdf.html')
-        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
-        nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
-        response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Autorisation_exhumation_{nom_defunt}_{timezone.now().strftime("%Y%m%d")}.pdf"'
-        return response
-    except Exception as e:
-        messages.error(request, f"Erreur : {str(e)}")
-        return redirect('admin:core_demandeexhumation_change', demande_id)
+    template = get_template('core/pdf/autorisation_exhumation_pdf.html')
+    pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
+    nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Autorisation_exhumation_{nom_defunt}_{timezone.now().strftime("%Y%m%d")}.pdf"'
+    return response
 
 @login_required
 def pv_exhumation_pdf(request, demande_id):
@@ -328,17 +312,13 @@ def pv_exhumation_pdf(request, demande_id):
         return redirect('admin:core_demandeexhumation_changelist')
     demande = get_object_or_404(DemandeExhumation, id=demande_id)
     context = {'demande': demande, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
-    try:
-        template = get_template('core/pdf/pv_exhumation_pdf.html')
-        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
-        nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
-        date_str = demande.date_realisation.strftime('%Y%m%d') if demande.date_realisation else timezone.now().strftime('%Y%m%d')
-        response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="PV_exhumation_{nom_defunt}_{date_str}.pdf"'
-        return response
-    except Exception as e:
-        messages.error(request, f"Erreur : {str(e)}")
-        return redirect('admin:core_demandeexhumation_change', demande_id)
+    template = get_template('core/pdf/pv_exhumation_pdf.html')
+    pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
+    nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
+    date_str = demande.date_realisation.strftime('%Y%m%d') if demande.date_realisation else timezone.now().strftime('%Y%m%d')
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="PV_exhumation_{nom_defunt}_{date_str}.pdf"'
+    return response
 
 @staff_member_required
 def rapport_statistique_pdf(request):
@@ -381,15 +361,11 @@ def rapport_statistique_pdf(request):
         'inhumations_periode': inhumations_periode, 'exhumations_periode': exhumations_periode,
         'revenus_periode': revenus, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(),
     }
-    try:
-        template = get_template('core/pdf/rapport_statistique_pdf.html')
-        pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
-        response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="Rapport_Statistique_{date_debut.strftime("%Y%m")}_a_{date_fin.strftime("%Y%m%d")}.pdf"'
-        return response
-    except Exception as e:
-        messages.error(request, f"Erreur : {str(e)}")
-        return redirect('admin:index')
+    template = get_template('core/pdf/rapport_statistique_pdf.html')
+    pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="Rapport_Statistique_{date_debut.strftime("%Y%m")}_a_{date_fin.strftime("%Y%m%d")}.pdf"'
+    return response
 
 
 # ==============================================================================
@@ -463,7 +439,6 @@ def qr_code_caveau(request, caveau_id):
         messages.error(request, "La bibliothèque qrcode n'est pas installée.")
         return redirect('admin:core_caveau_changelist')
     caveau = get_object_or_404(Caveau, id=caveau_id)
-    # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/ au lieu de /core/
     qr_url = request.build_absolute_uri(f'/cimetiere/caveau/{caveau.id}/qr-info/')
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_url)
