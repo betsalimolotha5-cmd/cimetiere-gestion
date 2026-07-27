@@ -42,7 +42,7 @@ CSRF_TRUSTED_ORIGINS = [
 # APPLICATION DEFINITION
 # ==============================================================================
 INSTALLED_APPS = [
-    'jazzmin',  # ⭐ DOIT ÊTRE EN PREMIER pour personnaliser l'admin
+     #'jazzmin',  # ⭐ DOIT ÊTRE EN PREMIER pour personnaliser l'admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
