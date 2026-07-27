@@ -152,8 +152,9 @@
         <div class="section-title">II. Lieu et Conditions d'Inhumation</div>
         <table class="info-grid">
             <tr>
-                <td class="label">Date et heure de l'inhumation :</td>
-                <td class="value"><strong>{{ inhumation.date_inhumation|date:"d/m/Y à H:i"|default:"Non renseigné" }}</strong></td>
+                <td class="label">Date de l'inhumation :</td>
+                <!-- ✅ CORRIGÉ : Suppression de 'à H:i' car date_inhumation est un champ Date, pas DateTime -->
+                <td class="value"><strong>{{ inhumation.date_inhumation|date:"d/m/Y"|default:"Non renseignée" }}</strong></td>
             </tr>
             <tr>
                 <td class="label">Code du Caveau / Emplacement :</td>
