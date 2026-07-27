@@ -1,6 +1,6 @@
 """
 Vues pour l'application core.
-MODIFIÉ : Suppression des try/except silencieux sur les PDF pour exposer la vraie erreur dans les logs Render.
+MODIFIÉ : Calcul du reste à payer en Python pour éviter l'erreur du filtre 'add' dans les templates PDF.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -239,7 +239,7 @@ def export_excel_exhumations(request):
 
 
 # ==============================================================================
-# EXPORTS PDF (SANS TRY/EXCEPT POUR EXPOSER LA VRAIE ERREUR DANS LES LOGS)
+# EXPORTS PDF
 # ==============================================================================
 @login_required
 def contrat_concession_pdf(request, concession_id):
@@ -251,7 +251,16 @@ def contrat_concession_pdf(request, concession_id):
     else:
         concession = get_object_or_404(Concession, id=concession_id, concessionnaire=request.user)
     
-    context = {'concession': concession, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
+    # ✅ CALCUL DU RESTE À PAYER EN PYTHON (évite l'erreur du filtre 'add' dans le template)
+    reste_a_payer = max(0, float(concession.montant_total or 0) - float(concession.montant_paye or 0))
+    
+    context = {
+        'concession': concession, 
+        'parametres': ParametreCimetiere.objects.first(), 
+        'date_generation': timezone.now(), 
+        'site_name': 'Gestion Cimetière',
+        'reste_a_payer': reste_a_payer
+    }
     template = get_template('core/pdf/contrat_concession_pdf.html')
     pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
     response = HttpResponse(pdf_file, content_type='application/pdf')

@@ -131,7 +131,7 @@
             <tr>
                 <td class="label">Le Concessionnaire :</td>
                 <td class="value">
-                    <strong>{{ concession.concessionnaire.get_full_name|default:concessionnaire.email }}</strong><br>
+                    <strong>{{ concession.concessionnaire.get_full_name|default:concession.concessionnaire.email }}</strong><br>
                     Email : {{ concession.concessionnaire.email }}<br>
                     {% if concession.concessionnaire.telephone %}Téléphone : {{ concession.concessionnaire.telephone }}{% endif %}
                 </td>
@@ -199,7 +199,7 @@
             <tr>
                 <td class="label">Reste à payer :</td>
                 <td class="value" style="color: red; font-weight: bold;">
-                    {{ concession.montant_total|add:-concession.montant_paye|floatformat:0 }} FCFA
+                    {{ reste_a_payer|floatformat:0 }} FCFA
                 </td>
             </tr>
         </table>
@@ -243,4 +243,4 @@
     </div>
 
 </body>
-</html> 
+</html>
