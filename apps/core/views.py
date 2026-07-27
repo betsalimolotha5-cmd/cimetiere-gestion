@@ -1,6 +1,6 @@
 """
 Vues pour l'application core.
-AJOUT : Dashboard admin, PDFs, QR Codes et exports. (CORRIGÉ : f-strings pour Python 3.11)
+AJOUT : Dashboard admin, PDFs, QR Codes et exports. (CORRIGÉ : URLs des QR codes avec le bon préfixe /cimetiere/)
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -278,7 +278,6 @@ def attestation_concession_pdf(request, concession_id):
         pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
         nom_client = concession.concessionnaire.get_full_name().replace(' ', '_') if concession.concessionnaire.get_full_name() else 'Client'
         response = HttpResponse(pdf_file, content_type='application/pdf')
-        # ✅ CORRIGÉ : Guillemets doubles pour le format de date à l'intérieur de la f-string
         response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime("%Y%m%d")}.pdf"'
         return response
     except Exception as e:
@@ -438,7 +437,6 @@ def dashboard_admin(request):
         except Exception:
             data_revenus.append(0.0)
     
-    # ✅ CORRIGÉ : Calcul de la somme des revenus directement en Python
     total_revenus_6_mois = sum(data_revenus)
     
     context = {
@@ -451,7 +449,7 @@ def dashboard_admin(request):
         'chart_labels': labels,
         'chart_inhumations': data_inhumations,
         'chart_revenus': data_revenus,
-        'total_revenus_6_mois': total_revenus_6_mois,  # ✅ NOUVEAU : passé au template
+        'total_revenus_6_mois': total_revenus_6_mois,
     }
     return render(request, 'core/dashboard_admin.html', context)
 
@@ -465,7 +463,8 @@ def qr_code_caveau(request, caveau_id):
         messages.error(request, "La bibliothèque qrcode n'est pas installée.")
         return redirect('admin:core_caveau_changelist')
     caveau = get_object_or_404(Caveau, id=caveau_id)
-    qr_url = request.build_absolute_uri(f'/core/caveau/{caveau.id}/qr-info/')
+    # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/ au lieu de /core/
+    qr_url = request.build_absolute_uri(f'/cimetiere/caveau/{caveau.id}/qr-info/')
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
     qr.add_data(qr_url)
     qr.make(fit=True)
