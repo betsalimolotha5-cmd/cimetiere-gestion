@@ -8,16 +8,11 @@ FROM python:3.11-slim
 # Variables d'environnement pour optimiser Python
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-# Force rebuild for weasyprint fix
 
 # Répertoire de travail
 WORKDIR /app
 
 # Installation des dépendances système nécessaires
-# - build-essential: compilation des paquets Python
-# - libpq-dev: client PostgreSQL (pour psycopg)
-# - gdal-bin & libgdal-dev: support PostGIS (géolocalisation)
-# - libcairo2, libpango, libgdk-pixbuf-xlib, libglib2.0, libffi-dev: WeasyPrint (génération PDF)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
@@ -38,13 +33,14 @@ COPY requirements.txt .
 # Mise à jour de pip
 RUN pip install --upgrade pip
 
-# 🌟 ASTUCE CRUCIALE : Installer la version de GDAL Python qui correspond EXACTEMENT 
-# à la version système installée par apt (évite tout conflit de compilation)
+# Installation de GDAL
 RUN pip install --no-cache-dir GDAL==$(gdal-config --version)
 
-# Installation du reste des dépendances Python
-# (On filtre pour ignorer toute ligne GDAL qui aurait pu rester dans le fichier)
-RUN grep -v '^GDAL' requirements.txt > requirements_no_gdal.txt && \
+# 🚨 FORCE CACHE BUST POUR WEASYPRINT 🚨
+# L'ajout de "echo" modifie la signature de la commande RUN.
+# Cela OBLIGE Docker à ignorer le cache et à réinstaller les paquets.
+RUN echo "FORCE_REBUILD_WEASYPRINT_$(date +%s)" && \
+    grep -v '^GDAL' requirements.txt > requirements_no_gdal.txt && \
     pip install --no-cache-dir -r requirements_no_gdal.txt
 
 # Copie du code source du projet
@@ -57,7 +53,6 @@ RUN python manage.py collectstatic --noinput --clear
 EXPOSE 8000
 
 # Commande de démarrage avec Gunicorn
-# 3 workers recommandés pour (2 x CPU + 1)
 CMD ["gunicorn", "config.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "3", \
