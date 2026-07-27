@@ -204,8 +204,8 @@
             </tr>
             <tr>
                 <td class="label">Reste à payer :</td>
-                <td class="value" style="color: {% if concession.montant_total|add:-concession.montant_paye > 0 %}#e74c3c{% else %}#27ae60{% endif %}; font-weight: bold;">
-                    {{ concession.montant_total|add:-concession.montant_paye|floatformat:0 }} FCFA
+                <td class="value" style="color: {% if reste_a_payer > 0 %}#e74c3c{% else %}#27ae60{% endif %}; font-weight: bold;">
+                    {{ reste_a_payer|floatformat:0 }} FCFA
                 </td>
             </tr>
         </table>
@@ -236,4 +236,4 @@
     </div>
 
 </body>
-</html> 
+</html>

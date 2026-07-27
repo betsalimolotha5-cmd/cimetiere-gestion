@@ -1,6 +1,6 @@
 """
 Vues pour l'application core.
-MODIFIÉ : Calcul du reste à payer en Python pour éviter l'erreur du filtre 'add' dans les templates PDF.
+MODIFIÉ : Calcul du reste à payer en Python pour l'attestation également.
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.admin.views.decorators import staff_member_required
@@ -251,7 +251,6 @@ def contrat_concession_pdf(request, concession_id):
     else:
         concession = get_object_or_404(Concession, id=concession_id, concessionnaire=request.user)
     
-    # ✅ CALCUL DU RESTE À PAYER EN PYTHON (évite l'erreur du filtre 'add' dans le template)
     reste_a_payer = max(0, float(concession.montant_total or 0) - float(concession.montant_paye or 0))
     
     context = {
@@ -277,7 +276,16 @@ def attestation_concession_pdf(request, concession_id):
     else:
         concession = get_object_or_404(Concession, id=concession_id, concessionnaire=request.user)
     
-    context = {'concession': concession, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
+    # ✅ CALCUL DU RESTE À PAYER EN PYTHON (évite l'erreur du filtre 'add' dans le template)
+    reste_a_payer = max(0, float(concession.montant_total or 0) - float(concession.montant_paye or 0))
+    
+    context = {
+        'concession': concession, 
+        'parametres': ParametreCimetiere.objects.first(), 
+        'date_generation': timezone.now(), 
+        'site_name': 'Gestion Cimetière',
+        'reste_a_payer': reste_a_payer
+    }
     template = get_template('core/pdf/attestation_concession_pdf.html')
     pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
     nom_client = concession.concessionnaire.get_full_name().replace(' ', '_') if concession.concessionnaire.get_full_name() else 'Client'
