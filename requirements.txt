@@ -76,7 +76,7 @@ pure_eval==0.2.3
 pycparser==3.0
 pydantic==2.13.4
 pydantic_core==2.46.4
-pydyf==0.9.0
+pydyf==0.12.1
 Pygments==2.20.0
 pyHanko==0.35.2
 pyhanko-certvalidator==0.31.1
@@ -123,7 +123,7 @@ uritools==6.1.2
 urllib3==2.7.0
 watchdog==3.0.0
 wcwidth==0.8.1
-weasyprint==6
+weasyprint==62.3
 webencodings==0.5.1
 websocket-client==1.9.0
 websockets==11.0.3
