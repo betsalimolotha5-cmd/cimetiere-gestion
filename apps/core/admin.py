@@ -459,7 +459,7 @@ class InhumationAdmin(admin.ModelAdmin):
 # ==============================================================================
 @admin.register(ParametreCimetiere)
 class ParametreCimetiereAdmin(admin.ModelAdmin):
-    list_display = ('nom', 'superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau')
+    list_display = ('nom', 'superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau', 'lien_rapport_statistique')
     
     formfield_overrides = {
         gis_models.PointField: {
@@ -479,13 +479,22 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
         }),
         ('Dimensions', {
             'fields': ('superficie_totale', 'longueur_standard_caveau', 'largeur_standard_caveau', 'largeur_allee'),
-            'description': '💡 La délimitation du cimetière sera automatiquement calculée et affichée sur la carte en fonction de la superficie totale et du point central.'
+            'description': '💡 La délimitation du cimetière sera automatiquement calculée et affichée sur la carte.'
         }),
     )
     
+    @admin.display(description='📊 Rapport Statistique Mensuel')
+    def lien_rapport_statistique(self, obj):
+        # Génère le rapport pour le mois en cours par défaut
+        url = '/cimetiere/rapport-statistique-pdf/'
+        return format_html(
+            '<a href="{}" target="_blank" class="button" style="padding: 8px 15px; background: #27ae60; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">'
+            '<i class="fas fa-chart-bar"></i> Télécharger le Rapport du Mois</a>',
+            url
+        )
+    
     class Media:
         js = ('admin/js/cimetiere_perimetre.js',)
-
 
 # ==============================================================================
 # ADMIN : DEMANDE D'EXHUMATION (AVEC PDF DE L'AUTORISATION ET DU PV)

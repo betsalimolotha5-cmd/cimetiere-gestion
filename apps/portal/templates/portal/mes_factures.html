@@ -134,6 +134,9 @@
                                 Payer
                             </a>
                             {% endif %}
+                            <a href="{% url 'core:attestation_concession_pdf' facture.concession.id %}" class="btn-action" style="background: #8e44ad;">
+                                Certificat
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}

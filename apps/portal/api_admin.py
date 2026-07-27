@@ -236,13 +236,23 @@ def valider_reservation(request, reservation_id: int):
             cree_par=request.user
         )
         
-        # 6. Générer le PDF
+        # 6. Générer le PDF de la facture
         try:
             pdf_path = generer_facture_pdf(facture)
             facture.fichier_pdf = pdf_path
             facture.save(update_fields=['fichier_pdf'])
         except Exception as e:
             logger.warning(f"PDF generation failed: {str(e)}")
+        
+        # 6bis. Générer le certificat de concession (exigé par le CDC : "certificats")
+        try:
+            from apps.core.services import ConcessionService
+            ConcessionService.generer_et_sauvegarder_certificat(
+                concession,
+                base_url=request.build_absolute_uri('/')
+            )
+        except Exception as e:
+            logger.warning(f"Certificate generation failed: {str(e)}")
         
         # 7. Envoyer la facture par email
         try:
@@ -252,6 +262,25 @@ def valider_reservation(request, reservation_id: int):
                 facture.save(update_fields=['email_envoye', 'date_envoi_email'])
         except Exception as e:
             logger.warning(f"Email sending failed: {str(e)}")
+        
+        # 7bis. Envoyer le certificat de concession par email (pièce jointe)
+        try:
+            if concession.document_contrat:
+                from django.core.mail import EmailMessage
+                email_certificat = EmailMessage(
+                    subject=f"Votre certificat de concession {concession.numero_contrat} - Gestion Cimetière",
+                    body=(
+                        f"Bonjour {reservation.client.get_full_name() or reservation.client.email},\n\n"
+                        f"Veuillez trouver ci-joint le certificat de votre concession funéraire "
+                        f"{concession.numero_contrat} (caveau {caveau.code}).\n\n"
+                        f"Cordialement,\nGestion du Cimetière"
+                    ),
+                    to=[reservation.client.email],
+                )
+                email_certificat.attach_file(concession.document_contrat.path)
+                email_certificat.send(fail_silently=True)
+        except Exception as e:
+            logger.warning(f"Certificate email sending failed: {str(e)}")
         
         # 8. Notifier le client
         try:

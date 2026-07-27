@@ -274,6 +274,67 @@ class ConcessionService:
             ).select_related('concessionnaire', 'caveau')
         )
 
+    @staticmethod
+    def generer_certificat_pdf(concession: Concession, base_url: str = '/') -> bytes:
+        """
+        Génère le certificat (attestation) de concession en PDF.
+
+        Ce document correspond au « certificat » exigé par le cahier des
+        charges (section 1.2 : "Automatiser la génération et l'envoi des
+        documents (factures PDF, certificats)"). Il réutilise le template
+        déjà utilisé pour le téléchargement manuel de l'attestation, afin
+        d'avoir un rendu unique et cohérent dans toute l'application.
+
+        Args:
+            concession: Instance de Concession pour laquelle générer le certificat.
+            base_url: URL de base utilisée par WeasyPrint pour résoudre les
+                ressources statiques éventuelles (images, CSS externes).
+
+        Returns:
+            bytes: Contenu binaire du PDF généré.
+        """
+        from django.template.loader import get_template
+        from weasyprint import HTML
+
+        reste_a_payer = max(
+            0,
+            float(concession.montant_total or 0) - float(concession.montant_paye or 0)
+        )
+
+        context = {
+            'concession': concession,
+            'parametres': ParametreCimetiere.objects.first(),
+            'date_generation': timezone.now(),
+            'site_name': 'Gestion Cimetière',
+            'reste_a_payer': reste_a_payer,
+        }
+
+        template = get_template('core/pdf/attestation_concession_pdf.html')
+        return HTML(string=template.render(context), base_url=base_url).write_pdf()
+
+    @staticmethod
+    def generer_et_sauvegarder_certificat(concession: Concession, base_url: str = '/') -> str:
+        """
+        Génère le certificat de concession et le sauvegarde sur le modèle
+        (champ `document_contrat`) afin qu'il reste attaché à la concession
+        et téléchargeable ultérieurement sans re-génération.
+
+        Returns:
+            str: Chemin relatif du fichier PDF sauvegardé.
+        """
+        from django.core.files.base import ContentFile
+
+        pdf_content = ConcessionService.generer_certificat_pdf(concession, base_url=base_url)
+        filename = f"certificat_{concession.numero_contrat}.pdf"
+        concession.document_contrat.save(filename, ContentFile(pdf_content), save=True)
+
+        logger.info(
+            f"CERTIFICAT_GENERATED: concession={concession.numero_contrat}, "
+            f"file={concession.document_contrat.name}"
+        )
+
+        return concession.document_contrat.name
+
 
 class InhumationService:
     """Service de gestion des inhumations."""
