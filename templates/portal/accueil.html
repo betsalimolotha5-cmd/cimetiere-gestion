@@ -1,72 +1,169 @@
 {% extends "base.html" %}
 
-{% block title %}Accueil{% endblock %}
+{% block title %}Portail du Cimetière{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- En-tête -->
+    <!-- En-tête personnalisé selon le rôle -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card bg-primary text-white">
                 <div class="card-body text-center p-4">
                     <h1 class="display-5">
                         <i class="fas fa-monument"></i>
-                        Bienvenue sur le Portail du Cimetière
+                        Bienvenue, {{ user.get_full_name|default:user.email }}
                     </h1>
-                    <p class="lead">Gestion numérique des emplacements funéraires</p>
+                    <p class="lead">
+                        {% if user.is_admin %}
+                            Administration du Cimetière
+                        {% elif user.is_field_agent %}
+                            Portail Agent de Terrain
+                        {% elif user.is_secretary %}
+                            Portail Secrétariat
+                        {% else %}
+                            Espace Citoyen
+                        {% endif %}
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Cartes d'information -->
+    <!-- Section principale : Carte + Boutons d'action -->
     <div class="row g-4">
-        <div class="col-md-4">
+        <!-- Colonne gauche : Carte publique (8/12) -->
+        <div class="col-lg-8">
             <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-map-marked-alt fa-3x text-success mb-3"></i>
-                    <h5 class="card-title">Carte Interactive</h5>
-                    <p class="card-text">Consultez les emplacements disponibles en temps réel sur notre carte SIG.</p>
-                    <a href="/cimetiere/carte/" class="btn btn-primary">
-                        <i class="fas fa-eye"></i> Voir la carte
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marked-alt"></i>
+                        Carte Interactive du Cimetière
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <iframe 
+                        src="/cimetiere/carte/" 
+                        style="width: 100%; height: 500px; border: none;"
+                        title="Carte du cimetière">
+                    </iframe>
+                </div>
+                <div class="card-footer text-center">
+                    <a href="/cimetiere/carte/" target="_blank" class="btn btn-success">
+                        <i class="fas fa-expand"></i> Ouvrir la carte en plein écran
                     </a>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-4">
+
+        <!-- Colonne droite : Boutons d'action selon le rôle (4/12) -->
+        <div class="col-lg-4">
             <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-file-contract fa-3x text-warning mb-3"></i>
-                    <h5 class="card-title">Concessions</h5>
-                    <p class="card-text">Informations sur les concessions, renouvellements et démarches administratives.</p>
-                    <a href="/cimetiere/concessions/" class="btn btn-primary">
-                        <i class="fas fa-info-circle"></i> En savoir plus
-                    </a>
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tasks"></i>
+                        Actions Rapides
+                    </h5>
                 </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-user-plus fa-3x text-info mb-3"></i>
-                    <h5 class="card-title">Réservation</h5>
-                    <p class="card-text">Faites une demande de réservation en ligne. Notre équipe vous contactera rapidement.</p>
-                    <a href="/portal/reservation/" class="btn btn-primary">
-                        <i class="fas fa-calendar-plus"></i> Réserver
-                    </a>
+                <div class="card-body">
+                    <!-- Boutons Admin -->
+                    {% if user.is_admin %}
+                        <div class="d-grid gap-2">
+                            <a href="/portal/dashboard/admin/" class="btn btn-primary btn-lg">
+                                <i class="fas fa-chart-line"></i> Dashboard Admin
+                            </a>
+                            <a href="/portal/statistiques/" class="btn btn-success">
+                                <i class="fas fa-chart-pie"></i> Statistiques & Rapports
+                            </a>
+                            <a href="/admin/" class="btn btn-warning">
+                                <i class="fas fa-cog"></i> Administration Django
+                            </a>
+                            <a href="/portal/audit/" class="btn btn-danger">
+                                <i class="fas fa-history"></i> Journal d'Audit
+                            </a>
+                            <a href="/portal/utilisateurs/" class="btn btn-info">
+                                <i class="fas fa-users"></i> Gestion Utilisateurs
+                            </a>
+                            <a href="/portal/configuration/" class="btn btn-secondary">
+                                <i class="fas fa-sliders-h"></i> Configuration
+                            </a>
+                        </div>
+
+                    <!-- Boutons Agent de terrain -->
+                    {% elif user.is_field_agent %}
+                        <div class="d-grid gap-2">
+                            <a href="/portal/dashboard/agent/" class="btn btn-primary btn-lg">
+                                <i class="fas fa-tachometer-alt"></i> Mon Dashboard
+                            </a>
+                            <a href="/portal/caveaux/" class="btn btn-success">
+                                <i class="fas fa-warehouse"></i> Gérer les Caveaux
+                            </a>
+                            <a href="/portal/inhumations/" class="btn btn-warning">
+                                <i class="fas fa-plus-circle"></i> Nouvelle Inhumation
+                            </a>
+                            <a href="/portal/qr-codes/" class="btn btn-info">
+                                <i class="fas fa-qrcode"></i> QR Codes
+                            </a>
+                            <a href="/portal/concessions/" class="btn btn-secondary">
+                                <i class="fas fa-file-contract"></i> Concessions
+                            </a>
+                        </div>
+
+                    <!-- Boutons Secrétaire -->
+                    {% elif user.is_secretary %}
+                        <div class="d-grid gap-2">
+                            <a href="/portal/dashboard/secretaire/" class="btn btn-primary btn-lg">
+                                <i class="fas fa-tachometer-alt"></i> Mon Dashboard
+                            </a>
+                            <a href="/portal/concessions/" class="btn btn-success">
+                                <i class="fas fa-file-contract"></i> Gérer Concessions
+                            </a>
+                            <a href="/portal/exhumations/valider/" class="btn btn-warning">
+                                <i class="fas fa-check-circle"></i> Valider Exhumations
+                            </a>
+                            <a href="/portal/pdf/generer/" class="btn btn-info">
+                                <i class="fas fa-file-pdf"></i> Générer PDFs
+                            </a>
+                            <a href="/portal/statistiques/" class="btn btn-secondary">
+                                <i class="fas fa-chart-bar"></i> Statistiques
+                            </a>
+                        </div>
+
+                    <!-- Boutons Client -->
+                    {% else %}
+                        <div class="d-grid gap-2">
+                            <a href="/portal/mes-concessions/" class="btn btn-primary btn-lg">
+                                <i class="fas fa-file-alt"></i> Mes Concessions
+                            </a>
+                            <a href="/portal/mes-factures/" class="btn btn-success">
+                                <i class="fas fa-file-invoice-dollar"></i> Mes Factures
+                            </a>
+                            <a href="/portal/reservation/" class="btn btn-warning">
+                                <i class="fas fa-calendar-plus"></i> Faire une Réservation
+                            </a>
+                            <a href="/portal/exhumation/demande/" class="btn btn-info">
+                                <i class="fas fa-exchange-alt"></i> Demande d'Exhumation
+                            </a>
+                            <a href="/portal/mes-reservations/" class="btn btn-secondary">
+                                <i class="fas fa-list"></i> Mes Réservations
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Statistiques rapides -->
+    <!-- Section statistiques (adaptée au rôle) -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <i class="fas fa-chart-pie"></i> Statistiques rapides
+                    <i class="fas fa-chart-pie"></i> 
+                    {% if user.is_admin or user.is_staff %}
+                        Statistiques Globales
+                    {% else %}
+                        Aperçu du Cimetière
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <div class="row text-center">
@@ -91,5 +188,40 @@
             </div>
         </div>
     </div>
+
+    <!-- Section informations supplémentaires (Admin uniquement) -->
+    {% if user.is_admin %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-exclamation-triangle"></i> Alertes & Notifications
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="alert alert-info">
+                                <h5><i class="fas fa-clock"></i> Concessions à renouveler</h5>
+                                <p class="mb-0">{{ concessions_a_renouveler|default:"0" }} concessions expirent dans les 30 jours</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-warning">
+                                <h5><i class="fas fa-file-excel"></i> Demandes en attente</h5>
+                                <p class="mb-0">{{ demandes_exhumation_en_attente|default:"0" }} demandes d'exhumation à valider</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-danger">
+                                <h5><i class="fas fa-money-bill-wave"></i> Paiements en retard</h5>
+                                <p class="mb-0">{{ paiements_en_retard|default:"0" }} factures impayées</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
