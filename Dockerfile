@@ -8,6 +8,7 @@ FROM python:3.11-slim
 # Variables d'environnement pour optimiser Python
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+# Force rebuild for weasyprint fix
 
 # Répertoire de travail
 WORKDIR /app
