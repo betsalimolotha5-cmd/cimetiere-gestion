@@ -142,12 +142,30 @@ def dashboard(request):
         'concessions_actives': concessions_actives,
     }
     
+    # Importer les modèles de facturation pour les stats financières
+    from apps.billing.models import Facture, Paiement
+    
     if user.is_admin():
-        # Dashboard Admin complet + Audit
-        labels = []
-        data_inhumations = []
-        data_revenus = []
+        # === DASHBOARD ADMIN (avec facturation et audit) ===
+        factures_impayees = Facture.objects.filter(
+            statut__in=[Facture.StatutFacture.EMISE, Facture.StatutFacture.PARTIELLEMENT_PAYEE]
+        ).order_by('date_echeance')
         
+        revenus_mois_qs = Paiement.objects.filter(
+            statut=Paiement.StatutPaiement.VALIDE,
+            date_paiement__month=today.month,
+            date_paiement__year=today.year
+        ).aggregate(total=Sum('montant'))['total'] or 0
+        
+        context.update({
+            'factures_impayees_count': factures_impayees.count(),
+            'factures_impayees_recentes': factures_impayees[:10],
+            'revenus_mois': float(revenus_mois_qs),
+            'paiements_recents': Paiement.objects.filter(statut=Paiement.StatutPaiement.VALIDE).order_by('-date_paiement')[:10],
+        })
+        
+        # Graphiques 6 derniers mois
+        labels, data_inhumations, data_revenus = [], [], []
         for i in range(5, -1, -1):
             month = today.month - i
             year = today.year
@@ -160,14 +178,11 @@ def dashboard(request):
             end_day = date(year, month, last_day)
             
             labels.append(f"{calendar.month_name[month][:3]} {year}")
-            
-            inhumations = Inhumation.objects.filter(date_inhumation__range=(first_day, end_day)).count()
-            data_inhumations.append(inhumations)
+            data_inhumations.append(Inhumation.objects.filter(date_inhumation__range=(first_day, end_day)).count())
             
             try:
-                from apps.billing.models import Paiement
                 revenus = Paiement.objects.filter(
-                    statut='VALIDE',
+                    statut=Paiement.StatutPaiement.VALIDE,
                     date_paiement__range=(first_day, end_day)
                 ).aggregate(total=Sum('montant'))['total'] or 0
                 data_revenus.append(float(revenus))
@@ -177,32 +192,61 @@ def dashboard(request):
         context.update({
             'role': 'admin',
             'chart_labels': labels,
-            'chart_inhumations': data_inhumations,
             'chart_revenus': data_revenus,
             'total_revenus_6_mois': sum(data_revenus),
             'can_view_audit': user.has_permission('view_audit_logs'),
             'can_manage_users': user.has_permission('manage_users'),
             'can_manage_settings': user.has_permission('manage_settings'),
         })
+        return render(request, 'portal/dashboard_admin.html', context)
         
-    elif user.is_field_agent() or user.is_secretary():
-        # Dashboard Opérationnel (Agent / Secrétaire)
+    elif user.is_secretary():
+        # === DASHBOARD SECRÉTAIRE (avec facturation complète) ===
+        factures_impayees = Facture.objects.filter(
+            statut__in=[Facture.StatutFacture.EMISE, Facture.StatutFacture.PARTIELLEMENT_PAYEE]
+        ).order_by('date_echeance')
+        
+        revenus_mois_qs = Paiement.objects.filter(
+            statut=Paiement.StatutPaiement.VALIDE,
+            date_paiement__month=today.month,
+            date_paiement__year=today.year
+        ).aggregate(total=Sum('montant'))['total'] or 0
+        
         context.update({
-            'role': 'staff',
+            'role': 'secretary',
+            'factures_impayees_count': factures_impayees.count(),
+            'factures_impayees_recentes': factures_impayees[:10],
+            'revenus_mois': float(revenus_mois_qs),
+            'paiements_recents': Paiement.objects.filter(statut=Paiement.StatutPaiement.VALIDE).order_by('-date_paiement')[:10],
+            'can_manage_concessions': user.has_permission('create_concessions'),
+            'can_manage_exhumations': user.has_permission('validate_exhumation'),
+            'can_generate_pdfs': user.has_permission('generate_contract_pdf'),
+            'recent_inhumations': Inhumation.objects.select_related('defunt', 'concession__caveau').order_by('-date_inhumation')[:10],
+        })
+        return render(request, 'portal/dashboard_secretaire.html', context)
+        
+    elif user.is_field_agent():
+        # === DASHBOARD AGENT ===
+        context.update({
+            'role': 'agent',
             'can_manage_caveaux': user.has_permission('create_caveaux'),
             'can_validate_reservations': user.has_permission('update_concessions'),
             'recent_inhumations': Inhumation.objects.select_related('defunt', 'concession__caveau').order_by('-date_inhumation')[:10],
         })
+        return render(request, 'portal/dashboard_agent.html', context)
         
     elif user.is_client():
-        # Dashboard Client
+        # === DASHBOARD CLIENT ===
         context.update({
             'role': 'client',
             'mes_concessions': Concession.objects.filter(concessionnaire=user).select_related('caveau', 'caveau__zone', 'defunt'),
             'mes_demandes_exhumation': DemandeExhumation.objects.filter(demandeur=user).order_by('-date_demande'),
         })
+        # On redirige le client vers son espace dédié ou l'accueil
+        return render(request, 'portal/accueil.html', context)
 
-    return render(request, 'core/dashboard.html', context)
+    # Fallback
+    return render(request, 'portal/accueil.html', context)
 
 
 # ==============================================================================
