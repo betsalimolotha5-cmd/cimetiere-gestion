@@ -332,6 +332,22 @@ def payer_facture(request, facture_id):
 
     return render(request, 'portal/payer_facture.html', {'facture': facture})
 
+@login_required
+def mes_concessions(request):
+    """Liste des concessions du client connecté."""
+    concessions = Concession.objects.filter(concessionnaire=request.user).select_related('caveau', 'caveau__zone', 'defunt')
+    context = {'concessions': concessions}
+    return render(request, 'portal/mes_concessions.html', context)
+
+@login_required
+def demande_exhumation(request):
+    """Formulaire de demande d'exhumation pour le client."""
+    if request.method == 'POST':
+        # Traitement du formulaire (à implémenter)
+        messages.success(request, "Votre demande d'exhumation a été envoyée.")
+        return redirect('portal:mes_reservations')
+    return render(request, 'portal/demande_exhumation.html')
+
 
 # ==============================================================================
 # ⭐ DASHBOARD AGENT DE TERRAIN (RBAC)
