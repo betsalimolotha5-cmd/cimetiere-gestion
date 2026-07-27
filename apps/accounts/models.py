@@ -1,5 +1,6 @@
 """
 Modèles pour la gestion des utilisateurs et authentification.
+AMÉLIORÉ : Système de permissions RBAC complet basé sur le CDC.
 """
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
@@ -45,6 +46,118 @@ class User(AbstractBaseUser, PermissionsMixin):
         FIELD_AGENT = 'FIELD_AGENT', 'Agent de terrain'
         SECRETARY = 'SECRETARY', 'Secrétariat'
         CLIENT = 'CLIENT', 'Client (Citoyen)'
+    
+    # === Permissions (constantes pour le CDC) ===
+    # Ces constantes définissent toutes les actions possibles du système
+    PERMISSIONS = {
+        # Gestion des caveaux
+        'VIEW_CAVEAUX': 'view_caveaux',
+        'CREATE_CAVEAUX': 'create_caveaux',
+        'UPDATE_CAVEAUX': 'update_caveaux',
+        'DELETE_CAVEAUX': 'delete_caveaux',
+        
+        # Gestion des zones
+        'VIEW_ZONES': 'view_zones',
+        'CREATE_ZONES': 'create_zones',
+        'UPDATE_ZONES': 'update_zones',
+        'DELETE_ZONES': 'delete_zones',
+        
+        # Gestion des concessions
+        'VIEW_CONCESSIONS': 'view_concessions',
+        'CREATE_CONCESSIONS': 'create_concessions',
+        'UPDATE_CONCESSIONS': 'update_concessions',
+        'DELETE_CONCESSIONS': 'delete_concessions',
+        'GENERATE_CONTRACT_PDF': 'generate_contract_pdf',
+        'GENERATE_ATTESTATION_PDF': 'generate_attestation_pdf',
+        
+        # Gestion des défunts
+        'VIEW_DEFUNTS': 'view_defunts',
+        'CREATE_DEFUNTS': 'create_defunts',
+        'UPDATE_DEFUNTS': 'update_defunts',
+        'DELETE_DEFUNTS': 'delete_defunts',
+        
+        # Gestion des inhumations
+        'VIEW_INHUMATIONS': 'view_inhumations',
+        'CREATE_INHUMATIONS': 'create_inhumations',
+        'UPDATE_INHUMATIONS': 'update_inhumations',
+        'DELETE_INHUMATIONS': 'delete_inhumations',
+        'GENERATE_PV_INHUMATION_PDF': 'generate_pv_inhumation_pdf',
+        
+        # Gestion des exhumations
+        'VIEW_EXHUMATIONS': 'view_exhumations',
+        'CREATE_EXHUMATION_REQUEST': 'create_exhumation_request',
+        'VALIDATE_EXHUMATION': 'validate_exhumation',
+        'REFUSE_EXHUMATION': 'refuse_exhumation',
+        'GENERATE_EXHUMATION_PDF': 'generate_exhumation_pdf',
+        
+        # Statistiques et rapports
+        'VIEW_STATISTICS': 'view_statistics',
+        'VIEW_FINANCIAL_STATS': 'view_financial_stats',
+        'GENERATE_STATISTICAL_REPORT': 'generate_statistical_report',
+        
+        # Gestion des utilisateurs (Admin uniquement)
+        'MANAGE_USERS': 'manage_users',
+        'VIEW_AUDIT_LOGS': 'view_audit_logs',
+        
+        # Configuration du système
+        'MANAGE_SETTINGS': 'manage_settings',
+        
+        # Accès public (tous les utilisateurs)
+        'VIEW_PUBLIC_MAP': 'view_public_map',
+    }
+    
+    # Matrice des permissions par rôle
+    ROLE_PERMISSIONS = {
+        Role.ADMIN: [
+            # Admin a TOUTES les permissions
+            'view_caveaux', 'create_caveaux', 'update_caveaux', 'delete_caveaux',
+            'view_zones', 'create_zones', 'update_zones', 'delete_zones',
+            'view_concessions', 'create_concessions', 'update_concessions', 'delete_concessions',
+            'generate_contract_pdf', 'generate_attestation_pdf',
+            'view_defunts', 'create_defunts', 'update_defunts', 'delete_defunts',
+            'view_inhumations', 'create_inhumations', 'update_inhumations', 'delete_inhumations',
+            'generate_pv_inhumation_pdf',
+            'view_exhumations', 'create_exhumation_request', 'validate_exhumation', 'refuse_exhumation',
+            'generate_exhumation_pdf',
+            'view_statistics', 'view_financial_stats', 'generate_statistical_report',
+            'manage_users', 'view_audit_logs',
+            'manage_settings',
+            'view_public_map',
+        ],
+        Role.FIELD_AGENT: [
+            # Agent de terrain : gestion opérationnelle
+            'view_caveaux', 'create_caveaux', 'update_caveaux',
+            'view_zones',
+            'view_concessions', 'create_concessions', 'update_concessions',
+            'generate_contract_pdf', 'generate_attestation_pdf',
+            'view_defunts', 'create_defunts', 'update_defunts',
+            'view_inhumations', 'create_inhumations', 'update_inhumations',
+            'generate_pv_inhumation_pdf',
+            'view_exhumations', 'create_exhumation_request',
+            'view_statistics',
+            'view_public_map',
+        ],
+        Role.SECRETARY: [
+            # Secrétariat : gestion administrative
+            'view_caveaux', 'create_caveaux', 'update_caveaux',
+            'view_zones',
+            'view_concessions', 'create_concessions', 'update_concessions',
+            'generate_contract_pdf', 'generate_attestation_pdf',
+            'view_defunts', 'create_defunts', 'update_defunts',
+            'view_inhumations', 'create_inhumations', 'update_inhumations',
+            'generate_pv_inhumation_pdf',
+            'view_exhumations', 'validate_exhumation', 'refuse_exhumation',
+            'generate_exhumation_pdf',
+            'view_statistics',
+            'view_public_map',
+        ],
+        Role.CLIENT: [
+            # Client : consultation uniquement
+            'view_public_map',
+            'view_concessions',  # Voir ses propres concessions (filtré dans les vues)
+            'create_exhumation_request',  # Demander une exhumation
+        ],
+    }
     
     # Informations de connexion
     email = models.EmailField('Adresse email', unique=True, db_index=True)
@@ -121,9 +234,35 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Vérifie si l'utilisateur est client."""
         return self.role == self.Role.CLIENT
     
+    def has_permission(self, permission):
+        """
+        Vérifie si l'utilisateur a une permission spécifique.
+        
+        Args:
+            permission (str): La permission à vérifier (ex: 'view_caveaux')
+        
+        Returns:
+            bool: True si l'utilisateur a la permission, False sinon
+        """
+        # Admin et superuser ont toutes les permissions
+        if self.is_admin() or self.is_superuser:
+            return True
+        
+        # Vérifier dans la matrice des permissions
+        role_permissions = self.ROLE_PERMISSIONS.get(self.role, [])
+        return permission in role_permissions
+    
+    def get_all_permissions(self):
+        """Retourne la liste de toutes les permissions de l'utilisateur."""
+        if self.is_admin() or self.is_superuser:
+            return list(self.PERMISSIONS.values())
+        return self.ROLE_PERMISSIONS.get(self.role, [])
+    
+    # === Méthodes de permissions spécifiques (compatibilité avec l'ancien code) ===
+    
     def can_manage_caveaux(self):
         """Vérifie si l'utilisateur peut gérer les caveaux."""
-        return self.is_admin() or self.is_field_agent()
+        return self.has_permission('create_caveaux') or self.has_permission('update_caveaux')
     
     def can_validate_reservations(self):
         """Vérifie si l'utilisateur peut valider les réservations."""
@@ -131,7 +270,31 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     def can_view_financial_stats(self):
         """Vérifie si l'utilisateur peut voir les statistiques financières."""
-        return self.is_admin()
+        return self.has_permission('view_financial_stats')
+    
+    def can_generate_pdfs(self):
+        """Vérifie si l'utilisateur peut générer des PDF."""
+        return (self.has_permission('generate_contract_pdf') or 
+                self.has_permission('generate_attestation_pdf') or
+                self.has_permission('generate_pv_inhumation_pdf') or
+                self.has_permission('generate_exhumation_pdf'))
+    
+    def can_manage_exhumations(self):
+        """Vérifie si l'utilisateur peut gérer les exhumations."""
+        return (self.has_permission('validate_exhumation') or 
+                self.has_permission('refuse_exhumation'))
+    
+    def can_view_audit_logs(self):
+        """Vérifie si l'utilisateur peut voir les logs d'audit."""
+        return self.has_permission('view_audit_logs')
+    
+    def can_manage_users(self):
+        """Vérifie si l'utilisateur peut gérer les utilisateurs."""
+        return self.has_permission('manage_users')
+    
+    def can_view_statistics(self):
+        """Vérifie si l'utilisateur peut voir les statistiques."""
+        return self.has_permission('view_statistics')
     
     # === Méthodes MFA ===
     
