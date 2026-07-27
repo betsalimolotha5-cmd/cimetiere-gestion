@@ -109,7 +109,13 @@
     <!-- DÉCLARATION OFFICIELLE -->
     <div class="official-statement">
         <p>L'an deux mille {{ date_generation|date:"Y" }}, le {{ date_generation|date:"d" }} jour du mois de {{ date_generation|date:"F" }},</p>
-        <p>Nous, soussigné(e) <strong>{{ inhumation.enregistre_par.get_full_name|default:inhumation.enregistre_par.email|default:"l'Agent assermenté" }}</strong>, agissant en qualité d'agent officiel du cimetière, certifions avoir procédé à l'inhumation du défunt désigné ci-après, en présence des témoins et de la famille, conformément à la réglementation en vigueur.</p>
+        <p>Nous, soussigné(e) <strong>
+            {% if inhumation.enregistre_par %}
+                {{ inhumation.enregistre_par.get_full_name|default:inhumation.enregistre_par.email|default:"l'Agent assermenté" }}
+            {% else %}
+                l'Agent assermenté
+            {% endif %}
+        </strong>, agissant en qualité d'agent officiel du cimetière, certifions avoir procédé à l'inhumation du défunt désigné ci-après, en présence des témoins et de la famille, conformément à la réglementation en vigueur.</p>
     </div>
 
     <!-- ARTICLE 1 : LE DÉFUNT -->
@@ -118,19 +124,19 @@
         <table class="info-grid">
             <tr>
                 <td class="label">Nom et Prénoms :</td>
-                <td class="value"><strong>{{ inhumation.defunt.nom|upper }} {{ inhumation.defunt.prenom }}</strong></td>
+                <td class="value"><strong>{{ inhumation.defunt.nom|upper|default:"NON RENSEIGNÉ" }} {{ inhumation.defunt.prenom|default:"" }}</strong></td>
             </tr>
             <tr>
                 <td class="label">Date et lieu de naissance :</td>
                 <td class="value">
                     {{ inhumation.defunt.date_naissance|date:"d/m/Y"|default:"Non renseigné" }} 
-                    à {{ inhumation.defunt.lieu_deces|default:"Non renseigné" }}
+                    à {{ inhumation.defunt.lieu_naissance|default:inhumation.defunt.lieu_deces|default:"Non renseigné" }}
                 </td>
             </tr>
             <tr>
                 <td class="label">Date et lieu de décès :</td>
                 <td class="value">
-                    {{ inhumation.defunt.date_deces|date:"d/m/Y" }} 
+                    {{ inhumation.defunt.date_deces|date:"d/m/Y"|default:"Non renseigné" }} 
                     à {{ inhumation.defunt.lieu_deces|default:"Non renseigné" }}
                 </td>
             </tr>
@@ -147,20 +153,20 @@
         <table class="info-grid">
             <tr>
                 <td class="label">Date et heure de l'inhumation :</td>
-                <td class="value"><strong>{{ inhumation.date_inhumation|date:"d/m/Y à H:i" }}</strong></td>
+                <td class="value"><strong>{{ inhumation.date_inhumation|date:"d/m/Y à H:i"|default:"Non renseigné" }}</strong></td>
             </tr>
             <tr>
                 <td class="label">Code du Caveau / Emplacement :</td>
                 <td class="value">
                     <strong>{{ inhumation.concession.caveau.code|default:"Non spécifié" }}</strong>
-                    {% if inhumation.concession.caveau.zone %}
+                    {% if inhumation.concession and inhumation.concession.caveau and inhumation.concession.caveau.zone %}
                         (Zone : {{ inhumation.concession.caveau.zone.nom }})
                     {% endif %}
                 </td>
             </tr>
             <tr>
                 <td class="label">Profondeur de la fosse :</td>
-                <td class="value">{{ inhumation.profondeur }} mètre(s)</td>
+                <td class="value">{{ inhumation.profondeur|default:"Non renseignée" }} mètre(s)</td>
             </tr>
             <tr>
                 <td class="label">Numéro de place dans le caveau :</td>
@@ -175,11 +181,23 @@
         <table class="info-grid">
             <tr>
                 <td class="label">Nom du concessionnaire :</td>
-                <td class="value">{{ inhumation.concession.concessionnaire.get_full_name|default:inhumation.concession.concessionnaire.email }}</td>
+                <td class="value">
+                    {% if inhumation.concession and inhumation.concession.concessionnaire %}
+                        {{ inhumation.concession.concessionnaire.get_full_name|default:inhumation.concession.concessionnaire.email|default:"Non renseigné" }}
+                    {% else %}
+                        Non renseigné
+                    {% endif %}
+                </td>
             </tr>
             <tr>
                 <td class="label">N° de contrat de concession :</td>
-                <td class="value">{{ inhumation.concession.numero_contrat }}</td>
+                <td class="value">
+                    {% if inhumation.concession %}
+                        {{ inhumation.concession.numero_contrat|default:"Non renseigné" }}
+                    {% else %}
+                        Non renseigné
+                    {% endif %}
+                </td>
             </tr>
         </table>
     </div>
@@ -202,7 +220,13 @@
         </div>
         <div class="signature-box">
             <h4>L'Agent du Cimetière</h4>
-            <p style="font-size: 9pt; color: #666;">{{ inhumation.enregistre_par.get_full_name|default:"Agent assermenté" }}</p>
+            <p style="font-size: 9pt; color: #666;">
+                {% if inhumation.enregistre_par %}
+                    {{ inhumation.enregistre_par.get_full_name|default:"Agent assermenté" }}
+                {% else %}
+                    Agent assermenté
+                {% endif %}
+            </p>
             <br><br>
             <p>Signature et Cachet</p>
         </div>
@@ -215,4 +239,4 @@
     </div>
 
 </body>
-</html> 
+</html>
