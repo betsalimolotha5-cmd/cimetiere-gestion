@@ -2,8 +2,8 @@
 # Dockerfile pour l'application de gestion de cimetière
 # ============================================
 
-# Image de base officielle Python 3.11 (stable & légère, basée sur Debian)
-FROM python:3.11-slim
+# 🚨 CHANGEMENT CRUCIAL : Version spécifique pour forcer l'invalidation du cache Docker
+FROM python:3.11.9-slim-bookworm
 
 # Variables d'environnement pour optimiser Python
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -36,10 +36,8 @@ RUN pip install --upgrade pip
 # Installation de GDAL
 RUN pip install --no-cache-dir GDAL==$(gdal-config --version)
 
-# 🚨 FORCE CACHE BUST POUR WEASYPRINT 🚨
-# L'ajout de "echo" modifie la signature de la commande RUN.
-# Cela OBLIGE Docker à ignorer le cache et à réinstaller les paquets.
-RUN echo "FORCE_REBUILD_WEASYPRINT_$(date +%s)" && \
+# 🚨 FORCE CACHE BUST : Changement de texte statique pour obliger la réinstallation
+RUN echo "CACHE_BUST_VERSION_3" && \
     grep -v '^GDAL' requirements.txt > requirements_no_gdal.txt && \
     pip install --no-cache-dir -r requirements_no_gdal.txt
 
