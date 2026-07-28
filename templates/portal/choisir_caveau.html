@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Choisir un Caveau{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold text-success">
+                <i class="fas fa-calendar-plus me-2"></i>Faire une Réservation
+            </h2>
+            <p class="text-muted">Sélectionnez un caveau disponible pour commencer votre réservation</p>
+        </div>
+    </div>
+
+    {% if caveaux_disponibles %}
+    <div class="row g-4">
+        {% for caveau in caveaux_disponibles %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card h-100 shadow-sm border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-warehouse me-2"></i>{{ caveau.code }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Zone :</strong> {{ caveau.zone.nom|default:"Non définie" }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Type :</strong> {{ caveau.get_type_caveau_display }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Dimensions :</strong> {{ caveau.longueur }}m × {{ caveau.largeur }}m
+                    </p>
+                    <p class="mb-3">
+                        <strong>Prix :</strong> 
+                        <span class="text-success fw-bold">{{ caveau.prix_concession|floatformat:0 }} FCFA</span>
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="/portal/reservation/{{ caveau.id }}/" class="btn btn-success w-100">
+                        <i class="fas fa-calendar-check me-2"></i>Réserver ce caveau
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Aucun caveau disponible actuellement.</strong> Veuillez réessayer plus tard.
+    </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="/portal/" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Retour à l'accueil
+        </a>
+    </div>
+</div>
+{% endblock %}

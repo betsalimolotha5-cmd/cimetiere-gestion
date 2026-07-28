@@ -182,8 +182,22 @@ def api_carte_publique(request):
 
 
 @login_required
-def reservation_form(request, caveau_id):
-    """Formulaire de réservation pour un caveau donné."""
+def reservation_form(request, caveau_id=None):
+    """
+    Formulaire de réservation pour un caveau donné.
+    Si caveau_id n'est pas fourni, affiche la liste des caveaux disponibles.
+    """
+    # Si aucun caveau_id n'est fourni, afficher la liste des caveaux disponibles
+    if caveau_id is None:
+        caveaux_disponibles = Caveau.objects.filter(
+            statut='DISPONIBLE'
+        ).select_related('zone').order_by('zone__nom', 'code')
+        
+        return render(request, 'portal/choisir_caveau.html', {
+            'caveaux_disponibles': caveaux_disponibles
+        })
+    
+    # Sinon, traiter la réservation pour le caveau spécifique
     caveau = get_object_or_404(Caveau, id=caveau_id)
 
     if caveau.statut != 'DISPONIBLE':
@@ -345,7 +359,7 @@ def demande_exhumation(request):
     if request.method == 'POST':
         # Traitement du formulaire (à implémenter)
         messages.success(request, "Votre demande d'exhumation a été envoyée.")
-        return redirect('portal:mes_reservations')
+        return redirect('mes_reservations')
     return render(request, 'portal/demande_exhumation.html')
 
 
