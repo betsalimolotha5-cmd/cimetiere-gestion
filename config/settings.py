@@ -78,6 +78,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.core.middleware.CurrentUserMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -233,10 +234,19 @@ LOGGING = {
             'formatter': 'verbose',
             'level': 'DEBUG',
         },
+        'audit_db': {
+            'class': 'apps.core.logging_handlers.DatabaseAuditHandler',
+            'level': 'INFO',
+        },
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'audit': {
+            'handlers': ['console', 'audit_db'],
             'level': 'INFO',
             'propagate': False,
         },
