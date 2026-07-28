@@ -1,6 +1,7 @@
 """
 Administration Django pour l'application core (cimetière).
 CORRIGÉ : URLs des boutons PDF et QR Codes avec le bon préfixe /cimetiere/
+AJOUT : Interface de gestion des rappels d'expiration (RappelExpiration)
 """
 from django.contrib import admin, messages
 from django.contrib.gis.db import models as gis_models
@@ -9,7 +10,7 @@ from django import forms
 from django.utils.html import format_html
 from .models import (
     Zone, Caveau, Defunt, Concession, Inhumation,
-    ParametreCimetiere, DemandeExhumation
+    ParametreCimetiere, DemandeExhumation, RappelExpiration
 )
 
 # ==============================================================================
@@ -106,7 +107,6 @@ class CaveauAdmin(admin.ModelAdmin):
     @admin.display(description='QR Code')
     def qr_code_link(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/caveau/{obj.id}/qr-code/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #00838f; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
@@ -118,7 +118,6 @@ class CaveauAdmin(admin.ModelAdmin):
     @admin.display(description='QR Code du Caveau')
     def qr_code_button(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url_image = f'/cimetiere/caveau/{obj.id}/qr-code/'
             url_info = f'/cimetiere/caveau/{obj.id}/qr-info/'
             return format_html(
@@ -135,7 +134,6 @@ class CaveauAdmin(admin.ModelAdmin):
     @admin.display(description='Aperçu')
     def qr_code_image(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/caveau/{obj.id}/qr-code/'
             return format_html(
                 '<div style="text-align: center; padding: 20px; background: white; border: 2px dashed #00838f; border-radius: 8px;">'
@@ -151,13 +149,11 @@ class CaveauAdmin(admin.ModelAdmin):
     def telecharger_qr_codes_action(self, request, queryset):
         if queryset.count() == 1:
             caveau = queryset.first()
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/caveau/{caveau.id}/qr-code/'
             messages.success(request, f'QR Code généré pour le caveau : {caveau.code}')
         else:
             links = []
             for caveau in queryset:
-                # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
                 url = f'/cimetiere/caveau/{caveau.id}/qr-code/'
                 links.append(f'<a href="{url}" target="_blank">{caveau.code}</a>')
             messages.success(request, f'QR Codes générés pour : {", ".join(links)}')
@@ -307,7 +303,6 @@ class ConcessionAdmin(admin.ModelAdmin):
     
     @admin.display(description='Contrat PDF')
     def telecharger_contrat_pdf_link(self, obj):
-        # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
         url = f'/cimetiere/concession/{obj.id}/contrat-pdf/'
         return format_html(
             '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #6c3483; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
@@ -318,7 +313,6 @@ class ConcessionAdmin(admin.ModelAdmin):
     @admin.display(description='Télécharger le contrat')
     def telecharger_contrat_pdf_button(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/concession/{obj.id}/contrat-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #6c3483; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold; display: inline-block;">'
@@ -331,13 +325,11 @@ class ConcessionAdmin(admin.ModelAdmin):
     def telecharger_contrats_pdf_action(self, request, queryset):
         if queryset.count() == 1:
             concession = queryset.first()
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/concession/{concession.id}/contrat-pdf/'
             messages.success(request, f'Contrat PDF prêt pour : {concession.numero_contrat}')
         else:
             links = []
             for concession in queryset:
-                # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
                 url = f'/cimetiere/concession/{concession.id}/contrat-pdf/'
                 links.append(f'<a href="{url}" target="_blank">{concession.numero_contrat}</a>')
             messages.success(request, f'Contrats PDF prêts pour : {", ".join(links)}')
@@ -345,7 +337,6 @@ class ConcessionAdmin(admin.ModelAdmin):
     @admin.display(description='Attestation PDF')
     def telecharger_attestation_pdf_link(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/concession/{obj.id}/attestation-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #16a085; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
@@ -357,7 +348,6 @@ class ConcessionAdmin(admin.ModelAdmin):
     @admin.display(description='Télécharger l\'attestation')
     def telecharger_attestation_pdf_button(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/concession/{obj.id}/attestation-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #16a085; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold; display: inline-block;">'
@@ -370,13 +360,11 @@ class ConcessionAdmin(admin.ModelAdmin):
     def telecharger_attestations_pdf_action(self, request, queryset):
         if queryset.count() == 1:
             concession = queryset.first()
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/concession/{concession.id}/attestation-pdf/'
             messages.success(request, f'Attestation PDF prête pour : {concession.numero_contrat}')
         else:
             links = []
             for concession in queryset:
-                # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
                 url = f'/cimetiere/concession/{concession.id}/attestation-pdf/'
                 links.append(f'<a href="{url}" target="_blank">{concession.numero_contrat}</a>')
             messages.success(request, f'Attestations PDF prêtes pour : {", ".join(links)}')
@@ -417,7 +405,6 @@ class InhumationAdmin(admin.ModelAdmin):
     @admin.display(description='PV PDF')
     def telecharger_pv_pdf_link(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/inhumation/{obj.id}/pv-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #e74c3c; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
@@ -429,7 +416,6 @@ class InhumationAdmin(admin.ModelAdmin):
     @admin.display(description='Télécharger le PV')
     def telecharger_pv_pdf_button(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/inhumation/{obj.id}/pv-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #e74c3c; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold; display: inline-block;">'
@@ -442,13 +428,11 @@ class InhumationAdmin(admin.ModelAdmin):
     def telecharger_pv_pdf_action(self, request, queryset):
         if queryset.count() == 1:
             inhumation = queryset.first()
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/inhumation/{inhumation.id}/pv-pdf/'
             messages.success(request, f'PV PDF prêt pour : {inhumation.defunt}')
         else:
             links = []
             for inh in queryset:
-                # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
                 url = f'/cimetiere/inhumation/{inh.id}/pv-pdf/'
                 links.append(f'<a href="{url}" target="_blank">{inh.defunt}</a>')
             messages.success(request, f'PVs PDF prêts pour : {", ".join(links)}')
@@ -485,7 +469,6 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
     
     @admin.display(description='📊 Rapport Statistique Mensuel')
     def lien_rapport_statistique(self, obj):
-        # Génère le rapport pour le mois en cours par défaut
         url = '/cimetiere/rapport-statistique-pdf/'
         return format_html(
             '<a href="{}" target="_blank" class="button" style="padding: 8px 15px; background: #27ae60; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">'
@@ -495,6 +478,7 @@ class ParametreCimetiereAdmin(admin.ModelAdmin):
     
     class Media:
         js = ('admin/js/cimetiere_perimetre.js',)
+
 
 # ==============================================================================
 # ADMIN : DEMANDE D'EXHUMATION (AVEC PDF DE L'AUTORISATION ET DU PV)
@@ -578,7 +562,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
     @admin.display(description='Autorisation PDF')
     def telecharger_autorisation_pdf_link(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/demande-exhumation/{obj.id}/autorisation-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #2980b9; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
@@ -590,7 +573,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
     @admin.display(description='Télécharger l\'autorisation')
     def telecharger_autorisation_pdf_button(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/demande-exhumation/{obj.id}/autorisation-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #2980b9; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold; display: inline-block;">'
@@ -602,7 +584,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
     @admin.display(description='PV PDF')
     def telecharger_pv_pdf_link(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/demande-exhumation/{obj.id}/pv-exhumation-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 5px 10px; background: #8e44ad; color: white; text-decoration: none; border-radius: 4px; font-size: 11px; font-weight: bold;">'
@@ -614,7 +595,6 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
     @admin.display(description='Télécharger le PV')
     def telecharger_pv_pdf_button(self, obj):
         if obj.pk:
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/demande-exhumation/{obj.id}/pv-exhumation-pdf/'
             return format_html(
                 '<a href="{}" target="_blank" class="button" style="padding: 10px 20px; background: #8e44ad; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; font-weight: bold; display: inline-block;">'
@@ -627,13 +607,11 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
     def telecharger_autorisations_pdf_action(self, request, queryset):
         if queryset.count() == 1:
             demande = queryset.first()
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/demande-exhumation/{demande.id}/autorisation-pdf/'
             messages.success(request, f'Autorisation PDF prête pour la demande #{demande.id}')
         else:
             links = []
             for demande in queryset:
-                # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
                 url = f'/cimetiere/demande-exhumation/{demande.id}/autorisation-pdf/'
                 links.append(f'<a href="{url}" target="_blank">Demande #{demande.id}</a>')
             messages.success(request, f'Autorisations PDF prêtes pour : {", ".join(links)}')
@@ -642,13 +620,11 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
     def telecharger_pvs_pdf_action(self, request, queryset):
         if queryset.count() == 1:
             demande = queryset.first()
-            # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
             url = f'/cimetiere/demande-exhumation/{demande.id}/pv-exhumation-pdf/'
             messages.success(request, f'PV PDF prêt pour la demande #{demande.id}')
         else:
             links = []
             for demande in queryset:
-                # ✅ CORRIGÉ : Utilisation du préfixe /cimetiere/
                 url = f'/cimetiere/demande-exhumation/{demande.id}/pv-exhumation-pdf/'
                 links.append(f'<a href="{url}" target="_blank">Demande #{demande.id}</a>')
             messages.success(request, f'PVs PDF prêts pour : {", ".join(links)}')
@@ -676,3 +652,103 @@ class DemandeExhumationAdmin(admin.ModelAdmin):
                 messages.error(request, f'Erreur #{demande.id}: {str(e)}')
         if count > 0:
             messages.success(request, f'{count} demande(s) refusée(s).')
+
+
+# ==============================================================================
+# NOUVEAU : ADMIN : RAPPELS D'EXPIRATION (HISTORIQUE DES ENVOIS AUTOMATIQUES)
+# ==============================================================================
+@admin.register(RappelExpiration)
+class RappelExpirationAdmin(admin.ModelAdmin):
+    """
+    Interface d'administration pour consulter l'historique des rappels d'expiration envoyés.
+    Accessible uniquement aux Admins et Secrétaires.
+    """
+    list_display = (
+        'concession',
+        'type_rappel_badge',
+        'statut_envoi_badge',
+        'date_envoi',
+        'concessionnaire_email',
+    )
+    list_filter = ('type_rappel', 'statut_envoi', 'date_envoi')
+    search_fields = (
+        'concession__numero_contrat',
+        'concession__concessionnaire__email',
+        'concession__concessionnaire__first_name',
+        'concession__concessionnaire__last_name',
+    )
+    readonly_fields = (
+        'concession',
+        'type_rappel',
+        'date_envoi',
+        'statut_envoi',
+        'message_erreur',
+    )
+    date_hierarchy = 'date_envoi'
+    
+    fieldsets = (
+        ('Informations du rappel', {
+            'fields': ('concession', 'type_rappel', 'date_envoi')
+        }),
+        ('Statut de l\'envoi', {
+            'fields': ('statut_envoi', 'message_erreur'),
+            'description': '💡 Cet historique est généré automatiquement par la commande de rappels quotidiens'
+        }),
+    )
+    
+    @admin.display(description='Type de rappel')
+    def type_rappel_badge(self, obj):
+        try:
+            couleurs = {
+                'J30': '#3498db',
+                'J15': '#f39c12',
+                'J7': '#e67e22',
+                'J0': '#e74c3c',
+            }
+            couleur = couleurs.get(obj.type_rappel, '#95a5a6')
+            return format_html(
+                '<span style="background: {}; color: white; padding: 4px 12px; '
+                'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
+                couleur,
+                obj.get_type_rappel_display()
+            )
+        except Exception:
+            return obj.type_rappel if obj.type_rappel else '-'
+    
+    @admin.display(description='Statut')
+    def statut_envoi_badge(self, obj):
+        try:
+            couleurs = {
+                'SUCCES': '#27ae60',
+                'ECHEC': '#e74c3c',
+            }
+            couleur = couleurs.get(obj.statut_envoi, '#95a5a6')
+            return format_html(
+                '<span style="background: {}; color: white; padding: 4px 12px; '
+                'border-radius: 12px; font-size: 11px; font-weight: bold;">{}</span>',
+                couleur,
+                obj.get_statut_envoi_display()
+            )
+        except Exception:
+            return obj.statut_envoi if obj.statut_envoi else '-'
+    
+    @admin.display(description='Email du concessionnaire')
+    def concessionnaire_email(self, obj):
+        try:
+            if obj.concession and obj.concession.concessionnaire:
+                return obj.concession.concessionnaire.email
+            return '-'
+        except Exception:
+            return '-'
+    
+    def has_add_permission(self, request):
+        """Empêche la création manuelle de rappels (c'est automatisé)."""
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        """Empêche la modification des rappels envoyés."""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Autorise la suppression uniquement pour les admins."""
+        return request.user.is_admin() or request.user.is_superuser
