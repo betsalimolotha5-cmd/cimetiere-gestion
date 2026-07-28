@@ -1,6 +1,7 @@
 """
 Modèles de l'application core.
 AJOUT : Mise à jour automatique du statut du caveau à 'OCCUPE' lors d'une nouvelle inhumation.
+AJOUT : Modèle RappelExpiration pour le suivi des relances automatiques.
 """
 from django.db import models
 from django.contrib.gis.db import models as gis_models
@@ -25,7 +26,7 @@ class Zone(models.Model):
     description = models.TextField(blank=True)
     est_exploitable = models.BooleanField(default=True)
     superficie = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    coordonnees_gps = gis_models.PointField(null=True, blank=True)  # PostGIS
+    coordonnees_gps = gis_models.PointField(null=True, blank=True)
     date_creation = models.DateTimeField(auto_now_add=True)
     date_modification = models.DateTimeField(auto_now=True)
     
@@ -38,10 +39,8 @@ class Zone(models.Model):
         return f"{self.nom} ({self.code})"
     
     def calculer_capacite_theorique(self):
-        """Calcule la capacité théorique en nombre de caveaux."""
         if not self.superficie or self.superficie == 0:
             return 0
-        # Hypothèse : 3m² par caveau (2.5m x 1.2m)
         return int(self.superficie / 3)
 
 
@@ -95,25 +94,21 @@ class Caveau(models.Model):
         return f"{self.code} ({self.zone.code})"
     
     def est_reservable(self):
-        """Vérifie si le caveau peut être réservé."""
         return self.statut == self.Statut.DISPONIBLE
     
     def reserver(self):
-        """Réserve le caveau."""
         if not self.est_reservable():
             raise ValueError("Ce caveau n'est pas disponible")
         self.statut = self.Statut.RESERVE
         self.save()
     
     def valider_reservation(self):
-        """Valide la réservation (passe en occupé)."""
         if self.statut != self.Statut.RESERVE:
             raise ValueError("Le caveau n'est pas en statut réservé")
         self.statut = self.Statut.OCCUPE
         self.save()
     
     def liberer(self):
-        """Libère le caveau."""
         self.statut = self.Statut.DISPONIBLE
         self.save()
 
@@ -153,7 +148,6 @@ class Defunt(models.Model):
         return f"{self.prenom} {self.nom}"
     
     def age_au_deces(self):
-        """Calcule l'âge au décès."""
         if not self.date_naissance:
             return None
         return (self.date_deces - self.date_naissance).days // 365
@@ -188,11 +182,7 @@ class Concession(models.Model):
     statut = models.CharField(max_length=20, choices=StatutConcession.choices, default=StatutConcession.ACTIVE)
     montant_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     montant_paye = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    document_contrat = models.FileField(
-        'Document du contrat',
-        upload_to='concessions/documents/',
-        blank=True
-    )
+    document_contrat = models.FileField('Document du contrat', upload_to='concessions/documents/', blank=True)
     cree_par = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -214,13 +204,11 @@ class Concession(models.Model):
         return f"{self.numero_contrat} - {self.caveau.code}"
     
     def save(self, *args, **kwargs):
-        """Calcule automatiquement la date de fin pour les concessions temporaires."""
         if self.type_concession == self.TypeConcession.TEMPORAIRE and self.duree_annees and not self.date_fin:
             self.date_fin = self.date_debut + timedelta(days=365 * self.duree_annees)
         super().save(*args, **kwargs)
     
     def est_active(self):
-        """Vérifie si la concession est active."""
         if self.statut != self.StatutConcession.ACTIVE:
             return False
         if self.type_concession == self.TypeConcession.PERPETUELLE:
@@ -230,7 +218,6 @@ class Concession(models.Model):
         return True
     
     def jours_restants(self):
-        """Calcule les jours restants."""
         if not self.date_fin:
             return None
         delta = self.date_fin - timezone.now().date()
@@ -243,17 +230,8 @@ class Inhumation(models.Model):
     concession = models.ForeignKey(Concession, on_delete=models.CASCADE, related_name='inhumations')
     defunt = models.ForeignKey(Defunt, on_delete=models.PROTECT, related_name='inhumations')
     date_inhumation = models.DateField()
-    profondeur = models.DecimalField(
-        'Profondeur (m)',
-        max_digits=5,
-        decimal_places=2,
-        default=1.5
-    )
-    numero_place_dans_caveau = models.CharField(
-        'N° place dans caveau',
-        max_length=20,
-        blank=True
-    )
+    profondeur = models.DecimalField('Profondeur (m)', max_digits=5, decimal_places=2, default=1.5)
+    numero_place_dans_caveau = models.CharField('N° place dans caveau', max_length=20, blank=True)
     enregistre_par = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -274,24 +252,13 @@ class Inhumation(models.Model):
         return f"{self.defunt} - {self.date_inhumation}"
 
     def save(self, *args, **kwargs):
-        """
-        Mise à jour automatique du statut du caveau à 'OCCUPE' lors d'une nouvelle inhumation.
-        """
-        # 1. Vérifier si c'est une NOUVELLE inhumation (et non une modification d'une existante)
         is_new = self.pk is None
-        
-        # 2. Sauvegarder l'inhumation en base de données normalement
         super().save(*args, **kwargs)
         
-        # 3. Si c'est une création, on met à jour le statut du caveau associé
         if is_new and self.concession and self.concession.caveau:
             caveau = self.concession.caveau
-            
-            # On ne change le statut que s'il est actuellement Disponible ou Réservé
             if caveau.statut in [Caveau.Statut.DISPONIBLE, Caveau.Statut.RESERVE]:
                 caveau.statut = Caveau.Statut.OCCUPE
-                # update_fields est TRÈS IMPORTANT : cela évite de réenclencher des save() 
-                # ou d'écraser d'autres champs du caveau par erreur.
                 caveau.save(update_fields=['statut', 'date_modification'])
 
 
@@ -300,40 +267,11 @@ class ParametreCimetiere(models.Model):
     
     nom = models.CharField('Nom du cimetière', max_length=200)
     adresse = models.TextField('Adresse', blank=True)
-    coordonnees_centre = gis_models.PointField(
-        'Coordonnées du centre',
-        null=True,
-        blank=True,
-        help_text='Coordonnées GPS du centre du cimetière'
-    )
-    
-    # Dimensions standards
-    superficie_totale = models.DecimalField(
-        'Superficie totale (m²)',
-        max_digits=10,
-        decimal_places=2,
-        default=0
-    )
-    longueur_standard_caveau = models.DecimalField(
-        'Longueur standard caveau (m)',
-        max_digits=5,
-        decimal_places=2,
-        default=2.5
-    )
-    largeur_standard_caveau = models.DecimalField(
-        'Largeur standard caveau (m)',
-        max_digits=5,
-        decimal_places=2,
-        default=1.2
-    )
-    largeur_allee = models.DecimalField(
-        'Largeur allée (m)',
-        max_digits=5,
-        decimal_places=2,
-        default=3.0
-    )
-    
-    # Métadonnées
+    coordonnees_centre = gis_models.PointField('Coordonnées du centre', null=True, blank=True, help_text='Coordonnées GPS du centre du cimetière')
+    superficie_totale = models.DecimalField('Superficie totale (m²)', max_digits=10, decimal_places=2, default=0)
+    longueur_standard_caveau = models.DecimalField('Longueur standard caveau (m)', max_digits=5, decimal_places=2, default=2.5)
+    largeur_standard_caveau = models.DecimalField('Largeur standard caveau (m)', max_digits=5, decimal_places=2, default=1.2)
+    largeur_allee = models.DecimalField('Largeur allée (m)', max_digits=5, decimal_places=2, default=3.0)
     date_creation = models.DateTimeField('Date de création', auto_now_add=True)
     date_modification = models.DateTimeField('Date de modification', auto_now=True)
     
@@ -360,73 +298,22 @@ class DemandeExhumation(models.Model):
         CRAMATORIUM = 'CRAMATORIUM', 'Cramatorium'
         AUTRE = 'AUTRE', 'Autre'
 
-    # Inhumation concernée
-    inhumation = models.ForeignKey(
-        Inhumation,
-        on_delete=models.PROTECT,
-        related_name='demandes_exhumation',
-        verbose_name='Inhumation concernée'
-    )
-
-    # Demandeur
-    demandeur = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name='demandes_exhumation',
-        verbose_name='Demandeur'
-    )
+    inhumation = models.ForeignKey(Inhumation, on_delete=models.PROTECT, related_name='demandes_exhumation', verbose_name='Inhumation concernée')
+    demandeur = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='demandes_exhumation', verbose_name='Demandeur')
     nom_demandeur = models.CharField('Nom du demandeur', max_length=200)
     lien_parente = models.CharField('Lien de parenté', max_length=100)
     telephone_demandeur = models.CharField('Téléphone', max_length=20, blank=True)
-
-    # Détails
     motif = models.TextField('Motif de la demande')
-    destination = models.CharField(
-        'Destination',
-        max_length=30,
-        choices=Destination.choices,
-        default=Destination.AUTRE_CIMETIERE
-    )
-
-    # Documents
-    autorisation_mairie = models.FileField(
-        'Autorisation de la mairie',
-        upload_to='exhumations/autorisations/',
-        blank=True
-    )
-    proces_verbal = models.FileField(
-        'Procès-verbal',
-        upload_to='exhumations/proces_verbaux/',
-        blank=True
-    )
-
-    # Statut
-    statut = models.CharField(
-        'Statut',
-        max_length=20,
-        choices=StatutDemande.choices,
-        default=StatutDemande.EN_ATTENTE,
-        db_index=True
-    )
+    destination = models.CharField('Destination', max_length=30, choices=Destination.choices, default=Destination.AUTRE_CIMETIERE)
+    autorisation_mairie = models.FileField('Autorisation de la mairie', upload_to='exhumations/autorisations/', blank=True)
+    proces_verbal = models.FileField('Procès-verbal', upload_to='exhumations/proces_verbaux/', blank=True)
+    statut = models.CharField('Statut', max_length=20, choices=StatutDemande.choices, default=StatutDemande.EN_ATTENTE, db_index=True)
     motif_refus = models.TextField('Motif du refus', blank=True)
-
-    # Dates
     date_demande = models.DateTimeField('Date de la demande', default=timezone.now)
     date_validation = models.DateTimeField('Date de validation', null=True, blank=True)
     date_realisation = models.DateTimeField('Date de réalisation', null=True, blank=True)
     date_modification = models.DateTimeField('Date de modification', auto_now=True)
-
-    # Validation
-    valide_par = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='exhumations_validees_admin',
-        verbose_name='Validée par'
-    )
-
-    # Notes
+    valide_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='exhumations_validees_admin', verbose_name='Validée par')
     notes = models.TextField('Notes', blank=True)
 
     class Meta:
@@ -438,7 +325,6 @@ class DemandeExhumation(models.Model):
         return f"Demande #{self.id} - {self.nom_demandeur} ({self.get_statut_display()})"
 
     def valider(self, utilisateur):
-        """Valide la demande d'exhumation."""
         if self.statut != self.StatutDemande.EN_ATTENTE:
             raise ValueError("Seules les demandes en attente peuvent être validées")
         self.statut = self.StatutDemande.VALIDEE
@@ -447,10 +333,57 @@ class DemandeExhumation(models.Model):
         self.save()
 
     def refuser(self, motif, utilisateur):
-        """Refuse la demande d'exhumation."""
         if self.statut != self.StatutDemande.EN_ATTENTE:
             raise ValueError("Seules les demandes en attente peuvent être refusées")
         self.statut = self.StatutDemande.REFUSEE
         self.motif_refus = motif
         self.valide_par = utilisateur
         self.save()
+
+
+class RappelExpiration(models.Model):
+    """Historique des rappels d'expiration de concession envoyés automatiquement."""
+    
+    class TypeRappel(models.TextChoices):
+        J30 = 'J30', '30 jours avant'
+        J15 = 'J15', '15 jours avant'
+        J7 = 'J7', '7 jours avant'
+        J0 = 'J0', 'Jour J (Expiré)'
+    
+    class StatutEnvoi(models.TextChoices):
+        SUCCES = 'SUCCES', 'Succès'
+        ECHEC = 'ECHEC', 'Échec'
+    
+    concession = models.ForeignKey(
+        Concession,
+        on_delete=models.CASCADE,
+        related_name='rappels_expiration',
+        verbose_name='Concession concernée'
+    )
+    type_rappel = models.CharField(
+        'Type de rappel',
+        max_length=10,
+        choices=TypeRappel.choices
+    )
+    date_envoi = models.DateTimeField('Date d\'envoi', auto_now_add=True)
+    statut_envoi = models.CharField(
+        'Statut de l\'envoi',
+        max_length=20,
+        choices=StatutEnvoi.choices,
+        default=StatutEnvoi.SUCCES
+    )
+    message_erreur = models.TextField('Message d\'erreur (si échec)', blank=True)
+    
+    class Meta:
+        verbose_name = 'Rappel d\'expiration'
+        verbose_name_plural = 'Rappels d\'expiration'
+        ordering = ['-date_envoi']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['concession', 'type_rappel'],
+                name='unique_rappel_par_concession'
+            )
+        ]
+    
+    def __str__(self):
+        return f"Rappel {self.get_type_rappel_display()} pour {self.concession.numero_contrat}"
