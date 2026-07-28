@@ -41,7 +41,7 @@ from .models import Zone, Caveau, Concession, Defunt, Inhumation, DemandeExhumat
 # ==============================================================================
 # DÉCORATEUR DE PERMISSIONS RBAC
 # ==============================================================================
-def role_permission_required(permission_codename, redirect_url='portal_home'):
+def role_permission_required(permission_codename, redirect_url='dashboard'):
     """Décorateur pour vérifier les permissions basées sur le rôle de l'utilisateur."""
     def decorator(view_func):
         def wrapper(request, *args, **kwargs):
@@ -95,28 +95,6 @@ def init_db(request):
 
 
 # ==============================================================================
-# PORTAIL UNIFIÉ (Point d'entrée : Carte + Boutons selon rôle)
-# ==============================================================================
-@login_required
-def portal_home(request):
-    """
-    Point d'entrée unique du portail : Carte publique + Boutons d'action selon le rôle.
-    """
-    user = request.user
-    context = {
-        'user': user,
-        'can_manage_caveaux': user.has_permission('create_caveaux'),
-        'can_manage_concessions': user.has_permission('create_concessions'),
-        'can_manage_inhumations': user.has_permission('create_inhumations'),
-        'can_manage_exhumations': user.has_permission('validate_exhumation'),
-        'can_view_statistics': user.has_permission('view_statistics'),
-        'can_manage_users': user.has_permission('manage_users'),
-        'can_manage_settings': user.has_permission('manage_settings'),
-    }
-    return render(request, 'core/portal_home.html', context)
-
-
-# ==============================================================================
 # DASHBOARD ADAPTATIF (Selon le rôle)
 # ==============================================================================
 @login_required
@@ -145,8 +123,10 @@ def dashboard(request):
     # Importer les modèles de facturation pour les stats financières
     from apps.billing.models import Facture, Paiement
     
+    # ==================================================================
+    # 1. ADMIN (Superuser ou Rôle ADMIN)
+    # ==================================================================
     if user.is_admin():
-        # === DASHBOARD ADMIN (avec facturation et audit) ===
         factures_impayees = Facture.objects.filter(
             statut__in=[Facture.StatutFacture.EMISE, Facture.StatutFacture.PARTIELLEMENT_PAYEE]
         ).order_by('date_echeance')
@@ -164,7 +144,6 @@ def dashboard(request):
             'paiements_recents': Paiement.objects.filter(statut=Paiement.StatutPaiement.VALIDE).order_by('-date_paiement')[:10],
         })
         
-        # Graphiques 6 derniers mois
         labels, data_inhumations, data_revenus = [], [], []
         for i in range(5, -1, -1):
             month = today.month - i
@@ -200,8 +179,10 @@ def dashboard(request):
         })
         return render(request, 'portal/dashboard_admin.html', context)
         
+    # ==================================================================
+    # 2. SECRÉTAIRE
+    # ==================================================================
     elif user.is_secretary():
-        # === DASHBOARD SECRÉTAIRE (avec facturation complète) ===
         factures_impayees = Facture.objects.filter(
             statut__in=[Facture.StatutFacture.EMISE, Facture.StatutFacture.PARTIELLEMENT_PAYEE]
         ).order_by('date_echeance')
@@ -225,8 +206,10 @@ def dashboard(request):
         })
         return render(request, 'portal/dashboard_secretaire.html', context)
         
+    # ==================================================================
+    # 3. AGENT DE TERRAIN
+    # ==================================================================
     elif user.is_field_agent():
-        # === DASHBOARD AGENT ===
         context.update({
             'role': 'agent',
             'can_manage_caveaux': user.has_permission('create_caveaux'),
@@ -235,17 +218,18 @@ def dashboard(request):
         })
         return render(request, 'portal/dashboard_agent.html', context)
         
+    # ==================================================================
+    # 4. CLIENT (CITOYEN)
+    # ==================================================================
     elif user.is_client():
-        # === DASHBOARD CLIENT ===
         context.update({
             'role': 'client',
             'mes_concessions': Concession.objects.filter(concessionnaire=user).select_related('caveau', 'caveau__zone', 'defunt'),
             'mes_demandes_exhumation': DemandeExhumation.objects.filter(demandeur=user).order_by('-date_demande'),
         })
-        # On redirige le client vers son espace dédié ou l'accueil
         return render(request, 'portal/accueil.html', context)
 
-    # Fallback
+    # Fallback par défaut
     return render(request, 'portal/accueil.html', context)
 
 
@@ -416,7 +400,7 @@ def export_excel_exhumations(request):
 def contrat_concession_pdf(request, concession_id):
     if not WEASYPRINT_AVAILABLE:
         messages.error(request, "Le système de génération PDF n'est pas disponible.")
-        return redirect('portal_home')
+        return redirect('dashboard')
     
     user = request.user
     if user.is_admin() or user.is_staff:
@@ -443,7 +427,7 @@ def contrat_concession_pdf(request, concession_id):
 def attestation_concession_pdf(request, concession_id):
     if not WEASYPRINT_AVAILABLE:
         messages.error(request, "Le système de génération PDF n'est pas disponible.")
-        return redirect('portal_home')
+        return redirect('dashboard')
     
     user = request.user
     if user.is_admin() or user.is_staff:
@@ -464,14 +448,14 @@ def attestation_concession_pdf(request, concession_id):
     pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
     nom_client = concession.concessionnaire.get_full_name().replace(' ', '_') if concession.concessionnaire.get_full_name() else 'Client'
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime('%Y%m%d')}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime("%Y%m%d")}.pdf"'
     return response
 
 @role_permission_required('generate_pv_inhumation_pdf')
 def pv_inhumation_pdf(request, inhumation_id):
     if not WEASYPRINT_AVAILABLE:
         messages.error(request, "Le système de génération PDF n'est pas disponible.")
-        return redirect('portal_home')
+        return redirect('dashboard')
         
     inhumation = get_object_or_404(Inhumation, id=inhumation_id)
     context = {'inhumation': inhumation, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
@@ -487,7 +471,7 @@ def pv_inhumation_pdf(request, inhumation_id):
 def autorisation_exhumation_pdf(request, demande_id):
     if not WEASYPRINT_AVAILABLE:
         messages.error(request, "Le système de génération PDF n'est pas disponible.")
-        return redirect('portal_home')
+        return redirect('dashboard')
         
     demande = get_object_or_404(DemandeExhumation, id=demande_id)
     context = {'demande': demande, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
@@ -495,14 +479,14 @@ def autorisation_exhumation_pdf(request, demande_id):
     pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
     nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Autorisation_exhumation_{nom_defunt}_{timezone.now().strftime('%Y%m%d')}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="Autorisation_exhumation_{nom_defunt}_{timezone.now().strftime("%Y%m%d")}.pdf"'
     return response
 
 @role_permission_required('generate_exhumation_pdf')
 def pv_exhumation_pdf(request, demande_id):
     if not WEASYPRINT_AVAILABLE:
         messages.error(request, "Le système de génération PDF n'est pas disponible.")
-        return redirect('portal_home')
+        return redirect('dashboard')
         
     demande = get_object_or_404(DemandeExhumation, id=demande_id)
     context = {'demande': demande, 'parametres': ParametreCimetiere.objects.first(), 'date_generation': timezone.now(), 'site_name': 'Gestion Cimetière'}
@@ -518,7 +502,7 @@ def pv_exhumation_pdf(request, demande_id):
 def rapport_statistique_pdf(request):
     if not WEASYPRINT_AVAILABLE:
         messages.error(request, "Le système de génération PDF n'est pas disponible.")
-        return redirect('portal_home')
+        return redirect('dashboard')
         
     debut_str = request.GET.get('debut')
     fin_str = request.GET.get('fin')
@@ -528,7 +512,7 @@ def rapport_statistique_pdf(request):
             date_fin = datetime.strptime(fin_str, '%Y-%m-%d').date()
         except ValueError:
             messages.error(request, "Format de date invalide.")
-            return redirect('portal_home')
+            return redirect('dashboard')
     else:
         today = timezone.now().date()
         date_debut = today.replace(day=1)
@@ -559,7 +543,7 @@ def rapport_statistique_pdf(request):
     template = get_template('core/pdf/rapport_statistique_pdf.html')
     pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Rapport_Statistique_{date_debut.strftime('%Y%m')}_a_{date_fin.strftime('%Y%m%d')}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="Rapport_Statistique_{date_debut.strftime("%Y%m")}_a_{date_fin.strftime("%Y%m%d")}.pdf"'
     return response
 
 
@@ -570,7 +554,7 @@ def rapport_statistique_pdf(request):
 def qr_code_caveau(request, caveau_id):
     if not QR_AVAILABLE:
         messages.error(request, "La bibliothèque qrcode n'est pas installée.")
-        return redirect('portal_home')
+        return redirect('dashboard')
     caveau = get_object_or_404(Caveau, id=caveau_id)
     qr_url = request.build_absolute_uri(f'/cimetiere/caveau/{caveau.id}/qr-info/')
     qr = qrcode.QRCode(version=1, box_size=10, border=4)
@@ -584,7 +568,6 @@ def qr_code_caveau(request, caveau_id):
     response['Content-Disposition'] = f'inline; filename="qr_caveau_{caveau.code}.png"'
     return response
 
-# Cette vue reste publique car elle est scannée par n'importe qui via le QR Code
 def qr_info_caveau(request, caveau_id):
     caveau = get_object_or_404(Caveau, id=caveau_id)
     is_staff = request.user.is_staff if request.user.is_authenticated else False
