@@ -387,3 +387,53 @@ class RappelExpiration(models.Model):
     
     def __str__(self):
         return f"Rappel {self.get_type_rappel_display()} pour {self.concession.numero_contrat}"
+
+
+class AuditLogEntry(models.Model):
+    """
+    Journal d'audit immuable — exigé par le CDC (section 4 : "Audit Trail :
+    Journalisation immuable de qui a modifié le statut d'un caveau, à
+    quelle date et heure").
+
+    Cette table est alimentée automatiquement par un handler de logging
+    (voir apps.core.logging_handlers.DatabaseAuditHandler) branché sur le
+    logger 'audit' déjà utilisé dans tout le projet — aucune modification
+    des points d'appel existants n'est nécessaire.
+
+    Immutabilité : cette table n'expose ni update ni delete côté admin
+    (voir apps/core/admin.py) ; elle ne doit jamais être modifiée après
+    écriture.
+    """
+
+    class Niveau(models.TextChoices):
+        INFO = 'INFO', 'Information'
+        WARNING = 'WARNING', 'Avertissement'
+        ERROR = 'ERROR', 'Erreur'
+
+    horodatage = models.DateTimeField('Date et heure', auto_now_add=True, db_index=True)
+    niveau = models.CharField('Niveau', max_length=10, choices=Niveau.choices, default=Niveau.INFO)
+    utilisateur = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='entrees_audit',
+        verbose_name='Utilisateur',
+        help_text="Utilisateur authentifié à l'origine de l'action (si disponible)."
+    )
+    action = models.CharField(
+        'Action',
+        max_length=100,
+        db_index=True,
+        help_text="Code d'action, ex: CAVEAU_RESERVED, CAVEAU_STATUS_CHANGED, FACTURE_CREATED"
+    )
+    module = models.CharField('Module', max_length=100, blank=True, help_text="Fichier/module d'origine du log.")
+    message = models.TextField('Détail', help_text="Message complet du log (contexte, identifiants concernés, etc.)")
+
+    class Meta:
+        verbose_name = "Entrée d'audit"
+        verbose_name_plural = "Journal d'audit"
+        ordering = ['-horodatage']
+
+    def __str__(self):
+        return f"[{self.horodatage:%d/%m/%Y %H:%M:%S}] {self.action} — {self.utilisateur or 'système'}"

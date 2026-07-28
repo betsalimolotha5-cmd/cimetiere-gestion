@@ -14,9 +14,9 @@ class Command(BaseCommand):
         parser.add_argument(
             '--type',
             type=str,
-            choices=['tous', 'paiement', 'concession'],
+            choices=['tous', 'paiement', 'concession', 'saturation'],
             default='tous',
-            help='Type de notifications à envoyer (tous, paiement, concession)'
+            help='Type de notifications à envoyer (tous, paiement, concession, saturation)'
         )
     
     def handle(self, *args, **options):
@@ -54,6 +54,24 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'  ✗ Erreur lors de l\'envoi des alertes : {str(e)}'))
         
+        # Alerte seuil de places critiques (CDC section 6 : "seuils de places critiques")
+        if type_notification in ['tous', 'saturation']:
+            self.stdout.write(self.style.NOTICE('\n📊 Vérification des seuils de saturation...'))
+            try:
+                from apps.notifications.tasks import NotificationTasks
+                resultat = NotificationTasks.verifier_seuil_places_critiques()
+                if resultat.get('success'):
+                    nb_zones = resultat.get('zones_critiques', 0)
+                    total_envoyes += nb_zones
+                    if nb_zones > 0:
+                        self.stdout.write(self.style.WARNING(f'  ⚠ {nb_zones} zone(s) en saturation critique — administrateurs notifiés'))
+                    else:
+                        self.stdout.write(self.style.SUCCESS('  ✓ Aucune zone en saturation critique'))
+                else:
+                    self.stdout.write(self.style.ERROR(f"  ✗ Erreur : {resultat.get('error')}"))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'  ✗ Erreur lors de la vérification des seuils : {str(e)}'))
+
         # Résumé final
         self.stdout.write('\n' + '=' * 70)
         if total_envoyes > 0:

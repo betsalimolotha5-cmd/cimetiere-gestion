@@ -111,8 +111,12 @@ class NotificationTasks:
                         'total_exploitable': caveaux_exploitables,
                     })
             
-            # Notifier les administrateurs
-            admins = User.objects.filter(is_staff=True, is_active=True)
+            # Notifier les administrateurs (rôle ADMIN ou superuser — cohérent
+            # avec le reste du RBAC, plutôt que le seul flag is_staff)
+            admins = User.objects.filter(
+                Q(role=User.Role.ADMIN) | Q(is_superuser=True),
+                is_active=True,
+            ).distinct()
             
             if zones_critiques:
                 for admin in admins:

@@ -356,11 +356,9 @@ def demande_exhumation(request):
 def dashboard_agent(request):
     """Tableau de bord simplifié et opérationnel pour les agents de terrain."""
     
-    # Vérifier que l'utilisateur est dans le groupe "Agents"/"Agent" ou est staff
-    user_groups = request.user.groups.values_list('name', flat=True)
-    is_agent = 'Agents' in user_groups or 'Agent' in user_groups
-    
-    if not request.user.is_staff and not is_agent:
+    # Vérifier le rôle via le champ `role` (source de vérité unique du RBAC),
+    # et non via les groupes Django qui ne sont pas synchronisés avec ce champ.
+    if not (request.user.is_admin() or request.user.is_field_agent()):
         messages.error(request, "Accès réservé aux agents de terrain et administrateurs.")
         return redirect('carte_publique')
     
@@ -407,11 +405,9 @@ def dashboard_agent(request):
 def dashboard_secretaire(request):
     """Tableau de bord administratif et financier pour la secrétaire."""
     
-    # Vérifier que l'utilisateur est dans le groupe "Secretaire"/"Secrétaire" ou est staff
-    user_groups = request.user.groups.values_list('name', flat=True)
-    is_secretaire = 'Secretaire' in user_groups or 'Secrétaire' in user_groups
-    
-    if not request.user.is_staff and not is_secretaire:
+    # Vérifier le rôle via le champ `role` (source de vérité unique du RBAC),
+    # et non via les groupes Django qui ne sont pas synchronisés avec ce champ.
+    if not (request.user.is_admin() or request.user.is_secretary()):
         messages.error(request, "Accès réservé aux secrétaires et administrateurs.")
         return redirect('carte_publique')
     
@@ -470,7 +466,7 @@ def dashboard_secretaire(request):
 @login_required
 def dashboard_admin(request):
     """Dashboard admin optimisé - Cache de 5 minutes. Conforme CDC."""
-    if not request.user.is_staff:
+    if not request.user.is_admin():
         messages.error(request, "Accès réservé aux administrateurs.")
         return redirect('carte_publique')
     

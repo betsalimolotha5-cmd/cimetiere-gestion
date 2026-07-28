@@ -12,8 +12,13 @@ urlpatterns = [
     path('', views.carte_publique, name='carte_publique'),
     path('api/carte/', views.api_carte_publique, name='api_carte_publique'),
     
-    # Dashboard adaptatif (selon le rôle)
+    # Dashboard adaptatif (selon le rôle) — vue générique (admin & fallback)
     path('dashboard/', core_views.dashboard, name='dashboard'),
+
+    # Dashboards spécifiques par rôle (liés depuis la navbar, plus détaillés
+    # que la vue générique ci-dessus pour l'agent et le/la secrétaire)
+    path('dashboard-agent/', views.dashboard_agent, name='dashboard_agent'),
+    path('dashboard-secretaire/', views.dashboard_secretaire, name='dashboard_secretaire'),
     
     # Réservations
     path('reservation/', views.reservation_form, name='reservation_form'),

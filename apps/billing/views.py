@@ -141,7 +141,7 @@ def facture_pdf(request, facture_id):
         messages.error(request, "Le système de génération PDF n'est pas disponible. Contactez l'administrateur.")
         return redirect('facture_detail', facture_id=facture_id)
     
-    if request.user.is_staff:
+    if request.user.is_admin() or request.user.is_secretary():
         facture = get_object_or_404(Facture, id=facture_id)
     else:
         facture = get_object_or_404(Facture, id=facture_id, client=request.user)
@@ -188,7 +188,7 @@ def recu_paiement_pdf(request, paiement_id):
         return redirect('facture_detail', facture_id=paiement.facture.id)
     
     # Sécurité : Admin/Staff OU le client propriétaire du paiement
-    if request.user.is_staff:
+    if request.user.is_admin() or request.user.is_secretary():
         paiement = get_object_or_404(Paiement, id=paiement_id)
     else:
         paiement = get_object_or_404(Paiement, id=paiement_id, client=request.user)

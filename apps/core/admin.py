@@ -10,7 +10,7 @@ from django import forms
 from django.utils.html import format_html
 from .models import (
     Zone, Caveau, Defunt, Concession, Inhumation,
-    ParametreCimetiere, DemandeExhumation, RappelExpiration
+    ParametreCimetiere, DemandeExhumation, RappelExpiration, AuditLogEntry
 )
 
 # ==============================================================================
@@ -752,3 +752,29 @@ class RappelExpirationAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Autorise la suppression uniquement pour les admins."""
         return request.user.is_admin() or request.user.is_superuser
+
+# ==============================================================================
+# ADMIN : JOURNAL D'AUDIT (IMMUABLE — CDC section 4)
+# ==============================================================================
+@admin.register(AuditLogEntry)
+class AuditLogEntryAdmin(admin.ModelAdmin):
+    """
+    Consultation du journal d'audit. Lecture seule stricte : aucune création,
+    modification ou suppression n'est permise depuis l'admin, afin de
+    garantir le caractère immuable exigé par le CDC.
+    """
+    list_display = ('horodatage', 'niveau', 'action', 'utilisateur', 'module')
+    list_filter = ('niveau', 'action', 'module')
+    search_fields = ('action', 'message', 'utilisateur__email')
+    date_hierarchy = 'horodatage'
+    readonly_fields = ('horodatage', 'niveau', 'utilisateur', 'action', 'module', 'message')
+    ordering = ('-horodatage',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
