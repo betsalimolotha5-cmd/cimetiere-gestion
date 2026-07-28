@@ -5,7 +5,6 @@
 
 {% block extra_css %}
 <style>
-    /* En-tête du Dashboard */
     .dashboard-header {
         background: linear-gradient(135deg, var(--primary-color, #2c5f2d) 0%, #1a3d1f 100%);
         color: white;
@@ -14,8 +13,6 @@
         margin-bottom: 2rem;
         box-shadow: 0 8px 24px rgba(44, 95, 45, 0.2);
     }
-    
-    /* Cartes de statistiques */
     .stat-card {
         background: white;
         border-radius: 12px;
@@ -27,12 +24,10 @@
         position: relative;
         overflow: hidden;
     }
-    
     .stat-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
     }
-    
     .stat-card .icon-bg {
         font-size: 4rem;
         opacity: 0.08;
@@ -41,14 +36,12 @@
         bottom: -10px;
         transform: rotate(-15deg);
     }
-    
     .stat-card .value {
         font-size: 2.2rem;
         font-weight: 800;
         color: #212529;
         line-height: 1.2;
     }
-    
     .stat-card .label {
         font-size: 0.85rem;
         color: #6c757d;
@@ -57,8 +50,6 @@
         font-weight: 600;
         margin-bottom: 0.5rem;
     }
-    
-    /* Conteneurs de graphiques et tableaux */
     .dashboard-panel {
         background: white;
         border-radius: 12px;
@@ -67,7 +58,6 @@
         margin-bottom: 2rem;
         height: 100%;
     }
-    
     .panel-title {
         font-size: 1.1rem;
         font-weight: 700;
@@ -78,18 +68,14 @@
         display: flex;
         align-items: center;
     }
-    
     .panel-title i {
         margin-right: 10px;
         color: var(--primary-color, #2c5f2d);
     }
-
-    /* Tableaux modernes */
     .table-modern {
         margin-bottom: 0;
         font-size: 0.95rem;
     }
-    
     .table-modern thead th {
         background-color: #f8f9fa;
         color: #212529;
@@ -100,36 +86,65 @@
         border-bottom: 2px solid #dee2e6;
         padding: 1rem;
     }
-    
     .table-modern tbody td {
         padding: 1rem;
         vertical-align: middle;
         border-bottom: 1px solid #f1f3f5;
     }
-    
     .table-modern tbody tr:hover {
         background-color: rgba(44, 95, 45, 0.03);
     }
-
-    /* Barres de progression */
     .progress-custom {
         height: 10px;
         border-radius: 5px;
         background-color: #e9ecef;
         overflow: hidden;
     }
-    
     .progress-custom .progress-bar {
         transition: width 1s ease-in-out;
     }
-
-    /* Badges de statut */
     .badge-status {
         padding: 0.4em 0.8em;
         font-size: 0.75rem;
         border-radius: 20px;
         font-weight: 600;
         letter-spacing: 0.3px;
+    }
+    /* Style pour les cartes d'action rapide */
+    .action-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        text-decoration: none;
+        color: #212529;
+        border: 2px solid #f8f9fa;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .action-card:hover {
+        border-color: var(--primary-color, #2c5f2d);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(44, 95, 45, 0.15);
+        color: var(--primary-color, #2c5f2d);
+    }
+    .action-card i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        color: var(--primary-color, #2c5f2d);
+    }
+    .action-card h6 {
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        font-size: 0.95rem;
+    }
+    .action-card small {
+        color: #6c757d;
+        font-size: 0.8rem;
     }
 </style>
 {% endblock %}
@@ -145,7 +160,7 @@
                 <p class="mb-0 opacity-75 fs-5">Vue d'ensemble en temps réel : {{ total_caveaux|default:"0" }} caveaux répertoriés.</p>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <!-- ✅ AJOUT : Bouton Voir la Carte pour l'Admin -->
+                <!-- ✅ BOUTON VOIR LA CARTE -->
                 <a href="/portal/" class="btn btn-light fw-bold text-success shadow-sm me-2">
                     <i class="fas fa-map-marked-alt me-2"></i>Voir la Carte
                 </a>
@@ -199,9 +214,84 @@
             </div>
         </div>
     </div>
+
+    <!-- ============================================ -->
+    <!-- 2. ACTIONS RAPIDES ADMIN (NOUVEAU) -->
+    <!-- ============================================ -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <h5 class="fw-bold mb-3" style="color: var(--primary-color, #2c5f2d);">
+                <i class="fas fa-bolt me-2"></i>Actions de Gestion Rapides
+            </h5>
+        </div>
+        
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <a href="/admin/core/zone/" class="action-card">
+                <i class="fas fa-layer-group"></i>
+                <h6>Zones</h6>
+                <small>Gérer les sections</small>
+            </a>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <a href="/admin/core/caveau/" class="action-card">
+                <i class="fas fa-warehouse"></i>
+                <h6>Caveaux</h6>
+                <small>Gérer les emplacements</small>
+            </a>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <a href="/admin/core/concession/" class="action-card">
+                <i class="fas fa-file-contract"></i>
+                <h6>Concessions</h6>
+                <small>Contrats & Statuts</small>
+            </a>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <a href="/admin/core/defunt/" class="action-card">
+                <i class="fas fa-user-injured"></i>
+                <h6>Défunts</h6>
+                <small>Registre des décès</small>
+            </a>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <a href="/admin/core/inhumation/" class="action-card">
+                <i class="fas fa-cross"></i>
+                <h6>Inhumations</h6>
+                <small>Enregistrer & PV</small>
+            </a>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <a href="/admin/core/demandeexhumation/" class="action-card">
+                <i class="fas fa-exchange-alt"></i>
+                <h6>Exhumations</h6>
+                <small>Valider les demandes</small>
+            </a>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <a href="/admin/accounts/user/" class="action-card">
+                <i class="fas fa-users-cog"></i>
+                <h6>Utilisateurs</h6>
+                <small>Gestion des comptes</small>
+            </a>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <a href="/admin/core/rappelexpiration/" class="action-card">
+                <i class="fas fa-bell"></i>
+                <h6>Rappels</h6>
+                <small>Historique des envois</small>
+            </a>
+        </div>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <a href="/cimetiere/rapport-statistique-pdf/" class="action-card">
+                <i class="fas fa-file-pdf"></i>
+                <h6>Rapports PDF</h6>
+                <small>Statistiques mensuelles</small>
+            </a>
+        </div>
+    </div>
     
     <!-- ============================================ -->
-    <!-- 2. GRAPHIQUES -->
+    <!-- 3. GRAPHIQUES -->
     <!-- ============================================ -->
     <div class="row g-4 mb-4">
         <!-- Taux d'occupation global -->
@@ -230,11 +320,10 @@
     </div>
     
     <!-- ============================================ -->
-    <!-- 3. ACTIONS RÉCENTES & AUDIT (RBAC) -->
+    <!-- 4. JOURNAL D'AUDIT (RBAC) -->
     <!-- ============================================ -->
     <div class="row g-4 mb-4">
         {% if user.can_view_audit %}
-        <!-- Audit Trail -->
         <div class="col-lg-12">
             <div class="dashboard-panel">
                 <div class="panel-title">
@@ -271,13 +360,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <script>
-    // Configuration globale pour un look plus propre
     Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
     Chart.defaults.color = '#6c757d';
 
-    // ============================================
-    // GRAPHIQUE 1 : Saturation Globale (Donut)
-    // ============================================
     const occupationCtx = document.getElementById('occupationChart').getContext('2d');
     new Chart(occupationCtx, {
         type: 'doughnut',
@@ -307,17 +392,11 @@
         }
     });
     
-    // ============================================
-    // GRAPHIQUE 2 : Revenus Mensuels (Ligne)
-    // ============================================
     const revenusCtx = document.getElementById('revenusChart').getContext('2d');
-    
-    // Création d'un dégradé pour la ligne
     const gradient = revenusCtx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, 'rgba(44, 95, 45, 0.2)');
     gradient.addColorStop(1, 'rgba(44, 95, 45, 0.0)');
 
-    // Utilisation des variables passées par la vue Django
     const chartLabels = {{ chart_labels|default:"[]"|safe }};
     const chartRevenus = {{ chart_revenus|default:"[]"|safe }};
 
