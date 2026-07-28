@@ -191,14 +191,25 @@ def reservation_form(request, caveau_id=None):
     # Si aucun caveau_id n'est fourni, afficher la liste des caveaux disponibles
     if caveau_id is None:
         # ✅ CORRECTION : Exclure les caveaux qui ont déjà une demande EN_ATTENTE
-        caveaux_deja_demandes_ids = DemandeReservation.objects.filter(
-            statut='EN_ATTENTE'
-        ).values_list('caveau_id', flat=True)
+        # On force l'évaluation de la QuerySet en liste pour éviter tout problème de cache
+        caveaux_deja_demandes_ids = list(
+            DemandeReservation.objects.filter(
+                statut='EN_ATTENTE'
+            ).values_list('caveau_id', flat=True)
+        )
+        
+        # Exclure aussi les caveaux qui ont statut='RESERVE' (double sécurité)
+        caveaux_reserves_ids = list(
+            Caveau.objects.filter(statut='RESERVE').values_list('id', flat=True)
+        )
+        
+        # Combiner les deux listes d'IDs à exclure
+        ids_a_exclure = list(set(caveaux_deja_demandes_ids + caveaux_reserves_ids))
         
         caveaux_disponibles = Caveau.objects.filter(
             statut='DISPONIBLE'
         ).exclude(
-            id__in=caveaux_deja_demandes_ids
+            id__in=ids_a_exclure
         ).select_related('zone').order_by('zone__nom', 'code')
         
         return render(request, 'portal/choisir_caveau.html', {
