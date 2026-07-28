@@ -1,9 +1,7 @@
 """
 Vues pour l'authentification à double facteur (MFA) par email.
 Conforme au CDC : robuste, sans crash, avec fallback de démo.
-CORRECTION DÉFINITIVE : 
-  1. Gestion blindée du backend d'authentification pour éviter les redirections vers /login
-  2. Ajout du rôle "Secrétaire" dans la logique de redirection
+CORRECTION : Utilisation de la vue 'dashboard' adaptative unique et des propriétés de rôle du modèle User.
 """
 import requests
 from django.shortcuts import render, redirect
@@ -27,7 +25,7 @@ def send_mfa_email_via_api(user, code):
     print(f"📧 [MFA] Tentative d'envoi du code {code} à {user.email}")
     
     api_key = getattr(settings, 'BREVO_API_KEY', '')
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'betsalimolotha5@gmail.com')
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@cimetiere.com')
     
     if not api_key or not api_key.startswith('xkeysib-'):
         print("❌ [MFA] ERREUR : La clé API est invalide ou manquante.")
@@ -77,7 +75,7 @@ def send_mfa_email_via_api(user, code):
 def login_view(request):
     """Page de connexion avec identifiants email/password."""
     if request.user.is_authenticated:
-        return redirect('carte_publique')
+        return redirect('dashboard')
     
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
@@ -97,7 +95,7 @@ def login_view(request):
             
             request.session['mfa_user_id'] = user.id
             request.session['mfa_email'] = user.email
-            request.session['mfa_auth_backend'] = backend  # Sauvegarde robuste
+            request.session['mfa_auth_backend'] = backend
             
             ip_address = get_client_ip(request)
             code_obj = MFACode.generer_code(user, ip_address=ip_address)
@@ -160,21 +158,9 @@ def verification_view(request):
                 
                 messages.success(request, f'Bienvenue {user.get_full_name() or user.email} !')
                 
-                # ⭐ REDIRECTION INTELLIGENTE SELON LE RÔLE (CORRECTION : Ajout du rôle Secrétaire)
-                if user.is_staff:
-                    return redirect('dashboard_admin')
-                
-                # Vérification du rôle Agent
-                user_groups = user.groups.values_list('name', flat=True)
-                if 'Agents' in user_groups or 'Agent' in user_groups:
-                    return redirect('dashboard_agent')
-                
-                # Vérification du rôle Secrétaire
-                if 'Secretaires' in user_groups or 'Secrétaire' in user_groups:
-                    return redirect('dashboard_secretary')  # Ajout du rôle Secrétaire
-                
-                # Par défaut : Client -> Carte publique
-                return redirect('carte_publique')
+                # ⭐ REDIRECTION INTELLIGENTE : Utilisation de la vue 'dashboard' adaptative unique
+                # La vue 'dashboard' se charge d'afficher le bon contenu selon le rôle (Admin, Agent, Secrétaire, Client)
+                return redirect('dashboard')
                 
             else:
                 messages.error(request, 'Code expiré. Veuillez vous reconnecter.')
@@ -215,7 +201,7 @@ def resend_code_view(request):
 def register_view(request):
     """Page de création de compte utilisateur."""
     if request.user.is_authenticated:
-        return redirect('carte_publique')
+        return redirect('dashboard')
     
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
