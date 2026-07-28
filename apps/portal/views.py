@@ -2,6 +2,7 @@
 Vues du portail client (Carte publique + Réservations + Factures + Paiements + Dashboards).
 Conforme au CDC : workflow complet de réservation → facturation → paiement + carte dynamique + RBAC.
 AJOUT : Calcul dynamique du périmètre + Dashboards Agent et Secrétaire enrichis.
+CORRECTION : Exclusion des caveaux avec demande EN_ATTENTE de la liste de réservation.
 """
 import math
 from django.shortcuts import render, redirect, get_object_or_404
@@ -189,8 +190,15 @@ def reservation_form(request, caveau_id=None):
     """
     # Si aucun caveau_id n'est fourni, afficher la liste des caveaux disponibles
     if caveau_id is None:
+        # ✅ CORRECTION : Exclure les caveaux qui ont déjà une demande EN_ATTENTE
+        caveaux_deja_demandes_ids = DemandeReservation.objects.filter(
+            statut='EN_ATTENTE'
+        ).values_list('caveau_id', flat=True)
+        
         caveaux_disponibles = Caveau.objects.filter(
             statut='DISPONIBLE'
+        ).exclude(
+            id__in=caveaux_deja_demandes_ids
         ).select_related('zone').order_by('zone__nom', 'code')
         
         return render(request, 'portal/choisir_caveau.html', {
