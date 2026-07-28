@@ -448,7 +448,7 @@ def attestation_concession_pdf(request, concession_id):
     pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
     nom_client = concession.concessionnaire.get_full_name().replace(' ', '_') if concession.concessionnaire.get_full_name() else 'Client'
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime("%Y%m%d")}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="Attestation_{nom_client}_{timezone.now().strftime('%Y%m%d')}.pdf"'
     return response
 
 @role_permission_required('generate_pv_inhumation_pdf')
@@ -479,7 +479,7 @@ def autorisation_exhumation_pdf(request, demande_id):
     pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
     nom_defunt = demande.inhumation.defunt.nom.replace(' ', '_') if demande.inhumation and demande.inhumation.defunt else 'Defunt'
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Autorisation_exhumation_{nom_defunt}_{timezone.now().strftime("%Y%m%d")}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="Autorisation_exhumation_{nom_defunt}_{timezone.now().strftime('%Y%m%d')}.pdf"'
     return response
 
 @role_permission_required('generate_exhumation_pdf')
@@ -543,7 +543,7 @@ def rapport_statistique_pdf(request):
     template = get_template('core/pdf/rapport_statistique_pdf.html')
     pdf_file = HTML(string=template.render(context), base_url=request.build_absolute_uri('/')).write_pdf()
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="Rapport_Statistique_{date_debut.strftime("%Y%m")}_a_{date_fin.strftime("%Y%m%d")}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="Rapport_Statistique_{date_debut.strftime('%Y%m')}_a_{date_fin.strftime('%Y%m%d')}.pdf"'
     return response
 
 
