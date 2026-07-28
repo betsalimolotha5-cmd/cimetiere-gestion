@@ -110,7 +110,6 @@
         font-weight: 600;
         letter-spacing: 0.3px;
     }
-    /* Style pour les cartes d'action rapide */
     .action-card {
         background: white;
         border-radius: 10px;
@@ -160,7 +159,6 @@
                 <p class="mb-0 opacity-75 fs-5">Vue d'ensemble en temps réel : {{ total_caveaux|default:"0" }} caveaux répertoriés.</p>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <!-- ✅ BOUTON VOIR LA CARTE -->
                 <a href="/portal/" class="btn btn-light fw-bold text-success shadow-sm me-2">
                     <i class="fas fa-map-marked-alt me-2"></i>Voir la Carte
                 </a>
@@ -171,7 +169,10 @@
                 </a>
                 {% endif %}
                 
-                <!-- ✅ BOUTON DÉCONNEXION -->
+                <a href="/admin/" class="btn btn-light fw-bold text-success shadow-sm me-2">
+                    <i class="fas fa-shield-alt me-2"></i>Administration Django
+                </a>
+                
                 <a href="/mfa/logout/" class="btn btn-danger fw-bold text-white shadow-sm">
                     <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
                 </a>
@@ -296,7 +297,6 @@
     <!-- 3. GRAPHIQUES -->
     <!-- ============================================ -->
     <div class="row g-4 mb-4">
-        <!-- Taux d'occupation global -->
         <div class="col-lg-4">
             <div class="dashboard-panel">
                 <div class="panel-title">
@@ -308,7 +308,6 @@
             </div>
         </div>
         
-        <!-- Revenus mensuels -->
         <div class="col-lg-8">
             <div class="dashboard-panel">
                 <div class="panel-title">
