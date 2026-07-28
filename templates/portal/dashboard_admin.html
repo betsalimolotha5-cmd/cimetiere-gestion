@@ -145,6 +145,11 @@
                 <p class="mb-0 opacity-75 fs-5">Vue d'ensemble en temps réel : {{ total_caveaux|default:"0" }} caveaux répertoriés.</p>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <!-- ✅ AJOUT : Bouton Voir la Carte pour l'Admin -->
+                <a href="/portal/" class="btn btn-light fw-bold text-success shadow-sm me-2">
+                    <i class="fas fa-map-marked-alt me-2"></i>Voir la Carte
+                </a>
+                
                 {% if user.can_manage_settings %}
                 <a href="/portal/configuration/" class="btn btn-light fw-bold text-success shadow-sm me-2">
                     <i class="fas fa-cogs me-2"></i>Configuration
