@@ -42,13 +42,13 @@
                 </div>
                 <div class="card-body p-0">
                     <iframe 
-                        src="/cimetiere/carte/" 
+                        src="/portal/" 
                         style="width: 100%; height: 500px; border: none;"
                         title="Carte du cimetière">
                     </iframe>
                 </div>
                 <div class="card-footer text-center">
-                    <a href="/cimetiere/carte/" target="_blank" class="btn btn-success">
+                    <a href="/portal/" target="_blank" class="btn btn-success">
                         <i class="fas fa-expand"></i> Ouvrir la carte en plein écran
                     </a>
                 </div>
@@ -66,88 +66,89 @@
                 </div>
                 <div class="card-body">
                     <!-- Boutons Admin -->
-{% if user.is_admin %}
-    <div class="d-grid gap-2">
-        <a href="/portal/dashboard/" class="btn btn-primary btn-lg">
-            <i class="fas fa-chart-line"></i> Dashboard Admin
-        </a>
-        <a href="/portal/statistiques/" class="btn btn-success">
-            <i class="fas fa-chart-pie"></i> Statistiques & Rapports
-        </a>
-        <a href="/admin/" class="btn btn-warning">
-            <i class="fas fa-cog"></i> Administration Django
-        </a>
-        <a href="/portal/audit/" class="btn btn-danger">
-            <i class="fas fa-history"></i> Journal d'Audit
-        </a>
-        <a href="/portal/utilisateurs/" class="btn btn-info">
-            <i class="fas fa-users"></i> Gestion Utilisateurs
-        </a>
-        <a href="/portal/configuration/" class="btn btn-secondary">
-            <i class="fas fa-sliders-h"></i> Configuration
-        </a>
-    </div>
+                    {% if user.is_admin %}
+                    <div class="d-grid gap-2">
+                        <a href="/portal/dashboard/" class="btn btn-primary btn-lg">
+                            <i class="fas fa-chart-line"></i> Dashboard Admin
+                        </a>
+                        <a href="/portal/statistiques/" class="btn btn-success">
+                            <i class="fas fa-chart-pie"></i> Statistiques & Rapports
+                        </a>
+                        <a href="/admin/" class="btn btn-warning">
+                            <i class="fas fa-cog"></i> Administration Django
+                        </a>
+                        <a href="/portal/audit/" class="btn btn-danger">
+                            <i class="fas fa-history"></i> Journal d'Audit
+                        </a>
+                        <a href="/portal/utilisateurs/" class="btn btn-info">
+                            <i class="fas fa-users"></i> Gestion Utilisateurs
+                        </a>
+                        <a href="/portal/configuration/" class="btn btn-secondary">
+                            <i class="fas fa-sliders-h"></i> Configuration
+                        </a>
+                    </div>
 
-<!-- Boutons Agent de terrain -->
-{% elif user.is_field_agent %}
-    <div class="d-grid gap-2">
-        <a href="/portal/dashboard/" class="btn btn-primary btn-lg">
-            <i class="fas fa-tachometer-alt"></i> Mon Dashboard
-        </a>
-        <a href="/admin/core/caveau/" class="btn btn-success">
-            <i class="fas fa-warehouse"></i> Gérer les Caveaux
-        </a>
-        <a href="/admin/core/inhumation/add/" class="btn btn-warning">
-            <i class="fas fa-plus-circle"></i> Nouvelle Inhumation
-        </a>
-        <a href="/admin/core/caveau/" class="btn btn-info">
-            <i class="fas fa-qrcode"></i> QR Codes
-        </a>
-        <a href="/admin/core/concession/" class="btn btn-secondary">
-            <i class="fas fa-file-contract"></i> Concessions
-        </a>
-    </div>
+                    <!-- Boutons Agent de terrain -->
+                    {% elif user.is_field_agent %}
+                    <div class="d-grid gap-2">
+                        <a href="/portal/dashboard/" class="btn btn-primary btn-lg">
+                            <i class="fas fa-tachometer-alt"></i> Mon Dashboard
+                        </a>
+                        <a href="/admin/core/caveau/" class="btn btn-success">
+                            <i class="fas fa-warehouse"></i> Gérer les Caveaux
+                        </a>
+                        <a href="/admin/core/inhumation/add/" class="btn btn-warning">
+                            <i class="fas fa-plus-circle"></i> Nouvelle Inhumation
+                        </a>
+                        <a href="/admin/core/caveau/" class="btn btn-info">
+                            <i class="fas fa-qrcode"></i> QR Codes
+                        </a>
+                        <a href="/admin/core/concession/" class="btn btn-secondary">
+                            <i class="fas fa-file-contract"></i> Concessions
+                        </a>
+                    </div>
 
-<!-- Boutons Secrétaire -->
-{% elif user.is_secretary %}
-    <div class="d-grid gap-2">
-        <a href="/portal/dashboard/" class="btn btn-primary btn-lg">
-            <i class="fas fa-tachometer-alt"></i> Mon Dashboard
-        </a>
-        <a href="/admin/core/concession/" class="btn btn-success">
-            <i class="fas fa-file-contract"></i> Gérer Concessions
-        </a>
-        <a href="/admin/core/demandeexhumation/" class="btn btn-warning">
-            <i class="fas fa-check-circle"></i> Valider Exhumations
-        </a>
-        <a href="/admin/core/concession/" class="btn btn-info">
-            <i class="fas fa-file-pdf"></i> Générer PDFs
-        </a>
-        <a href="/portal/statistiques/" class="btn btn-secondary">
-            <i class="fas fa-chart-bar"></i> Statistiques
-        </a>
-    </div>
+                    <!-- Boutons Secrétaire -->
+                    {% elif user.is_secretary %}
+                    <div class="d-grid gap-2">
+                        <a href="/portal/dashboard/" class="btn btn-primary btn-lg">
+                            <i class="fas fa-tachometer-alt"></i> Mon Dashboard
+                        </a>
+                        <a href="/admin/core/concession/" class="btn btn-success">
+                            <i class="fas fa-file-contract"></i> Gérer Concessions
+                        </a>
+                        <a href="/admin/core/demandeexhumation/" class="btn btn-warning">
+                            <i class="fas fa-check-circle"></i> Valider Exhumations
+                        </a>
+                        <a href="/admin/core/concession/" class="btn btn-info">
+                            <i class="fas fa-file-pdf"></i> Générer PDFs
+                        </a>
+                        <a href="/portal/statistiques/" class="btn btn-secondary">
+                            <i class="fas fa-chart-bar"></i> Statistiques
+                        </a>
+                    </div>
 
-<!-- Boutons Client -->
-{% else %}
-    <div class="d-grid gap-2">
-        <a href="/portal/mes-concessions/" class="btn btn-primary btn-lg">
-            <i class="fas fa-file-alt"></i> Mes Concessions
-        </a>
-        <a href="/portal/mes-factures/" class="btn btn-success">
-            <i class="fas fa-file-invoice-dollar"></i> Mes Factures
-        </a>
-        <a href="/portal/reservation/" class="btn btn-warning">
-            <i class="fas fa-calendar-plus"></i> Faire une Réservation
-        </a>
-        <a href="/portal/exhumation/demande/" class="btn btn-info">
-            <i class="fas fa-exchange-alt"></i> Demande d'Exhumation
-        </a>
-        <a href="/portal/mes-reservations/" class="btn btn-secondary">
-            <i class="fas fa-list"></i> Mes Réservations
-        </a>
-    </div>
-{% endif %}                </div>
+                    <!-- Boutons Client -->
+                    {% else %}
+                    <div class="d-grid gap-2">
+                        <a href="/portal/mes-concessions/" class="btn btn-primary btn-lg">
+                            <i class="fas fa-file-alt"></i> Mes Concessions
+                        </a>
+                        <a href="/portal/mes-factures/" class="btn btn-success">
+                            <i class="fas fa-file-invoice-dollar"></i> Mes Factures
+                        </a>
+                        <a href="/portal/reservation/" class="btn btn-warning">
+                            <i class="fas fa-calendar-plus"></i> Faire une Réservation
+                        </a>
+                        <a href="/portal/exhumation/demande/" class="btn btn-info">
+                            <i class="fas fa-exchange-alt"></i> Demande d'Exhumation
+                        </a>
+                        <a href="/portal/mes-reservations/" class="btn btn-secondary">
+                            <i class="fas fa-list"></i> Mes Réservations
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
